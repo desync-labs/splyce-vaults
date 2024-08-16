@@ -2,8 +2,8 @@ use anchor_lang::prelude::*;
 use anchor_spl::token_interface::Mint;
 use crate::constants::VAULT_SEED;
 
-#[account(zero_copy(unsafe))]
-#[repr(packed)]
+#[account]
+// #[repr(packed)]
 #[derive(Default, Debug)]
 pub struct Vault {
     pub bump: [u8; 1],
@@ -22,6 +22,8 @@ pub struct Vault {
     pub min_user_deposit: u64,
 
     pub is_shutdown: bool,
+
+    pub strategies: [Pubkey; 10],
 }
 
 impl Vault {
@@ -66,8 +68,6 @@ impl Vault {
         self.total_shares -= shares;
     }
 
-    
-
     pub fn convert_to_shares(&self, amount: u64) -> u64 {
         if self.total_shares == 0 {
             amount
@@ -82,5 +82,13 @@ impl Vault {
         } else {
             (shares as u128 * self.total_debt as u128 / self.total_shares as u128) as u64
         }
+    }
+
+    pub fn add_strategy(&mut self, strategy: Pubkey) {
+        self.strategies.iter().position(|&x| x == Pubkey::default()).map(|i| self.strategies[i] = strategy);
+    }
+
+    pub fn remove_strategy(&mut self, strategy: Pubkey) {
+        self.strategies.iter().position(|&x| x == strategy).map(|i| self.strategies[i] = Pubkey::default());
     }
 }

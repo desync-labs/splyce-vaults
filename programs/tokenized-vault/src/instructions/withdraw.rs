@@ -1,7 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_spl::{
-    associated_token::AssociatedToken,
-    token::{self, Burn, Mint, MintTo, Token, TokenAccount, Transfer},
+    token::{self, Burn, Mint, Token, TokenAccount, Transfer},
 };
 
 use crate::state::*;
@@ -9,7 +8,7 @@ use crate::state::*;
 #[derive(Accounts)]
 pub struct Withdraw<'info> {
     #[account(mut)]
-    pub vault: AccountLoader<'info, Vault>,
+    pub vault: Account<'info, Vault>,
     #[account(mut)]
     pub user: Signer<'info>,
     #[account(mut)]
@@ -25,7 +24,7 @@ pub struct Withdraw<'info> {
 
 pub fn handler(ctx: Context<Withdraw>, shares: u64) -> Result<()> {
     // Calculate amount to withdraw
-    let amount = ctx.accounts.vault.load()?.convert_to_underlying(shares);
+    let amount = ctx.accounts.vault.convert_to_underlying(shares);
 
     // Burn shares from user
     token::burn(
@@ -48,14 +47,13 @@ pub fn handler(ctx: Context<Withdraw>, shares: u64) -> Result<()> {
                 to: ctx.accounts.user_token_account.to_account_info(),
                 authority: ctx.accounts.vault.to_account_info(),
             }, 
-            &[&ctx.accounts.vault.load()?.seeds()]
+            &[&ctx.accounts.vault.seeds()]
         ), 
         amount)?;
 
     // Update balances
-    let mut vault = ctx.accounts.vault.load_mut()?;
-    vault.total_debt -= amount;
-    vault.total_shares -= shares;
+    let mut vault = &mut ctx.accounts.vault;
+    vault.handle_withdraw(amount, shares);
 
     Ok(())
 }

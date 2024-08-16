@@ -3,6 +3,7 @@ import { Program } from "@coral-xyz/anchor";
 import { TokenizedVault } from "../target/types/tokenized_vault";
 import { BN } from "@coral-xyz/anchor";
 import * as token from "@solana/spl-token";
+import * as borsh from 'borsh';
 
 describe("tokenized_vault", () => {
   // Configure the client to use the local cluster.
@@ -15,7 +16,9 @@ describe("tokenized_vault", () => {
   let sharesMint: anchor.web3.PublicKey;
   let userTokenAccount: anchor.web3.PublicKey;
   let vaultTokenAccount: anchor.web3.PublicKey;
+  let strategyTokenAccount: anchor.web3.PublicKey;
   let userSharesAccount: anchor.web3.PublicKey;
+  let strategy: anchor.web3.PublicKey;
   let user: anchor.web3.Keypair;
   let admin: anchor.web3.Keypair;
   let underlyingMint: anchor.web3.PublicKey;
@@ -80,6 +83,55 @@ describe("tokenized_vault", () => {
     console.log("Vault initialized with total balance:", vaultAccount.totalDebt.toString());
   });
 
+  it("Adds a strategy to the vault", async () => {
+    const provider = anchor.AnchorProvider.env();
+    const strategyType = { tradeFintech: {} }; // Assuming StrategyType is an enum with a variant tradeFintech
+
+    strategy = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("strategy"), vault.toBuffer(), Buffer.from("trade_fintech")],
+      program.programId
+    )[0];
+    console.log("Strategy PDA:", strategy.toBase58());
+
+    strategyTokenAccount = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("underlying"), strategy.toBuffer()],
+      program.programId
+    )[0];
+    console.log("Strategy token account:", strategyTokenAccount.toBase58());
+
+    const ConfigSchema = new Map([
+      [TradeFintechConfig, {
+          kind: 'struct',
+          fields: [
+              ['deposit_limit', 'u64'],
+              ['deposit_period_ends', 'u64'],
+              ['lock_period_ends', 'u64'], // PublicKey is 32 bytes
+          ]
+      }]
+    ]);
+  
+    const configData = borsh.serialize(ConfigSchema, new TradeFintechConfig(1000, 1000, 1000));
+
+    await program.methods.addStrategy(strategyType, configData)
+      .accounts({
+        vault,
+        strategy,
+        strategyTokenAccount,
+        underlyingMint,
+        admin: admin.publicKey,
+        tokenProgram: token.TOKEN_PROGRAM_ID,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .signers([admin])
+      .rpc();
+
+    const vaultAccount = await program.account.vault.fetch(vault);
+    console.log("Vault strategies after adding strategy:", vaultAccount.strategies[0].toBase58());
+
+    const strategyAccount = await program.account.strategy.fetch(strategy);
+    console.log("Strategy account after adding strategy:", strategyAccount.config.depositLimit.toString());
+  });
+
   it("Deposits tokens into the vault", async () => {
     const provider = anchor.AnchorProvider.env();
 
@@ -124,7 +176,7 @@ describe("tokenized_vault", () => {
   it("Withdraws tokens from the vault", async () => {
     const provider = anchor.AnchorProvider.env();
 
-    const shares = new BN(50);
+    const shares = new BN(10);
 
     await program.methods.withdraw(shares)
       .accounts({
@@ -163,10 +215,10 @@ describe("tokenized_vault", () => {
     const newOwnerTokenAccount = await token.createAccount(provider.connection, newOwner, underlyingMint, newOwner.publicKey);
 
     console.log("New owner public key:", newOwner.publicKey.toBase58());
-    const shares = new BN(50);
+    const shares = new BN(10);
 
     // send shares to new owner
-    await token.transfer(provider.connection, user, userSharesAccount, newOwnerSharesAccount, user, 50);
+    await token.transfer(provider.connection, user, userSharesAccount, newOwnerSharesAccount, user, 10);
 
     // check the user shares account balance
     let userSharesAccountInfo = await token.getAccount(provider.connection, userSharesAccount);
@@ -197,4 +249,40 @@ describe("tokenized_vault", () => {
     let userTokenAccountInfo = await token.getAccount(provider.connection, userTokenAccount);
     console.log("User token account balance after withdrawal:", userTokenAccountInfo.amount.toString());
   });
+
+  it("allocate to the strategy", async () => {
+    const provider = anchor.AnchorProvider.env();
+    const amount = new BN(50);
+
+    await program.methods.allocate(amount)
+      .accounts({
+        vault,
+        vaultTokenAccount,
+        strategy,
+        strategyTokenAccount,
+        admin: admin.publicKey,
+        tokenProgram: token.TOKEN_PROGRAM_ID,
+      })
+      .signers([admin])
+      .rpc();
+
+      // check strategy balance
+      let strategyTokenAccountInfo = await token.getAccount(provider.connection, strategyTokenAccount);
+      console.log("strategy token account balance after allocate:", strategyTokenAccountInfo.amount.toString());
+  });
+
 });
+
+
+
+class TradeFintechConfig {
+  depositLimit: number;
+  depositPeriodEnds: number;
+  lockPeriodEnds: number;
+
+  constructor(depositLimit: number, depositPeriodEnds: number, lockPeriodEnds: number) {
+      this.depositLimit = depositLimit;
+      this.depositPeriodEnds = depositPeriodEnds;
+      this.lockPeriodEnds = lockPeriodEnds;
+  }
+}

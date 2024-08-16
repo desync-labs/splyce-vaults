@@ -1,7 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_spl::{
-    associated_token::AssociatedToken,
-    token::{self, Burn, Mint, MintTo, Token, TokenAccount, Transfer},
+    token::{ Mint, Token, TokenAccount},
     token_interface::Mint as InterfaceMint,
 };
 use std::mem::size_of;
@@ -18,7 +17,7 @@ pub struct Initialize<'info> {
         payer = admin, 
         space = size_of::<Vault>() + 8,
     )]
-    pub vault: AccountLoader<'info, Vault>,
+    pub vault: Account<'info, Vault>,
     #[account(
         init, 
         seeds = [SHARES_SEED.as_bytes(), vault.key().as_ref()], 
@@ -46,18 +45,13 @@ pub struct Initialize<'info> {
     pub rent: Sysvar<'info, Rent>,
 }
 
-
 pub fn handler(ctx: Context<Initialize>) -> Result<()> {
-    msg!("seeds: {:?}", VAULT_SEED.as_bytes());
-    msg!("bump: {:?}", ctx.bumps.vault);
-
-    let mut vault = ctx.accounts.vault.load_init()?;
+    let vault = &mut ctx.accounts.vault;
     vault.init(
         ctx.bumps.vault,
         ctx.accounts.underlying_mint.as_ref(),
         ctx.accounts.token_account.key(),
         1000000,
         0
-    );
-    Ok(())
+    )
 }
