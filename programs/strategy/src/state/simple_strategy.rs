@@ -11,14 +11,14 @@ use crate::base_strategy::Strategy;
 #[derive(Default, Debug)]
 pub struct SimpleStrategy {
     /// Bump to identify PDA
-    // pub bump: [u8; 1],
+    pub bump: [u8; 1],
 
     /// vault
     pub vault: Pubkey,
     pub underlying_mint: Pubkey,
     pub underlying_token_acc: Pubkey,
     // this value mast be u64 because of the borsh serialization
-    pub undelying_decimals: u64,
+    pub undelying_decimals: u8,
     pub total_funds: u64,
     pub deposit_limit: u64,
 }
@@ -50,6 +50,15 @@ impl Strategy for SimpleStrategy {
 
 
 impl SimpleStrategy {
+    pub const LEN: usize = 8
+        + 1
+        + 32
+        + 32
+        + 32
+        + 1
+        + 8
+        + 8;
+
     pub fn init(
         &mut self,
         bump: u8,
@@ -58,10 +67,10 @@ impl SimpleStrategy {
         underlying_mint: &InterfaceAccount<Mint>, 
         underlying_token_acc: Pubkey, 
     ) -> Result<()> {
-        // self.bump = [bump];
+        self.bump = [bump]; 
         self.vault = vault;
         self.underlying_mint = underlying_mint.key();
-        self.undelying_decimals = underlying_mint.decimals as u64;
+        self.undelying_decimals = underlying_mint.decimals;
         self.underlying_token_acc = underlying_token_acc;
         self.deposit_limit = deposit_limit;
         self.total_funds = 0;
@@ -69,12 +78,12 @@ impl SimpleStrategy {
         Ok(())
     }
 
-    //  fn seeds(&self) -> [&[u8]; 2] {
-    //     [
-    //         &STRATEGY_SEED.as_bytes(),
-    //         self.bump.as_ref(),
-    //     ]
-    // }
+     pub fn seeds(&self) -> [&[u8]; 2] {
+        [
+            &STRATEGY_SEED.as_bytes(),
+            self.bump.as_ref(),
+        ]
+    }
 
     // fn key(&self) -> Pubkey {
     //     let seeds = [

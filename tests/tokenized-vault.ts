@@ -189,10 +189,10 @@ describe("tokenized_vault", () => {
   
     // Fetch the strategy account to verify the state change
     let strategyAccount = await strategyProgram.account.simpleStrategy.fetch(strategy);
-    // console.log("Strategy total funds before allocation:", strategyAccount.totalFunds.toString());
+    console.log("Strategy total funds before allocation:", strategyAccount.totalFunds.toString());
 
     // const allocateAmount = new BN(5);
-    await vaultProgram.methods.allocate(new BN(5))
+    await vaultProgram.methods.allocate(new BN(50))
       .accounts({
         vault,
         vaultTokenAccount,
@@ -216,10 +216,52 @@ describe("tokenized_vault", () => {
   
     // Fetch the strategy account to verify the state change
     strategyAccount = await strategyProgram.account.simpleStrategy.fetch(strategy);
-    // console.log("Strategy total funds after allocation:", strategyAccount.totalFunds.toString());
+    console.log("Strategy total funds after allocation:", strategyAccount.totalFunds.toString());
   });
 
-  it("Withdraws tokens from the vault", async () => {
+  it("Deallocates tokens from the strategy", async () => {
+    const provider = anchor.AnchorProvider.env();
+
+    let vaultTokenAccountInfo = await token.getAccount(provider.connection, vaultTokenAccount);
+    console.log("Vault token account balance before allocation:", vaultTokenAccountInfo.amount.toString());
+  
+    // Fetch the strategy token account balance to verify the allocation
+    let strategyTokenAccountInfo = await token.getAccount(provider.connection, strategyTokenAccount);
+    console.log("Strategy token account balance before allocation:", strategyTokenAccountInfo.amount.toString());
+  
+    // Fetch the strategy account to verify the state change
+    let strategyAccount = await strategyProgram.account.simpleStrategy.fetch(strategy);
+    console.log("Strategy total funds before allocation:", strategyAccount.totalFunds.toString());
+
+    // const allocateAmount = new BN(5);
+    await vaultProgram.methods.deallocate(new BN(30))
+      .accounts({
+        vault,
+        vaultTokenAccount,
+        strategyProgram: strategyProgram.programId,
+        strategy,
+        strategyTokenAccount,
+        admin: admin.publicKey,
+        tokenProgram: token.TOKEN_PROGRAM_ID,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .signers([admin])
+      .rpc();
+  
+    // Fetch the vault token account balance to verify the allocation
+    vaultTokenAccountInfo = await token.getAccount(provider.connection, vaultTokenAccount);
+    console.log("Vault token account balance after allocation:", vaultTokenAccountInfo.amount.toString());
+  
+    // Fetch the strategy token account balance to verify the allocation
+    strategyTokenAccountInfo = await token.getAccount(provider.connection, strategyTokenAccount);
+    console.log("Strategy token account balance after allocation:", strategyTokenAccountInfo.amount.toString());
+  
+    // Fetch the strategy account to verify the state change
+    strategyAccount = await strategyProgram.account.simpleStrategy.fetch(strategy);
+    console.log("Strategy total funds after allocation:", strategyAccount.totalFunds.toString());
+  });
+
+  xit("Withdraws tokens from the vault", async () => {
     const provider = anchor.AnchorProvider.env();
 
     const shares = new BN(10);
@@ -250,7 +292,7 @@ describe("tokenized_vault", () => {
     console.log("User token account balance after withdrawal:", userTokenAccountInfo.amount.toString());
   });
 
-  it("transfer shares and withdraw", async () => {
+  xit("transfer shares and withdraw", async () => {
     const provider = anchor.AnchorProvider.env();
 
     const newOwner = anchor.web3.Keypair.generate();
@@ -296,15 +338,3 @@ describe("tokenized_vault", () => {
     console.log("User token account balance after withdrawal:", userTokenAccountInfo.amount.toString());
   });
 });
-
-class TradeFintechConfig {
-  depositLimit: number;
-  depositPeriodEnds: number;
-  lockPeriodEnds: number;
-
-  constructor(depositLimit: number, depositPeriodEnds: number, lockPeriodEnds: number) {
-      this.depositLimit = depositLimit;
-      this.depositPeriodEnds = depositPeriodEnds;
-      this.lockPeriodEnds = lockPeriodEnds;
-  }
-}

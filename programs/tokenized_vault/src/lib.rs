@@ -39,5 +39,12 @@ pub mod tokenized_vault {
     ) -> Result<()> {
         allocate::handler(ctx, amount)
     }
+
+    pub fn deallocate(
+        ctx: Context<DeallocateFromStrategy>,
+        amount: u64
+    ) -> Result<()> {
+        deallocate::handler(ctx, amount)
+    }
 }
 

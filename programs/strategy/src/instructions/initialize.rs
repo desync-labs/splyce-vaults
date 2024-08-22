@@ -14,7 +14,7 @@ pub struct Initialize<'info> {
         seeds = [STRATEGY_SEED.as_bytes()], 
         bump,  
         payer = admin, 
-        space = size_of::<SimpleStrategy>() + 8,
+        space = SimpleStrategy::LEN,
     )]
     pub strategy: Account<'info, SimpleStrategy>,
     #[account(

@@ -25,8 +25,8 @@ pub mod strategy {
         instructions::deposit(ctx, amount)
     }
 
-    pub fn withdraw(ctx: Context<Withdraw>, shares: u64) -> Result<()> {
-        withdraw::handler(ctx, shares)
+    pub fn withdraw_funds(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
+        instructions::withdraw(ctx, amount)
     }
 }
 
