@@ -10,7 +10,7 @@ pub struct AddStrategy<'info> {
     pub vault: Account<'info, Vault>,
     /// CHECK: is this a right way to do it?
     #[account()]
-    pub strategy: UncheckedAccount<'info>,
+    pub strategy: AccountInfo<'info>,
     #[account(mut)]
     pub admin: Signer<'info>,
 }

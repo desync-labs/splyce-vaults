@@ -5,10 +5,7 @@ use anchor_spl::{
 };
 use std::mem::size_of;
 use crate::constants::*;
-
 use crate::state::*;
-
-use super::deposit;
 
 #[derive(Accounts)]
 pub struct Initialize<'info> {
@@ -38,14 +35,13 @@ pub struct Initialize<'info> {
     pub rent: Sysvar<'info, Rent>,
 }
 
-pub fn handler(ctx: Context<Initialize>, vault: Pubkey, depositLimit: u64) -> Result<()> {
+pub fn handler(ctx: Context<Initialize>, vault: Pubkey, deposit_limit: u64) -> Result<()> {
     let strategy = &mut ctx.accounts.strategy;
     // Ok(())
     strategy.init(
         ctx.bumps.strategy,
         vault,
-        ctx.accounts.admin.key(),
-        depositLimit,
+        deposit_limit,
         ctx.accounts.underlying_mint.as_ref(),
         ctx.accounts.token_account.key(),
     )

@@ -7,8 +7,8 @@ use crate::state::*;
 
 #[derive(Accounts)]
 pub struct Withdraw<'info> {
-    #[account(mut)]
-    pub strategy: Account<'info, SimpleStrategy>,
+    // #[account(mut)]
+    // pub strategy: Account<'info, SimpleStrategy>,
     #[account(mut)]
     pub user: Signer<'info>,
     #[account(mut)]
@@ -33,7 +33,7 @@ pub fn handler(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
     //     amount)?;
 
     // Update balances
-    let mut strategy = &mut ctx.accounts.strategy;
+    // let mut strategy = &mut ctx.accounts.strategy;
     // strategy.handle_withdraw(amount, shares);
 
     Ok(())

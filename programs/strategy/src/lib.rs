@@ -11,10 +11,10 @@ pub use instructions::*;
 pub use state::*;
 // pub use utils::*;
 
-declare_id!("BVrHM7hgxz2EN94zQuSPvQT2fE8aDNS16mmsfTP1xWMJ");
+declare_id!("J1GmVbeYEBzMMxv8oiuSCYSR4AjG6r6zKbK7sgSYDC5U");
 
 #[program]
-pub mod simple_strategy {
+pub mod strategy {
     use super::*;
 
     pub fn initialize(ctx: Context<Initialize>, vault: Pubkey, deposit_limit: u64) -> Result<()> {

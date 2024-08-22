@@ -1,7 +1,7 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { TokenizedVault } from "../target/types/tokenized_vault";
-import { SimpleStrategy } from "../target/types/simple_strategy";
+import { Strategy } from "../target/types/strategy";
 import { BN } from "@coral-xyz/anchor";
 import * as token from "@solana/spl-token";
 import * as borsh from 'borsh';
@@ -11,7 +11,7 @@ describe("tokenized_vault", () => {
   anchor.setProvider(anchor.AnchorProvider.env());
 
   const vaultProgram = anchor.workspace.TokenizedVault as Program<TokenizedVault>;
-  const strategyProgram = anchor.workspace.SimpleStrategy as Program<SimpleStrategy>;
+  const strategyProgram = anchor.workspace.Strategy as Program<Strategy>;
   const TOKEN_METADATA_PROGRAM_ID = new anchor.web3.PublicKey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s");
 
   let vault: anchor.web3.PublicKey;
@@ -113,10 +113,8 @@ describe("tokenized_vault", () => {
     console.log("Strategy public key:", strategy.toBase58());
 
     const strategyAccount = await strategyProgram.account.simpleStrategy.fetch(strategy);
-    console.log("Strategy initialized with total balance:", strategyAccount.depositLimit.toString());
+    // console.log("Strategy initialized with total balance:", strategyAccount.depositLimit.toString());
 
-    // check strategy athority
-    console.log("Strategy authority:", strategyAccount.authority.toString());
   });
 
   it("Adds a strategy to the vault", async () => {
@@ -132,10 +130,6 @@ describe("tokenized_vault", () => {
     // get the vault strategies
     const vaultAccount = await vaultProgram.account.vault.fetch(vault);
     console.log("Vault strategies after adding strategy:", vaultAccount.strategies[0].toString());
-
-    // vault data
-    const vaultData = await vaultProgram.account.vault.fetch(vault);
-    console.log("Vault account data after adding strategy:", vaultData.strategies);
 
     // strategy data
     const strategyData = await strategyProgram.account.simpleStrategy.fetch(strategy);
@@ -195,7 +189,7 @@ describe("tokenized_vault", () => {
   
     // Fetch the strategy account to verify the state change
     let strategyAccount = await strategyProgram.account.simpleStrategy.fetch(strategy);
-    console.log("Strategy total funds before allocation:", strategyAccount.totalFunds.toString());
+    // console.log("Strategy total funds before allocation:", strategyAccount.totalFunds.toString());
 
     // const allocateAmount = new BN(5);
     await vaultProgram.methods.allocate(new BN(5))
@@ -222,7 +216,7 @@ describe("tokenized_vault", () => {
   
     // Fetch the strategy account to verify the state change
     strategyAccount = await strategyProgram.account.simpleStrategy.fetch(strategy);
-    console.log("Strategy total funds after allocation:", strategyAccount.totalFunds.toString());
+    // console.log("Strategy total funds after allocation:", strategyAccount.totalFunds.toString());
   });
 
   it("Withdraws tokens from the vault", async () => {

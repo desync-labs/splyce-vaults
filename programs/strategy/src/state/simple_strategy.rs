@@ -5,10 +5,9 @@ use borsh::BorshDeserialize;
 use std::result::Result as StdResult;
 
 use crate::constants::STRATEGY_SEED;
-use crate::strategy::*;
+use crate::base_strategy::Strategy;
 
-#[account]
-// #[repr(packed)]
+#[account()]
 #[derive(Default, Debug)]
 pub struct SimpleStrategy {
     /// Bump to identify PDA
@@ -16,58 +15,15 @@ pub struct SimpleStrategy {
 
     /// vault
     pub vault: Pubkey,
-    pub authority: Pubkey,
-
     pub underlying_mint: Pubkey,
     pub underlying_token_acc: Pubkey,
-    pub undelying_decimals: u8,
-
+    // this value mast be u64 because of the borsh serialization
+    pub undelying_decimals: u64,
     pub total_funds: u64,
     pub deposit_limit: u64,
 }
 
-impl SimpleStrategy {
-    pub fn init(
-        &mut self,
-        bump: u8,
-        vault: Pubkey, 
-        authority: Pubkey,
-        deposit_limit: u64,
-        underlying_mint: &InterfaceAccount<Mint>, 
-        underlying_token_acc: Pubkey, 
-    ) -> Result<()> {
-        // self.bump = [bump];
-        self.authority = authority;
-        self.vault = vault;
-        self.underlying_mint = underlying_mint.key();
-        self.undelying_decimals = underlying_mint.decimals;
-        self.underlying_token_acc = underlying_token_acc;
-        self.deposit_limit = deposit_limit;
-        self.total_funds = 0;
-
-        Ok(())
-    }
-
-    //  fn seeds(&self) -> [&[u8]; 2] {
-    //     [
-    //         &STRATEGY_SEED.as_bytes(),
-    //         self.bump.as_ref(),
-    //     ]
-    // }
-
-    fn key(&self) -> Pubkey {
-        let seeds = [
-                &STRATEGY_SEED.as_bytes(),
-                self.vault.as_ref(),
-                // self.bump.as_ref(),
-            ];
-        Pubkey::create_program_address(&seeds, &crate::id()).unwrap()
-    }
-
-    fn owner(&self) -> Pubkey {
-        self.vault
-    }
-
+impl Strategy for SimpleStrategy {
     fn available_deposit(&self) -> Result<u64> {
         Ok(self.deposit_limit - self.total_funds)
     }
@@ -90,6 +46,51 @@ impl SimpleStrategy {
         // todo: implement harvest
         Ok(())
     }
+}
+
+
+impl SimpleStrategy {
+    pub fn init(
+        &mut self,
+        bump: u8,
+        vault: Pubkey, 
+        deposit_limit: u64,
+        underlying_mint: &InterfaceAccount<Mint>, 
+        underlying_token_acc: Pubkey, 
+    ) -> Result<()> {
+        // self.bump = [bump];
+        self.vault = vault;
+        self.underlying_mint = underlying_mint.key();
+        self.undelying_decimals = underlying_mint.decimals as u64;
+        self.underlying_token_acc = underlying_token_acc;
+        self.deposit_limit = deposit_limit;
+        self.total_funds = 0;
+
+        Ok(())
+    }
+
+    //  fn seeds(&self) -> [&[u8]; 2] {
+    //     [
+    //         &STRATEGY_SEED.as_bytes(),
+    //         self.bump.as_ref(),
+    //     ]
+    // }
+
+    // fn key(&self) -> Pubkey {
+    //     let seeds = [
+    //             &STRATEGY_SEED.as_bytes(),
+    //             // self.vault.as_ref(),
+    //             // self.bump.as_ref(),
+    //         ];
+    //     Pubkey::create_program_address(&seeds, &crate::id()).unwrap()
+    // }
+
+    fn owner(&self) -> Pubkey {
+        // self.vault
+        Pubkey::default()
+    }
+
+   
 
     // fn deploy_funds(&mut self, amount: u64) -> Result<()> {
     //     self.total_idle -= amount;

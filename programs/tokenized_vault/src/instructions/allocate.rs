@@ -4,11 +4,11 @@ use anchor_spl::{
 };
 use crate::{error::ErrorCode::InvalidAccountType, Deposit};
 use crate::error::ErrorCode::InvalidStrategyConfig;
-use simple_strategy::state::SimpleStrategy;
-use simple_strategy::program::SimpleStrategy as SimpleStrategyProgram;
-use simple_strategy::{self};
-use simple_strategy::cpi::*;
-use simple_strategy::cpi::accounts::Deposit as DepositAccounts;
+use strategy_program::state::SimpleStrategy;
+use strategy_program::program::Strategy as StrategyProgram;
+use strategy_program::{self};
+use strategy_program::cpi::*;
+use strategy_program::cpi::accounts::Deposit as DepositAccounts;
 
 use crate::state::*;
 
@@ -20,13 +20,13 @@ pub struct AllocateToStrategy<'info> {
     pub vault_token_account: Account<'info, TokenAccount>,
     /// CHECK: Should this be mut?
     #[account(mut, constraint = vault.is_vault_strategy(strategy.key()))]
-    pub strategy: Account<'info, SimpleStrategy>,
+    pub strategy: AccountInfo<'info>,
     #[account(mut)]
     pub strategy_token_account: Account<'info, TokenAccount>,
     #[account(mut)]
     pub admin: Signer<'info>,
     pub token_program: Program<'info, Token>,
-    pub strategy_program: Program<'info, SimpleStrategyProgram>,
+    pub strategy_program: Program<'info, StrategyProgram>,
 }
 
 pub fn handler(
@@ -46,7 +46,7 @@ pub fn handler(
         ), 
         amount)?;
 
-    simple_strategy::cpi::deposit_funds(
+    strategy_program::cpi::deposit_funds(
         CpiContext::new(
         ctx.accounts.strategy_program.to_account_info(), DepositAccounts {
             strategy: ctx.accounts.strategy.to_account_info(),

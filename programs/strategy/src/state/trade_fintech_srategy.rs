@@ -5,7 +5,7 @@ use borsh::BorshDeserialize;
 use std::result::Result as StdResult;
 
 use crate::constants::STRATEGY_SEED;
-use crate::strategy::*;
+use crate::base_strategy::Strategy;
 
 #[account]
 // #[repr(packed)]
@@ -36,26 +36,6 @@ pub struct TradeFintechConfig {
     pub lock_period_ends: u64,
 }
 
-impl TryFrom<AccountInfo<'_>> for TradeFintechStrategy {
-    type Error = ProgramError;
-
-    fn try_from(account_info: AccountInfo<'_>) -> StdResult<Self, ProgramError> {
-        // Ensure the account data has the correct length
-        if account_info.data_len() < 8 {
-            return Err(ProgramError::InvalidAccountData);
-        }
-
-        // Deserialize the account data into your struct
-        let data = &account_info.data.borrow();
-        msg!("data: {:?}", data);
-        let strategy = TradeFintechStrategy::try_from_slice(data)
-            .map_err(|_| ProgramError::InvalidAccountData)?;
-
-        // Additional checks can be performed here (e.g., checking the discriminator)
-
-        Ok(strategy)
-    }
-}
 
 impl Strategy for TradeFintechStrategy {
     // fn seeds(&self) -> [&[u8], 3] {
@@ -66,18 +46,18 @@ impl Strategy for TradeFintechStrategy {
     //     ]
     // }
 
-    fn key(&self) -> Pubkey {
-        let seeds = [
-                &STRATEGY_SEED.as_bytes(),
-                self.vault.as_ref(),
-                self.bump.as_ref(),
-            ];
-        Pubkey::create_program_address(&seeds, &crate::id()).unwrap()
-    }
+    // fn key(&self) -> Pubkey {
+    //     let seeds = [
+    //             &STRATEGY_SEED.as_bytes(),
+    //             self.vault.as_ref(),
+    //             self.bump.as_ref(),
+    //         ];
+    //     Pubkey::create_program_address(&seeds, &crate::id()).unwrap()
+    // }
 
-    fn owner(&self) -> Pubkey {
-        self.vault
-    }
+    // fn owner(&self) -> Pubkey {
+    //     self.vault
+    // }
 
     fn available_deposit(&self) -> Result<u64> {
         // if deposit_period_ends is in the past, return 0

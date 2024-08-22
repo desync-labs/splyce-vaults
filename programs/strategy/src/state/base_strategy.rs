@@ -12,10 +12,10 @@ pub trait Strategy {
     fn harvest(&mut self) -> Result<()>;
     fn available_deposit(&self) -> Result<u64>;
     fn available_withdraw(&self) -> Result<u64>;
-    fn owner(&self) -> Pubkey;
+    // fn owner(&self) -> Pubkey;
     // fn get_strategy_type(&self) -> StrategyType;
     // fn seeds(&self) -> [&[u8]];
-    fn key(&self) -> Pubkey;
+    // fn key(&self) -> Pubkey;
     // fn create_signer_seeds(&self) -> Result<Vec<Vec<u8>>>;
     // fn try_serialize<W: Write>(&self, _writer: &mut W) -> Result<()> {
     //     Ok(())
