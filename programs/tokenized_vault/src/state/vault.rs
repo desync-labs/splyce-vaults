@@ -1,6 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface::Mint;
 use crate::constants::VAULT_SEED;
+use crate::error::ErrorCode;
 
 #[account]
 // #[repr(packed)]
@@ -84,11 +85,30 @@ impl Vault {
         }
     }
 
-    pub fn add_strategy(&mut self, strategy: Pubkey) {
+    pub fn add_strategy(&mut self, strategy: Pubkey) -> Result<()> {
+        let strategiesCount = self.strategies.iter().filter(|&x| x != &Pubkey::default()).count();
+        if strategiesCount == 10 {
+            return Err(ErrorCode::StrategiesFull.into());
+        }
+
+        if self.strategies.contains(&strategy) {
+            return Err(ErrorCode::StrategyAlreadyAdded.into());
+        }
+
         self.strategies.iter().position(|&x| x == Pubkey::default()).map(|i| self.strategies[i] = strategy);
+        Ok(())
     }
 
-    pub fn remove_strategy(&mut self, strategy: Pubkey) {
-        self.strategies.iter().position(|&x| x == strategy).map(|i| self.strategies[i] = Pubkey::default());
+    pub fn remove_strategy(&mut self, strategy: Pubkey) -> Result<()> {
+        if let Some(pos) = self.strategies.iter().position(|&x| x == strategy) {
+            self.strategies[pos] = Pubkey::default();
+            Ok(())
+        } else {
+            Err(ErrorCode::StrategyNotFound.into())
+        }
+    }
+
+    pub fn is_vault_strategy(&self, strategy: Pubkey) -> bool {
+        self.strategies.contains(&strategy)
     }
 }

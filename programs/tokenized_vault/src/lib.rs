@@ -29,16 +29,8 @@ pub mod tokenized_vault {
         withdraw::handler(ctx, shares)
     }
 
-    pub fn add_strategy(
-        ctx: Context<AddStrategy>, 
-        strategy_type: StrategyType, 
-        config_data: Vec<u8> // Serialized configuration data
-    ) -> Result<()> {
-        add_strategy::handler(
-            ctx, 
-            strategy_type, 
-            config_data
-        )
+    pub fn add_strategy(ctx: Context<AddStrategy>) -> Result<()> {
+        add_strategy::handler(ctx)
     }
 
     pub fn allocate(
