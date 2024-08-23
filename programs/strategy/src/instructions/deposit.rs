@@ -15,7 +15,7 @@ pub struct Deposit<'info> {
 // todo: consider pass
 pub fn deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
     // Calculate shares to mint
-    let mut strategy_acc = &mut ctx.accounts.strategy;
+    let strategy_acc = &mut ctx.accounts.strategy;
     let mut strategy_data = strategy_acc.try_borrow_mut_data()?;
     let discriminator = &strategy_data[0..8];
 
@@ -23,15 +23,13 @@ pub fn deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
     if discriminator == SimpleStrategy::discriminator() {
         let mut strategy: SimpleStrategy = SimpleStrategy::try_from_slice(&strategy_data[8..])
             .map_err(|_| ErrorCode::InvalidStrategyData)?;
-        strategy.deposit(amount);
-        strategy.total_funds += amount;
+        strategy.deposit(amount)?;
         strategy.serialize(&mut &mut strategy_data[8..])?;
 
     } else if discriminator == TradeFintechStrategy::discriminator() {
         let mut strategy: TradeFintechStrategy = TradeFintechStrategy::try_from_slice(&strategy_data[8..])
             .map_err(|_| ErrorCode::InvalidStrategyData)?;
-        strategy.deposit(amount);
-        strategy.total_funds += amount;
+        strategy.deposit(amount)?;
         strategy.serialize(&mut &mut strategy_data[8..])?;
     } else {
         msg!("Invalid discriminator");

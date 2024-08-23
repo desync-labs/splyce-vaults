@@ -2,7 +2,6 @@ use anchor_lang::prelude::*;
 use anchor_lang::Discriminator;
 
 use crate::state::TradeFintechStrategy;
-use anchor_lang::error::Error as AnchorError;
 // use crate::constants::STRATEGY_SEED;
 
 // #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
@@ -14,7 +13,7 @@ pub trait Strategy {
     fn available_withdraw(&self) -> Result<u64>;
     // fn owner(&self) -> Pubkey;
     // fn get_strategy_type(&self) -> StrategyType;
-    // fn seeds(&self) -> [&[u8]];
+    fn seeds(&self) -> [&[u8]; 3];
     // fn key(&self) -> Pubkey;
     // fn create_signer_seeds(&self) -> Result<Vec<Vec<u8>>>;
     // fn try_serialize<W: Write>(&self, _writer: &mut W) -> Result<()> {
@@ -32,9 +31,6 @@ pub enum StrategyEnum {
 impl Discriminator for StrategyEnum {
     const DISCRIMINATOR: [u8; 8] = *b"strategy";
 }
-
-const OWNER_PUBKEY: Pubkey = Pubkey::new_from_array([0; 32]); // Replace with the actual owner's public key
-
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
 pub enum StrategyType {

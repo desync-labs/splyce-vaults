@@ -1,8 +1,5 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface::Mint;
-use std::convert::TryFrom;
-use borsh::BorshDeserialize;
-use std::result::Result as StdResult;
 
 use crate::constants::STRATEGY_SEED;
 use crate::base_strategy::Strategy;
@@ -24,6 +21,14 @@ pub struct SimpleStrategy {
 }
 
 impl Strategy for SimpleStrategy {
+    fn seeds(&self) -> [&[u8]; 3] {
+        [
+            &STRATEGY_SEED.as_bytes(),
+            self.vault.as_ref(),
+            self.bump.as_ref(),
+        ]
+    }
+    
     fn available_deposit(&self) -> Result<u64> {
         Ok(self.deposit_limit - self.total_funds)
     }
@@ -76,13 +81,6 @@ impl SimpleStrategy {
         self.total_funds = 0;
 
         Ok(())
-    }
-
-     pub fn seeds(&self) -> [&[u8]; 2] {
-        [
-            &STRATEGY_SEED.as_bytes(),
-            self.bump.as_ref(),
-        ]
     }
 
     // fn key(&self) -> Pubkey {

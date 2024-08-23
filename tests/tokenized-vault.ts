@@ -88,7 +88,7 @@ describe("tokenized_vault", () => {
 
   it("Initializes the strategy", async () => {
     strategy = anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("strategy")],
+      [Buffer.from("strategy"), vault.toBuffer()],
       strategyProgram.programId
     )[0];
 
@@ -98,11 +98,12 @@ describe("tokenized_vault", () => {
     )[0];
 
 
-    await strategyProgram.methods.initialize(vault[0], new BN(1000))
+    await strategyProgram.methods.initialize(new BN(1000))
       .accounts({
         strategy,
         tokenAccount: strategyTokenAccount,
         underlyingMint,
+        vault,
         admin: admin.publicKey,
         tokenProgram: token.TOKEN_PROGRAM_ID,
         systemProgram: anchor.web3.SystemProgram.programId,

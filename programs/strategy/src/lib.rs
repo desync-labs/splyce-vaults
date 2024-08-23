@@ -17,8 +17,8 @@ declare_id!("J1GmVbeYEBzMMxv8oiuSCYSR4AjG6r6zKbK7sgSYDC5U");
 pub mod strategy {
     use super::*;
 
-    pub fn initialize(ctx: Context<Initialize>, vault: Pubkey, deposit_limit: u64) -> Result<()> {
-        initialize::handler(ctx, vault, deposit_limit)
+    pub fn initialize(ctx: Context<Initialize>, deposit_limit: u64) -> Result<()> {
+        initialize::handler(ctx, deposit_limit)
     }
 
     pub fn deposit_funds(ctx: Context<Deposit>, amount: u64) -> Result<()> {

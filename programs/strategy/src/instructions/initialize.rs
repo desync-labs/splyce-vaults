@@ -1,9 +1,8 @@
 use anchor_lang::prelude::*;
 use anchor_spl::{
-    token::{ Mint, Token, TokenAccount},
+    token::{ Token, TokenAccount},
     token_interface::Mint as InterfaceMint,
 };
-use std::mem::size_of;
 use crate::constants::*;
 use crate::state::*;
 
@@ -11,12 +10,15 @@ use crate::state::*;
 pub struct Initialize<'info> {
     #[account(
         init, 
-        seeds = [STRATEGY_SEED.as_bytes()], 
+        seeds = [
+            STRATEGY_SEED.as_bytes(), 
+            vault.key().as_ref()
+        ], 
         bump,  
         payer = admin, 
         space = SimpleStrategy::LEN,
     )]
-    pub strategy: Account<'info, SimpleStrategy>,
+    pub strategy: Box<Account<'info, SimpleStrategy>>,
     #[account(
         init, 
         seeds = [UNDERLYING_SEED.as_bytes()], 
@@ -26,6 +28,9 @@ pub struct Initialize<'info> {
         token::authority = strategy,
     )]
     pub token_account: Box<Account<'info, TokenAccount>>,
+    /// CHECK: This should be a vault account
+    #[account()]
+    pub vault: AccountInfo<'info>,
     #[account(mut)]
     pub underlying_mint: Box<InterfaceAccount<'info, InterfaceMint>>,
     #[account(mut)]
@@ -35,12 +40,12 @@ pub struct Initialize<'info> {
     pub rent: Sysvar<'info, Rent>,
 }
 
-pub fn handler(ctx: Context<Initialize>, vault: Pubkey, deposit_limit: u64) -> Result<()> {
+pub fn handler(ctx: Context<Initialize>, deposit_limit: u64) -> Result<()> {
     let strategy = &mut ctx.accounts.strategy;
     // Ok(())
     strategy.init(
         ctx.bumps.strategy,
-        vault,
+        ctx.accounts.vault.key(),
         deposit_limit,
         ctx.accounts.underlying_mint.as_ref(),
         ctx.accounts.token_account.key(),

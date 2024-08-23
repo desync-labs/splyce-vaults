@@ -1,8 +1,5 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface::Mint;
-use std::convert::TryFrom;
-use borsh::BorshDeserialize;
-use std::result::Result as StdResult;
 
 use crate::constants::STRATEGY_SEED;
 use crate::base_strategy::Strategy;
@@ -29,7 +26,7 @@ pub struct TradeFintechStrategy {
     pub lock_period_ends: u64,
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
+// #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]s
 pub struct TradeFintechConfig {
     pub deposit_limit: u64,
     pub deposit_period_ends: u64,
@@ -38,13 +35,13 @@ pub struct TradeFintechConfig {
 
 
 impl Strategy for TradeFintechStrategy {
-    // fn seeds(&self) -> [&[u8], 3] {
-    //     [
-    //         &STRATEGY_SEED.as_bytes(),
-    //         self.vault.as_ref(),
-    //         self.bump.as_ref(),
-    //     ]
-    // }
+    fn seeds(&self) -> [&[u8]; 3] {
+        [
+            &STRATEGY_SEED.as_bytes(),
+            self.vault.as_ref(),
+            self.bump.as_ref(),
+        ]
+    }
 
     // fn key(&self) -> Pubkey {
     //     let seeds = [

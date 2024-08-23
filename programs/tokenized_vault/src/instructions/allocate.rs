@@ -1,8 +1,5 @@
 use anchor_lang::prelude::*;
-use anchor_spl::{
-    token::{self, Token, TokenAccount, Transfer},
-};
-use strategy_program::state::SimpleStrategy;
+use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 use strategy_program::program::Strategy as StrategyProgram;
 use strategy_program::{self};
 use strategy_program::cpi::*;
@@ -49,7 +46,7 @@ pub fn handler(
         ctx.accounts.strategy_program.to_account_info(), DepositAccounts {
             strategy: ctx.accounts.strategy.to_account_info(),
         }), 
-        amount); 
+        amount)?; 
 
     Ok(())
 }

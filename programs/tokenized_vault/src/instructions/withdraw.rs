@@ -52,7 +52,7 @@ pub fn handler(ctx: Context<Withdraw>, shares: u64) -> Result<()> {
         amount)?;
 
     // Update balances
-    let mut vault = &mut ctx.accounts.vault;
+    let vault = &mut ctx.accounts.vault;
     vault.handle_withdraw(amount, shares);
 
     Ok(())
