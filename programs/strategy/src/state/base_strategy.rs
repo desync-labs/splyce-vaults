@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_lang::Discriminator;
 
-use crate::state::TradeFintechStrategy;
+use crate::state::*;
 // use crate::constants::STRATEGY_SEED;
 
 // #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
@@ -21,19 +21,17 @@ pub trait Strategy {
     // }
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
-pub enum StrategyEnum {
-    TradeFintechStrategy(TradeFintechStrategy),
-    // ConcreteStrategy2(ConcreteStrategy2),
-    // Add other strategies here
-}
+// #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
+// pub enum StrategyE {
+//     TradeFintechStrategy(TradeFintechStrategy),
+//     // ConcreteStrategy2(ConcreteStrategy2),
+//     // Add other strategies here
+// }
 
-impl Discriminator for StrategyEnum {
-    const DISCRIMINATOR: [u8; 8] = *b"strategy";
-}
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
+#[derive(Clone, Debug)]
 pub enum StrategyType {
+    Simple,
     TradeFintech,
     RWA,
     Lending,
@@ -41,14 +39,27 @@ pub enum StrategyType {
     Investor,
 }
 
+// TODO: Implement for other strategies
 impl StrategyType {
-    pub fn to_seed(&self) -> Vec<u8> {
-        match self {
-            StrategyType::TradeFintech => b"trade_fintech".to_vec(),
-            StrategyType::RWA => b"rwa".to_vec(),
-            StrategyType::Lending => b"lending".to_vec(),
-            StrategyType::Liquidation => b"liquidation".to_vec(),
-            StrategyType::Investor => b"investor".to_vec(),
+    pub fn from_discriminator(discriminator: &[u8]) -> Option<Self> {
+        if discriminator == SimpleStrategy::discriminator() {
+            Some(StrategyType::Simple)
+        } else if discriminator == TradeFintechStrategy::discriminator() {
+            Some(StrategyType::TradeFintech)
+        } else {
+            None
         }
     }
 }
+
+// impl StrategyType {
+//     pub fn to_seed(&self) -> Vec<u8> {
+//         match self {
+//             StrategyType::TradeFintech => b"trade_fintech".to_vec(),
+//             StrategyType::RWA => b"rwa".to_vec(),
+//             StrategyType::Lending => b"lending".to_vec(),
+//             StrategyType::Liquidation => b"liquidation".to_vec(),
+//             StrategyType::Investor => b"investor".to_vec(),
+//         }
+//     }
+// }

@@ -40,6 +40,7 @@ pub struct Initialize<'info> {
     pub rent: Sysvar<'info, Rent>,
 }
 
+// TODO: make single fn for all strategies
 pub fn handler(ctx: Context<Initialize>, deposit_limit: u64) -> Result<()> {
     let strategy = &mut ctx.accounts.strategy;
     // Ok(())

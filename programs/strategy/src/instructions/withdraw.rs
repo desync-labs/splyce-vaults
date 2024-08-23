@@ -4,7 +4,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 use anchor_lang::Discriminator;
 
-use crate::{state::*, strategy};
+use crate::state::*;
 use crate::error::ErrorCode;
 
 #[derive(Accounts)]
@@ -19,40 +19,19 @@ pub struct Withdraw<'info> {
     pub token_program: Program<'info, Token>,
 }
 
-pub fn withdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
-    let strategy_acc = &ctx.accounts.strategy;
-    let strategy_data: Ref<&mut [u8]> = strategy_acc.try_borrow_data()?;
-    let discriminator = &strategy_data[0..8];
-
-    // todo: refactor; note: enums?
-    if discriminator == SimpleStrategy::discriminator() {
-        drop(strategy_data); // Release the borrow before calling process_withdrawal
-        process_withdrawal::<SimpleStrategy>(amount, &ctx, strategy_acc)?;
-    } else if discriminator == TradeFintechStrategy::discriminator() {
-        drop(strategy_data); // Release the borrow before calling process_withdrawal
-        process_withdrawal::<TradeFintechStrategy>(amount, &ctx, strategy_acc)?;
-    } else {
-        msg!("Invalid discriminator");
-        return Err(ErrorCode::InvalidStrategyData.into());
-    }
-    
-    Ok(())
-}
-
-
-fn process_withdrawal<'info, T>(
-    amount: u64,
+pub fn withdraw<'info, T>(
     ctx: &Context<Withdraw<'info>>,
-    strategy_acc: &AccountInfo<'info>,
+    amount: u64,
 ) -> Result<()>
 where
     T: Strategy + anchor_lang::AnchorDeserialize + anchor_lang::AnchorSerialize,
 {
+    let strategy_acc = &ctx.accounts.strategy;
     let mut strategy_data = strategy_acc.try_borrow_mut_data()?;
     let mut strategy: T = T::try_from_slice(&strategy_data[8..])
         .map_err(|_| ErrorCode::InvalidStrategyData)?;
-    strategy.withdraw(amount)?;
 
+    strategy.withdraw(amount)?;
     // serialize strategy back to account
     strategy.serialize(&mut &mut strategy_data[8..])?;
 
