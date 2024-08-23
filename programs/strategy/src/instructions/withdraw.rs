@@ -24,16 +24,13 @@ pub fn withdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
     let strategy_data: Ref<&mut [u8]> = strategy_acc.try_borrow_data()?;
     let discriminator = &strategy_data[0..8];
 
+    // todo: refactor; note: enums?
     if discriminator == SimpleStrategy::discriminator() {
-        let mut strategy: SimpleStrategy = SimpleStrategy::try_from_slice(&strategy_data[8..])
-            .map_err(|_| ErrorCode::InvalidStrategyData)?;
         drop(strategy_data); // Release the borrow before calling process_withdrawal
-        process_withdrawal(&mut strategy, amount, &ctx, strategy_acc)?;
+        process_withdrawal::<SimpleStrategy>(amount, &ctx, strategy_acc)?;
     } else if discriminator == TradeFintechStrategy::discriminator() {
-        let mut strategy: TradeFintechStrategy = TradeFintechStrategy::try_from_slice(&strategy_data[8..])
-            .map_err(|_| ErrorCode::InvalidStrategyData)?;
         drop(strategy_data); // Release the borrow before calling process_withdrawal
-        process_withdrawal(&mut strategy, amount, &ctx, strategy_acc)?;
+        process_withdrawal::<TradeFintechStrategy>(amount, &ctx, strategy_acc)?;
     } else {
         msg!("Invalid discriminator");
         return Err(ErrorCode::InvalidStrategyData.into());
@@ -42,15 +39,19 @@ pub fn withdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
     Ok(())
 }
 
-fn process_withdrawal<'info, T: Strategy + anchor_lang::AnchorSerialize>(
-    strategy: &mut T,
+
+fn process_withdrawal<'info, T>(
     amount: u64,
     ctx: &Context<Withdraw<'info>>,
     strategy_acc: &AccountInfo<'info>,
-) -> Result<()> {
-    strategy.withdraw(amount)?;
-    let strategy_acc = &ctx.accounts.strategy;
+) -> Result<()>
+where
+    T: Strategy + anchor_lang::AnchorDeserialize + anchor_lang::AnchorSerialize,
+{
     let mut strategy_data = strategy_acc.try_borrow_mut_data()?;
+    let mut strategy: T = T::try_from_slice(&strategy_data[8..])
+        .map_err(|_| ErrorCode::InvalidStrategyData)?;
+    strategy.withdraw(amount)?;
 
     // serialize strategy back to account
     strategy.serialize(&mut &mut strategy_data[8..])?;

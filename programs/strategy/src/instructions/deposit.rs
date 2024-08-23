@@ -33,6 +33,7 @@ pub fn deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
         strategy.serialize(&mut &mut strategy_data[8..])?;
     } else {
         msg!("Invalid discriminator");
+        return Err(ErrorCode::InvalidStrategyData.into());
     }
 
     Ok(())

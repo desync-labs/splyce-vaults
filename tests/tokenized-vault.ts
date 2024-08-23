@@ -5,6 +5,8 @@ import { Strategy } from "../target/types/strategy";
 import { BN } from "@coral-xyz/anchor";
 import * as token from "@solana/spl-token";
 import * as borsh from 'borsh';
+import * as assert from 'assert';
+
 
 describe("tokenized_vault", () => {
   // Configure the client to use the local cluster.
@@ -80,10 +82,8 @@ describe("tokenized_vault", () => {
       .signers([admin])
       .rpc();
 
-    console.log("Vault public key:", vault.toBase58());
-
     const vaultAccount = await vaultProgram.account.vault.fetch(vault);
-    console.log("Vault initialized with total balance:", vaultAccount.totalDebt.toString());
+    assert.ok(vaultAccount.underlyingTokenAcc.equals(vaultTokenAccount));
   });
 
   it("Initializes the strategy", async () => {
@@ -114,7 +114,7 @@ describe("tokenized_vault", () => {
     console.log("Strategy public key:", strategy.toBase58());
 
     const strategyAccount = await strategyProgram.account.simpleStrategy.fetch(strategy);
-    // console.log("Strategy initialized with total balance:", strategyAccount.depositLimit.toString());
+    assert.ok(strategyAccount.depositLimit.eq(new BN(1000)));
 
   });
 
@@ -130,12 +130,7 @@ describe("tokenized_vault", () => {
 
     // get the vault strategies
     const vaultAccount = await vaultProgram.account.vault.fetch(vault);
-    console.log("Vault strategies after adding strategy:", vaultAccount.strategies[0].toString());
-
-    // strategy data
-    const strategyData = await strategyProgram.account.simpleStrategy.fetch(strategy);
-    console.log("Strategy account data after adding strategy:", strategyData.depositLimit.toString());
-   
+    assert.ok(vaultAccount.strategies[0].equals(strategy));
   });
 
   it("Deposits tokens into the vault", async () => {
@@ -168,32 +163,20 @@ describe("tokenized_vault", () => {
 
     // Fetch the vault token account balance to verify the deposit
     let vaultTokenAccountInfo = await token.getAccount(provider.connection, vaultTokenAccount);
-    console.log("Vault token account balance after deposit:", vaultTokenAccountInfo.amount.toString());
+    assert.strictEqual(vaultTokenAccountInfo.amount.toString(), '100');
 
     // Fetch the user's token account balance to verify the deduction
     let userTokenAccountInfo = await token.getAccount(provider.connection, userTokenAccount);
-    console.log("User token account balance after deposit:", userTokenAccountInfo.amount.toString());
+    assert.strictEqual(userTokenAccountInfo.amount.toString(), '900');
 
     // check the user shares account balance
     let userSharesAccountInfo = await token.getAccount(provider.connection, userSharesAccount);
-    console.log("User shares account balance after deposit:", userSharesAccountInfo.amount.toString());
+    assert.strictEqual(userSharesAccountInfo.amount.toString(), '100');
   });
   it("Allocates tokens to the strategy", async () => {
     const provider = anchor.AnchorProvider.env();
 
-    let vaultTokenAccountInfo = await token.getAccount(provider.connection, vaultTokenAccount);
-    console.log("Vault token account balance before allocation:", vaultTokenAccountInfo.amount.toString());
-  
-    // Fetch the strategy token account balance to verify the allocation
-    let strategyTokenAccountInfo = await token.getAccount(provider.connection, strategyTokenAccount);
-    console.log("Strategy token account balance before allocation:", strategyTokenAccountInfo.amount.toString());
-  
-    // Fetch the strategy account to verify the state change
-    let strategyAccount = await strategyProgram.account.simpleStrategy.fetch(strategy);
-    console.log("Strategy total funds before allocation:", strategyAccount.totalFunds.toString());
-
-    // const allocateAmount = new BN(5);
-    await vaultProgram.methods.allocate(new BN(50))
+    await vaultProgram.methods.allocate(new BN(60))
       .accounts({
         vault,
         vaultTokenAccount,
@@ -208,33 +191,21 @@ describe("tokenized_vault", () => {
       .rpc();
   
     // Fetch the vault token account balance to verify the allocation
-    vaultTokenAccountInfo = await token.getAccount(provider.connection, vaultTokenAccount);
-    console.log("Vault token account balance after allocation:", vaultTokenAccountInfo.amount.toString());
+    let vaultTokenAccountInfo = await token.getAccount(provider.connection, vaultTokenAccount);
+    assert.strictEqual(vaultTokenAccountInfo.amount.toString(), '40');
   
     // Fetch the strategy token account balance to verify the allocation
-    strategyTokenAccountInfo = await token.getAccount(provider.connection, strategyTokenAccount);
-    console.log("Strategy token account balance after allocation:", strategyTokenAccountInfo.amount.toString());
+    let strategyTokenAccountInfo = await token.getAccount(provider.connection, strategyTokenAccount);
+    assert.strictEqual(strategyTokenAccountInfo.amount.toString(), '60');
   
     // Fetch the strategy account to verify the state change
-    strategyAccount = await strategyProgram.account.simpleStrategy.fetch(strategy);
-    console.log("Strategy total funds after allocation:", strategyAccount.totalFunds.toString());
+    let strategyAccount = await strategyProgram.account.simpleStrategy.fetch(strategy);
+    assert.strictEqual(strategyAccount.totalFunds.toString(), '60');
   });
 
   it("Deallocates tokens from the strategy", async () => {
     const provider = anchor.AnchorProvider.env();
 
-    let vaultTokenAccountInfo = await token.getAccount(provider.connection, vaultTokenAccount);
-    console.log("Vault token account balance before allocation:", vaultTokenAccountInfo.amount.toString());
-  
-    // Fetch the strategy token account balance to verify the allocation
-    let strategyTokenAccountInfo = await token.getAccount(provider.connection, strategyTokenAccount);
-    console.log("Strategy token account balance before allocation:", strategyTokenAccountInfo.amount.toString());
-  
-    // Fetch the strategy account to verify the state change
-    let strategyAccount = await strategyProgram.account.simpleStrategy.fetch(strategy);
-    console.log("Strategy total funds before allocation:", strategyAccount.totalFunds.toString());
-
-    // const allocateAmount = new BN(5);
     await vaultProgram.methods.deallocate(new BN(30))
       .accounts({
         vault,
@@ -250,19 +221,19 @@ describe("tokenized_vault", () => {
       .rpc();
   
     // Fetch the vault token account balance to verify the allocation
-    vaultTokenAccountInfo = await token.getAccount(provider.connection, vaultTokenAccount);
-    console.log("Vault token account balance after allocation:", vaultTokenAccountInfo.amount.toString());
+    let vaultTokenAccountInfo = await token.getAccount(provider.connection, vaultTokenAccount);
+    assert.strictEqual(vaultTokenAccountInfo.amount.toString(), '70');
   
     // Fetch the strategy token account balance to verify the allocation
-    strategyTokenAccountInfo = await token.getAccount(provider.connection, strategyTokenAccount);
-    console.log("Strategy token account balance after allocation:", strategyTokenAccountInfo.amount.toString());
+    let strategyTokenAccountInfo = await token.getAccount(provider.connection, strategyTokenAccount);
+    assert.strictEqual(strategyTokenAccountInfo.amount.toString(), '30');
   
     // Fetch the strategy account to verify the state change
-    strategyAccount = await strategyProgram.account.simpleStrategy.fetch(strategy);
-    console.log("Strategy total funds after allocation:", strategyAccount.totalFunds.toString());
+    let strategyAccount = await strategyProgram.account.simpleStrategy.fetch(strategy);
+    assert.strictEqual(strategyAccount.totalFunds.toString(), '30');
   });
 
-  xit("Withdraws tokens from the vault", async () => {
+  it("Withdraws tokens from the vault", async () => {
     const provider = anchor.AnchorProvider.env();
 
     const shares = new BN(10);
@@ -282,18 +253,21 @@ describe("tokenized_vault", () => {
       .rpc();
 
     const vaultAccount = await vaultProgram.account.vault.fetch(vault);
-    console.log("Vault balance after withdrawal:", vaultAccount.totalDebt.toString());
+    assert.strictEqual(vaultAccount.totalDebt.toString(), '90');
+
+    let vaultTokenAccountInfo = await token.getAccount(provider.connection, vaultTokenAccount);
+    assert.strictEqual(vaultTokenAccountInfo.amount.toString(), '60');
 
     // check the user shares account balance
     let userSharesAccountInfo = await token.getAccount(provider.connection, userSharesAccount);
-    console.log("User shares account balance after withdrawal:", userSharesAccountInfo.amount.toString());
+    assert.strictEqual(userSharesAccountInfo.amount.toString(), '90');
 
     // check the user token account balance
     let userTokenAccountInfo = await token.getAccount(provider.connection, userTokenAccount);
-    console.log("User token account balance after withdrawal:", userTokenAccountInfo.amount.toString());
+    assert.strictEqual(userTokenAccountInfo.amount.toString(), '910');
   });
 
-  xit("transfer shares and withdraw", async () => {
+  it("transfer shares and withdraw", async () => {
     const provider = anchor.AnchorProvider.env();
 
     const newOwner = anchor.web3.Keypair.generate();
@@ -311,11 +285,11 @@ describe("tokenized_vault", () => {
 
     // check the user shares account balance
     let userSharesAccountInfo = await token.getAccount(provider.connection, userSharesAccount);
-    console.log("User shares account balance after transfer:", userSharesAccountInfo.amount.toString());
+    assert.strictEqual(userSharesAccountInfo.amount.toString(), '80');
 
     // check the new owner shares account balance
     let newOwnerSharesAccountInfo = await token.getAccount(provider.connection, newOwnerSharesAccount);
-    console.log("New owner shares account balance after transfer:", newOwnerSharesAccountInfo.amount.toString());
+    assert.strictEqual(newOwnerSharesAccountInfo.amount.toString(), '10');
 
     await vaultProgram.methods.withdraw(shares)
       .accounts({
@@ -332,10 +306,10 @@ describe("tokenized_vault", () => {
 
     // check the new owner shares account balance
     newOwnerSharesAccountInfo = await token.getAccount(provider.connection, newOwnerSharesAccount);
-    console.log("New owner shares account balance after withdrawal:", newOwnerSharesAccountInfo.amount.toString());
+    assert.strictEqual(newOwnerSharesAccountInfo.amount.toString(), '0');
 
     // check the user token account balance
     let userTokenAccountInfo = await token.getAccount(provider.connection, userTokenAccount);
-    console.log("User token account balance after withdrawal:", userTokenAccountInfo.amount.toString());
+    assert.strictEqual(userTokenAccountInfo.amount.toString(), '910');
   });
 });
