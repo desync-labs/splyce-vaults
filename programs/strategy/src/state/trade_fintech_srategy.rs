@@ -1,8 +1,8 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface::Mint;
 
-use crate::constants::STRATEGY_SEED;
-use crate::base_strategy::Strategy;
+use crate::strategy::*;
+use crate::error::ErrorCode;
 
 #[account]
 // #[repr(packed)]
@@ -26,21 +26,45 @@ pub struct TradeFintechStrategy {
     pub lock_period_ends: u64,
 }
 
-// #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]s
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
 pub struct TradeFintechConfig {
     pub deposit_limit: u64,
     pub deposit_period_ends: u64,
     pub lock_period_ends: u64,
 }
 
-
 impl Strategy for TradeFintechStrategy {
     fn seeds(&self) -> [&[u8]; 3] {
         [
-            &STRATEGY_SEED.as_bytes(),
+            "trade_fintech".as_bytes(),
             self.vault.as_ref(),
             self.bump.as_ref(),
         ]
+    }
+
+    fn init(
+        &mut self,
+        bump: u8,
+        vault: Pubkey, 
+        underlying_mint: &InterfaceAccount<Mint>, 
+        underlying_token_acc: Pubkey, 
+        configBytes: Vec<u8>
+    ) -> Result<()> {
+        let config = TradeFintechConfig::try_from_slice(&configBytes)
+        .map_err(|_| ErrorCode::InvalidStrategyConfig)?;
+
+        self.bump = [bump];
+        self.vault = vault;
+        self.underlying_mint = underlying_mint.key();
+        self.undelying_decimals = underlying_mint.decimals;
+        self.underlying_token_acc = underlying_token_acc;
+        self.deposit_limit = config.deposit_limit;
+        self.deposit_period_ends = config.deposit_period_ends;
+        self.lock_period_ends = config.lock_period_ends;
+        self.total_funds = 0;
+        self.total_idle = 0;
+
+        Ok(())
     }
 
     // fn key(&self) -> Pubkey {
@@ -93,27 +117,7 @@ impl Strategy for TradeFintechStrategy {
 }
 
 impl TradeFintechStrategy {
-    pub fn init(
-        &mut self,
-        bump: u8,
-        vault: Pubkey, 
-        underlying_mint: &InterfaceAccount<Mint>, 
-        underlying_token_acc: Pubkey, 
-        config: TradeFintechConfig
-    ) -> Result<()> {
-        self.bump = [bump];
-        self.vault = vault;
-        self.underlying_mint = underlying_mint.key();
-        self.undelying_decimals = underlying_mint.decimals;
-        self.underlying_token_acc = underlying_token_acc;
-        self.deposit_limit = config.deposit_limit;
-        self.deposit_period_ends = config.deposit_period_ends;
-        self.lock_period_ends = config.lock_period_ends;
-        self.total_funds = 0;
-        self.total_idle = 0;
-
-        Ok(())
-    }
+    pub const LEN: usize = 8 + 1 + 32 + 32 + 32 + 1 + 8 + 8 + 8 + 8 + 8;
 
     fn deploy_funds(&mut self, amount: u64) -> Result<()> {
         self.total_idle -= amount;

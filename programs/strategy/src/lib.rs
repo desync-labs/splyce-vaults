@@ -5,21 +5,45 @@ pub mod state;
 pub mod utils;
 
 use anchor_lang::prelude::*;
-use anchor_lang::Discriminator;
 
 pub use constants::*;
 pub use instructions::*;
 pub use state::*;
 use error::ErrorCode::InvalidStrategyData;
 
-declare_id!("J1GmVbeYEBzMMxv8oiuSCYSR4AjG6r6zKbK7sgSYDC5U");
+declare_id!("FdFSegudTdDtCB8QvUN1FVLe6YpcCCLu5e1aJoiqAdtZ");
+
+// we need to define a trait for the strategies
+// they aren't defined otherwise, because we work with unchecked accounts
+#[derive(Accounts)]
+#[instruction(strategy_type: StrategyType)]pub struct RegAcc<'info> {
+    #[account(mut)]
+    pub strategy: Account<'info, SimpleStrategy>,
+   
+}
+
 
 #[program]
-pub mod strategy {
+pub mod strategy_program {
     use super::*;
 
-    pub fn initialize(ctx: Context<Initialize>, deposit_limit: u64) -> Result<()> {
-        initialize::handler(ctx, deposit_limit)
+    pub fn initialize(ctx: Context<Initialize>, strategy_type: StrategyType, config: Vec<u8>) -> Result<()> {
+        match strategy_type {
+            StrategyType::Simple => {
+                return instructions::initialize::<SimpleStrategy>(ctx, config)
+            }
+            StrategyType::TradeFintech => {
+                return instructions::initialize::<TradeFintechStrategy>(ctx, config)
+            }
+            _ => {
+                msg!("Invalid strategy type");
+                return Err(InvalidStrategyData.into())
+            }
+        }
+    }
+
+    pub fn register_accounts(ctx: Context<RegAcc>) -> Result<()> {
+        Ok(())
     }
 
     pub fn deposit_funds(ctx: Context<Deposit>, amount: u64) -> Result<()> {
@@ -37,8 +61,7 @@ pub mod strategy {
                 return Err(InvalidStrategyData.into())
             }
         }
-
-        Ok(())
+        // Ok(())
     }
 
     pub fn withdraw_funds(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
@@ -57,7 +80,7 @@ pub mod strategy {
             }
         }
 
-        Ok(())
+        // Ok(())
     }
 }
 

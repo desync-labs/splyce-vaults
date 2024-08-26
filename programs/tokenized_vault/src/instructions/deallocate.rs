@@ -5,7 +5,7 @@ use anchor_spl::{
 use crate::{error::ErrorCode::InvalidAccountType, Deposit};
 use crate::error::ErrorCode::InvalidStrategyConfig;
 use strategy_program::state::SimpleStrategy;
-use strategy_program::program::Strategy as StrategyProgram;
+use strategy_program::program::StrategyProgram;
 use strategy_program::{self};
 use strategy_program::cpi::*;
 use strategy_program::cpi::accounts::Withdraw as WithdrawAccounts;

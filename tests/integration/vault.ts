@@ -1,11 +1,12 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
-import { TokenizedVault } from "../target/types/tokenized_vault";
+import { TokenizedVault } from "../../target/types/tokenized_vault";
 import { Strategy } from "../target/types/strategy";
 import { BN } from "@coral-xyz/anchor";
 import * as token from "@solana/spl-token";
 import * as borsh from 'borsh';
 import * as assert from 'assert';
+import { SimpleStrategySchema, SimpleStrategy } from "../utils/schemas";
 
 
 describe("tokenized_vault", () => {
@@ -13,7 +14,7 @@ describe("tokenized_vault", () => {
   anchor.setProvider(anchor.AnchorProvider.env());
 
   const vaultProgram = anchor.workspace.TokenizedVault as Program<TokenizedVault>;
-  const strategyProgram = anchor.workspace.Strategy as Program<Strategy>;
+  const strategyProgram = anchor.workspace.StrategyProgram as Program<Strategy>;
   const TOKEN_METADATA_PROGRAM_ID = new anchor.web3.PublicKey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s");
 
   let vault: anchor.web3.PublicKey;
@@ -88,17 +89,24 @@ describe("tokenized_vault", () => {
 
   it("Initializes the strategy", async () => {
     strategy = anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("strategy"), vault.toBuffer()],
+      [Buffer.from("simple"), vault.toBuffer()],
       strategyProgram.programId
     )[0];
 
     strategyTokenAccount = anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("underlying")],
-      strategyProgram.programId
+      [strategy.toBuffer(), Buffer.from("underlying")],
+      strategyProgram.programId,
     )[0];
 
+    const strategyType = { simple: {} };
 
-    await strategyProgram.methods.initialize(new BN(1000))
+    const config = new SimpleStrategy({
+      depositLimit: new BN(1000),
+      // Add other fields as needed
+    });
+    const configBytes = Buffer.from(borsh.serialize(SimpleStrategySchema, config));
+    console.log("strategy:", strategy);
+    await strategyProgram.methods.initialize(strategyType, configBytes)
       .accounts({
         strategy,
         tokenAccount: strategyTokenAccount,
@@ -113,6 +121,7 @@ describe("tokenized_vault", () => {
 
     console.log("Strategy public key:", strategy.toBase58());
 
+    // console.log(await strategyProgram.account.simpleStrategy.fetch(strategy));
     const strategyAccount = await strategyProgram.account.simpleStrategy.fetch(strategy);
     assert.ok(strategyAccount.depositLimit.eq(new BN(1000)));
 
