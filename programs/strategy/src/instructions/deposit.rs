@@ -10,7 +10,7 @@ pub struct Deposit<'info> {
     pub strategy: AccountInfo<'info>,
 }
 
-pub fn deposit<'info, T>(
+pub fn handle_deposit<'info, T>(
     ctx: &Context<Deposit<'info>>,
     amount: u64,
 ) -> Result<()>

@@ -10,6 +10,7 @@ use crate::state::*;
 
 #[derive(Accounts)]
 pub struct Initialize<'info> {
+    // TODO: need to think about proper seeds
     #[account(
         init, 
         seeds = [VAULT_SEED.as_bytes(), underlying_mint.key().as_ref()], 
@@ -45,7 +46,7 @@ pub struct Initialize<'info> {
     pub rent: Sysvar<'info, Rent>,
 }
 
-pub fn handler(ctx: Context<Initialize>) -> Result<()> {
+pub fn handle_initialize(ctx: Context<Initialize>) -> Result<()> {
     let vault = &mut ctx.accounts.vault;
     vault.init(
         ctx.bumps.vault,

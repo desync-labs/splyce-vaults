@@ -1,5 +1,4 @@
 use anchor_lang::prelude::*;
-use anchor_lang::solana_program::config;
 use anchor_spl::token_interface::Mint;
 
 use crate::constants::*;
@@ -34,9 +33,9 @@ impl Strategy for SimpleStrategy {
         vault: Pubkey, 
         underlying_mint: &InterfaceAccount<Mint>, 
         underlying_token_acc: Pubkey, 
-        configBytes: Vec<u8>
+        config_bytes: Vec<u8>
     ) -> Result<()> {
-        let config = SimpleStrategyConfig::try_from_slice(&configBytes)
+        let config = SimpleStrategyConfig::try_from_slice(&config_bytes)
         .map_err(|_| ErrorCode::InvalidStrategyConfig)?;
 
         self.bump = [bump]; 

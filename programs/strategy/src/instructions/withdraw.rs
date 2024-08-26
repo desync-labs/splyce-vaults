@@ -16,7 +16,7 @@ pub struct Withdraw<'info> {
     pub token_program: Program<'info, Token>,
 }
 
-pub fn withdraw<'info, T>(
+pub fn handle_withdraw<'info, T>(
     ctx: &Context<Withdraw<'info>>,
     amount: u64,
 ) -> Result<()>

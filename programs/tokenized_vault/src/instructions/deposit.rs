@@ -22,7 +22,7 @@ pub struct Deposit<'info> {
     pub token_program: Program<'info, Token>,
 }
 
-pub fn handler(ctx: Context<Deposit>, amount: u64) -> Result<()> {
+pub fn handle_deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
     token::transfer(
         CpiContext::new(
             ctx.accounts.token_program.to_account_info(), 
@@ -52,8 +52,7 @@ pub fn handler(ctx: Context<Deposit>, amount: u64) -> Result<()> {
     )?;
     // Update balances
 
-    let mut vault = &mut ctx.accounts.vault;
-    
+    let vault = &mut ctx.accounts.vault;
     vault.handle_deposit(amount, shares);
 
     Ok(())

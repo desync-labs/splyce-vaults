@@ -1,7 +1,5 @@
 use anchor_lang::prelude::*;
-use core::num;
 
-use crate::constants::*;
 use crate::state::*;
 
 #[derive(Accounts)]
@@ -15,9 +13,8 @@ pub struct AddStrategy<'info> {
     pub admin: Signer<'info>,
 }
 
-pub fn handler(ctx: Context<AddStrategy>) -> Result<()> {
-    let mut vault = &mut ctx.accounts.vault;
-    vault.add_strategy(ctx.accounts.strategy.key());
-    
+pub fn handle_add_strategy(ctx: Context<AddStrategy>) -> Result<()> {
+    let vault = &mut ctx.accounts.vault;
+    let _ = vault.add_strategy(ctx.accounts.strategy.key());
     Ok(())
 }

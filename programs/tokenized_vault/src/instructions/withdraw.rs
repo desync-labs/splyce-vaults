@@ -22,7 +22,7 @@ pub struct Withdraw<'info> {
     pub token_program: Program<'info, Token>,
 }
 
-pub fn handler(ctx: Context<Withdraw>, shares: u64) -> Result<()> {
+pub fn handle_withdraw(ctx: Context<Withdraw>, shares: u64) -> Result<()> {
     // Calculate amount to withdraw
     let amount = ctx.accounts.vault.convert_to_underlying(shares);
 

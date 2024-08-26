@@ -1,13 +1,7 @@
 use anchor_lang::prelude::*;
-use anchor_spl::{
-    token::{self, Token, TokenAccount, Transfer},
-};
-use crate::{error::ErrorCode::InvalidAccountType, Deposit};
-use crate::error::ErrorCode::InvalidStrategyConfig;
-use strategy_program::state::SimpleStrategy;
+use anchor_spl::token::{ Token, TokenAccount};
 use strategy_program::program::StrategyProgram;
 use strategy_program::{self};
-use strategy_program::cpi::*;
 use strategy_program::cpi::accounts::Withdraw as WithdrawAccounts;
 
 use crate::state::*;
@@ -29,7 +23,7 @@ pub struct DeallocateFromStrategy<'info> {
     pub strategy_program: Program<'info, StrategyProgram>,
 }
 
-pub fn handler(
+pub fn handle_deallocate(
     ctx: Context<DeallocateFromStrategy>, 
     amount: u64,
 ) -> Result<()> {
@@ -43,7 +37,5 @@ pub fn handler(
             vault_token_account: ctx.accounts.vault_token_account.to_account_info(),
             token_program: ctx.accounts.token_program.to_account_info(),
         }), 
-        amount); 
-
-    Ok(())
+        amount)
 }

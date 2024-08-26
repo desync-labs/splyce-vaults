@@ -86,8 +86,8 @@ impl Vault {
     }
 
     pub fn add_strategy(&mut self, strategy: Pubkey) -> Result<()> {
-        let strategiesCount = self.strategies.iter().filter(|&x| x != &Pubkey::default()).count();
-        if strategiesCount == 10 {
+        let strategies_count = self.strategies.iter().filter(|&x| x != &Pubkey::default()).count();
+        if strategies_count == 10 {
             return Err(ErrorCode::StrategiesFull.into());
         }
 

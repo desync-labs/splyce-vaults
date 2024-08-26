@@ -2,7 +2,6 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 use strategy_program::program::StrategyProgram;
 use strategy_program::{self};
-use strategy_program::cpi::*;
 use strategy_program::cpi::accounts::Deposit as DepositAccounts;
 
 use crate::state::*;
@@ -24,7 +23,7 @@ pub struct AllocateToStrategy<'info> {
     pub strategy_program: Program<'info, StrategyProgram>,
 }
 
-pub fn handler(
+pub fn handle_allocate(
     ctx: Context<AllocateToStrategy>, 
     amount: u64,
 ) -> Result<()> {

@@ -48,9 +48,9 @@ impl Strategy for TradeFintechStrategy {
         vault: Pubkey, 
         underlying_mint: &InterfaceAccount<Mint>, 
         underlying_token_acc: Pubkey, 
-        configBytes: Vec<u8>
+        config_bytes: Vec<u8>
     ) -> Result<()> {
-        let config = TradeFintechConfig::try_from_slice(&configBytes)
+        let config = TradeFintechConfig::try_from_slice(&config_bytes)
         .map_err(|_| ErrorCode::InvalidStrategyConfig)?;
 
         self.bump = [bump];

@@ -6,9 +6,7 @@ use anchor_spl::{
     token_interface::Mint as InterfaceMint,
 };
 use crate::constants::UNDERLYING_SEED;
-use crate::constants::STRATEGY_SEED;
 use crate::state::*;
-use crate::error::ErrorCode;
 
 #[derive(Accounts)]
 #[instruction(strategy_type: StrategyType)]
@@ -50,7 +48,7 @@ pub struct Initialize<'info> {
 }
 
 // TODO: make single fn for all strategies
-pub fn initialize<T>(ctx: Context<Initialize>, config: Vec<u8>) -> Result<()> 
+pub fn handle_initialize<T>(ctx: Context<Initialize>, config: Vec<u8>) -> Result<()> 
     where
         T: Strategy + anchor_lang::AnchorDeserialize + anchor_lang::AnchorSerialize + Discriminator + Default
 {
@@ -62,7 +60,7 @@ pub fn initialize<T>(ctx: Context<Initialize>, config: Vec<u8>) -> Result<()>
     // we need to set the discriminator to the first 8 bytes of the account data
     data[..8].copy_from_slice(&T::discriminator());
 
-    strategy_data.init(
+    let _ = strategy_data.init(
         ctx.bumps.strategy,
         ctx.accounts.vault.key(),
         ctx.accounts.underlying_mint.as_ref(),

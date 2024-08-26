@@ -321,4 +321,19 @@ describe("tokenized_vault", () => {
     let userTokenAccountInfo = await token.getAccount(provider.connection, userTokenAccount);
     assert.strictEqual(userTokenAccountInfo.amount.toString(), '910');
   });
+
+  it("set deposit limit", async () => {
+    const newDepositLimit = new BN(2000);
+
+    await vaultProgram.methods.setDepositLimit(newDepositLimit)
+    .accounts({
+      vault,
+      admin: admin.publicKey,
+    })
+    .signers([admin])
+    .rpc();
+
+    const vaultAccount = await vaultProgram.account.vault.fetch(vault);
+    assert.strictEqual(vaultAccount.depositLimit.toString(), newDepositLimit.toString());
+  });
 });

@@ -13,7 +13,7 @@ pub trait Strategy {
         vault: Pubkey, 
         underlying_mint: &InterfaceAccount<Mint>, 
         underlying_token_acc: Pubkey, 
-        config: Vec<u8>
+        config_bytes: Vec<u8>
     ) -> Result<()>;
     fn deposit(&mut self, amount: u64) -> Result<()>;
     fn withdraw(&mut self, amount: u64) -> Result<()>;
