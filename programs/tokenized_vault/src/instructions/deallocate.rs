@@ -27,8 +27,6 @@ pub fn handle_deallocate(
     ctx: Context<DeallocateFromStrategy>, 
     amount: u64,
 ) -> Result<()> {
-    msg!("Deallocating funds from strategy");
-
     strategy_program::cpi::withdraw_funds(
         CpiContext::new(
         ctx.accounts.strategy_program.to_account_info(), WithdrawAccounts {

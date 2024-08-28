@@ -1,14 +1,34 @@
 use anchor_lang::prelude::*;
+use anchor_spl::token::{Token, TokenAccount};
 
 use crate::state::*;
 use crate::error::ErrorCode;
+use crate::utils::token::transfer_token_to;
 
 #[derive(Accounts)]
 pub struct Deposit<'info> {
     /// CHECK: can by any strategy
     #[account(mut)]
     pub strategy: AccountInfo<'info>,
+    #[account(mut)]
+    pub vault: Signer<'info>,
+    #[account(mut)]
+    pub token_account: Account<'info, TokenAccount>,
+    #[account(mut)]
+    pub vault_token_account: Account<'info, TokenAccount>,
+    pub token_program: Program<'info, Token>,
 }
+
+// pub struct Withdraw<'info> {
+//     /// CHECK: can by any strategy
+//     #[account(mut)]
+//     pub strategy: AccountInfo<'info>,
+//     #[account(mut)]
+//     pub token_account: Account<'info, TokenAccount>,
+//     #[account(mut)]
+//     pub vault_token_account: Account<'info, TokenAccount>,
+//     pub token_program: Program<'info, Token>,
+// }
 
 pub fn handle_deposit<'info, T>(
     ctx: &Context<Deposit<'info>>,
@@ -26,5 +46,16 @@ where
     // serialize strategy back to account
     strategy.serialize(&mut &mut strategy_data[8..])?;
 
-    Ok(())
+    drop(strategy_data);
+
+    msg!("Depositing {} tokens to strategy", amount);
+
+    transfer_token_to(
+        ctx.accounts.token_program.to_account_info(),
+        ctx.accounts.vault_token_account.to_account_info(), 
+        ctx.accounts.token_account.to_account_info(), 
+        ctx.accounts.vault.to_account_info(), 
+        amount
+    )
+    // Ok(())
 }

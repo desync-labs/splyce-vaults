@@ -13,4 +13,10 @@ pub enum ErrorCode {
 
     #[msg("Invalid strategy data")]
     InvalidStrategyData,
+
+    #[msg("Cannot withdraw")]
+    CannotWithdraw,
+
+    #[msg("Debt cannot be reduced because of unrealised losses")]
+    UnrealisedLosses,
 }

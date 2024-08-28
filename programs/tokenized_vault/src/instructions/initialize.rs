@@ -3,20 +3,24 @@ use anchor_spl::{
     token::{ Mint, Token, TokenAccount},
     token_interface::Mint as InterfaceMint,
 };
-use std::mem::size_of;
 use crate::constants::*;
 
 use crate::state::*;
 
 #[derive(Accounts)]
+#[instruction(index: u64)]
 pub struct Initialize<'info> {
     // TODO: need to think about proper seeds
     #[account(
         init, 
-        seeds = [VAULT_SEED.as_bytes(), underlying_mint.key().as_ref()], 
+        seeds = [
+            VAULT_SEED.as_bytes(), 
+            underlying_mint.key().as_ref(),
+            index.to_le_bytes().as_ref()
+        ], 
         bump,  
         payer = admin, 
-        space = size_of::<Vault>() + 8,
+        space = Vault::LEN,
     )]
     pub vault: Account<'info, Vault>,
     #[account(
@@ -46,13 +50,14 @@ pub struct Initialize<'info> {
     pub rent: Sysvar<'info, Rent>,
 }
 
-pub fn handle_initialize(ctx: Context<Initialize>) -> Result<()> {
+pub fn handle_initialize(ctx: Context<Initialize>, index: u64) -> Result<()> {
     let vault = &mut ctx.accounts.vault;
     vault.init(
         ctx.bumps.vault,
         ctx.accounts.underlying_mint.as_ref(),
         ctx.accounts.token_account.key(),
         1000000,
-        0
+        0,
+        index
     )
 }

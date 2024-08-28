@@ -1,67 +1,75 @@
-// use anchor_lang::prelude::*;
-// use anchor_spl::{
-//     associated_token::AssociatedToken,
-//     token::{self, Burn, Mint, MintTo, Token, TokenAccount, Transfer},
-// };
+use anchor_lang::prelude::*;
+use anchor_spl::token::{self, TokenAccount, Transfer, MintTo};
 
-// use crate::{vault, Vault};
-
-// pub fn transfer_token_from(
-//     token_program: AccountInfo,
-//     from: AccountInfo,
-//     to: AccountInfo,
-//     authority: AccountInfo,
-//     amount: u64,
-// ) -> Result<()> {
-//     let cpi_accounts = Transfer {
-//         from: from,
-//         to: to,
-//         authority: authority,
-//     };
-//     let cpi_program = token_program;
-//     let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
-//     token::transfer(cpi_ctx, amount);
-//     Ok(())
+// pub fn get_token_balance<'a>(
+//     token_program: AccountInfo<'a>,
+//     account: AccountInfo<'a>,
+// ) -> Result<u64> {
+//     let account_data = account.try_borrow_data()?;
+//     let token_account = TokenAccount::try_deserialize(&mut &account_data[..])?;
+//     Ok(token_account.amount)
 // }
 
-// pub fn transfer_token_to(
-//     token_program: AccountInfo,
-//     from: AccountInfo,
-//     to: AccountInfo,
-//     authority: AccountInfo,
-//     amount: u64,
-// ) -> Result<()> {
-//     let cpi_program = token_program;
-//     token::transfer(CpiContext::new(cpi_program, Transfer {
-//         from,
-//         to,
-//         authority,
-//     }), amount);
-//     Ok(())
-// }
+pub fn transfer_token_from<'a>(
+    token_program: AccountInfo<'a>,
+    from: AccountInfo<'a>,
+    to: AccountInfo<'a>,
+    authority: AccountInfo<'a>,
+    amount: u64,
+    seeds: &[&[u8]],
+) -> Result<()> {
+    token::transfer(
+        CpiContext::new_with_signer(
+            token_program,
+            Transfer {
+                from,
+                to,
+                authority,
+            },
+            &[&seeds]
+        ),
+        amount,
+    )
+}
 
-// pub fn mint_token_to<'info>(
-//     vault_loader: AccountLoader<'info, Vault>,
-//     token_program: AccountInfo,
-//     mint: AccountInfo,
-//     to: AccountInfo,
-//     amount: u64,
-// ) -> Result<()> {
-//     let vault = vault_loader.load()?;
-//     let shares = vault.convert_to_shares(amount);
-//     let seeds = vault.seeds();
-//     let cpi_accounts = MintTo {
-//         mint,
-//         to,
-//         authority: vault_loader.to_account_info(),
-//     };
-    
-//     let cpi_program = token_program;
-//     let cpi_ctx = 
-//     token::mint_to(
-//         // CpiContext::new_with_signer(cpi_program, cpi_accounts, signer), 
-//         CpiContext::new_with_signer(cpi_program, cpi_accounts, &[&seeds]), 
-//         shares
-//     )?;
-//     Ok(())
-// }
+pub fn transfer_token_to<'a>(
+    token_program: AccountInfo<'a>,
+    from: AccountInfo<'a>,
+    to: AccountInfo<'a>,
+    authority: AccountInfo<'a>,
+    amount: u64,
+) -> Result<()> {
+    token::transfer(
+        CpiContext::new(
+            token_program,
+            Transfer {
+                from,
+                to,
+                authority,
+            }
+        ),
+        amount,
+    )
+}
+
+pub fn mint_to<'a>(
+    token_program: AccountInfo<'a>,
+    mint: AccountInfo<'a>,
+    to: AccountInfo<'a>,
+    authority: AccountInfo<'a>,
+    amount: u64,
+    seeds: &[&[u8]],
+) -> Result<()> {
+    token::mint_to(
+        CpiContext::new_with_signer(
+            token_program,
+            MintTo {
+                mint,
+                to,
+                authority,
+            },
+            &[&seeds]
+        ),
+        amount,
+    )
+}

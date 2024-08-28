@@ -18,6 +18,7 @@ pub struct TradeFintechStrategy {
     pub underlying_token_acc: Pubkey,
     pub undelying_decimals: u8,
 
+    pub current_debt: u64,
     pub total_idle: u64,
     pub total_funds: u64,
     pub deposit_limit: u64,
@@ -34,6 +35,10 @@ pub struct TradeFintechConfig {
 }
 
 impl Strategy for TradeFintechStrategy {
+    fn strategy_type(&self) -> StrategyType {
+        StrategyType::TradeFintech
+    }
+
     fn seeds(&self) -> [&[u8]; 3] {
         [
             "trade_fintech".as_bytes(),
@@ -67,35 +72,6 @@ impl Strategy for TradeFintechStrategy {
         Ok(())
     }
 
-    // fn key(&self) -> Pubkey {
-    //     let seeds = [
-    //             &STRATEGY_SEED.as_bytes(),
-    //             self.vault.as_ref(),
-    //             self.bump.as_ref(),
-    //         ];
-    //     Pubkey::create_program_address(&seeds, &crate::id()).unwrap()
-    // }
-
-    // fn owner(&self) -> Pubkey {
-    //     self.vault
-    // }
-
-    fn available_deposit(&self) -> Result<u64> {
-        // if deposit_period_ends is in the past, return 0
-        if Clock::get()?.unix_timestamp > self.deposit_period_ends.try_into().unwrap() {
-            return Ok(0);
-        }
-        Ok(self.deposit_limit - self.total_funds)
-    }
-
-    fn available_withdraw(&self) -> Result<u64> {
-        // if lock_period_ends is in the future, return 0
-        if Clock::get()?.unix_timestamp < self.lock_period_ends.try_into().unwrap() {
-            return Ok(0);
-        }
-        Ok(self.total_idle)
-    }
-
     fn deposit(&mut self, amount: u64) -> Result<()> {
         self.total_funds += amount;
         Ok(())
@@ -111,13 +87,52 @@ impl Strategy for TradeFintechStrategy {
         Ok(())
     }
 
-    // fn get_strategy_type(&self) -> StrategyType {
-    //     StrategyType::TradeFintech
-    // }
+    fn free_funds(&mut self, amount: u64) -> Result<()> {
+        Ok(())
+    }
+
+    fn set_current_debt(&mut self, debt: u64) -> Result<()> {
+        self.current_debt = debt;
+        Ok(())
+    }
+
+    fn total_assets(&self) -> u64 {
+        self.total_funds
+    }
+
+    fn current_debt(&self) -> u64 {
+        self.current_debt
+    }
+
+    fn available_deposit(&self) -> u64 {
+        // if deposit_period_ends is in the past, return 0
+        match Clock::get() {
+            Ok(clock) => {
+                if clock.unix_timestamp > self.deposit_period_ends.try_into().unwrap_or(0) {
+                    return 0;
+                }
+            }
+            Err(_) => return 0,
+        }
+        self.deposit_limit - self.total_funds
+    }
+
+    fn available_withdraw(&self) -> u64 {
+        // if lock_period_ends is in the future, return 0
+        match Clock::get() {
+            Ok(clock) => {
+                if clock.unix_timestamp < self.lock_period_ends.try_into().unwrap_or(0) {
+                    return 0;
+                }
+            }
+            Err(_) => return 0,
+        }
+        self.total_idle
+    }
 }
 
 impl TradeFintechStrategy {
-    pub const LEN: usize = 8 + 1 + 32 + 32 + 32 + 1 + 8 + 8 + 8 + 8 + 8;
+    pub const LEN: usize = 8 + 1 + 32 + 32 + 32 + 1 + 8 + 8 + 8 + 8 + 8 + 8;
 
     fn deploy_funds(&mut self, amount: u64) -> Result<()> {
         self.total_idle -= amount;

@@ -5,7 +5,7 @@ use anchor_spl::token_interface::Mint;
 use crate::state::*;
 use crate::constants::*;
 
-// #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
+// #[derive(Clone, Debug)]
 pub trait Strategy {
     fn init(
         &mut self, 
@@ -18,15 +18,46 @@ pub trait Strategy {
     fn deposit(&mut self, amount: u64) -> Result<()>;
     fn withdraw(&mut self, amount: u64) -> Result<()>;
     fn harvest(&mut self) -> Result<()>;
-    fn available_deposit(&self) -> Result<u64>;
-    fn available_withdraw(&self) -> Result<u64>;
-    // fn owner(&self) -> Pubkey;
-    // fn get_strategy_type(&self) -> StrategyType;
+    fn set_current_debt(&mut self, debt: u64) -> Result<()>;
+    fn free_funds(&mut self, amount: u64) -> Result<()>;
+
+    // getters
+    /// Returns the total funds in the strategy, this value is affected by gains and losses
+    fn total_assets(&self) -> u64;
+    /// Strategy debt managed by the vault
+    fn current_debt(&self) -> u64;
+    /// Returns the total idle funds in the strategy
+    /// Consider if we need to store it 
+
+    fn available_deposit(&self) -> u64;
+    fn available_withdraw(&self) -> u64;
+    fn strategy_type(&self) -> StrategyType;
     fn seeds(&self) -> [&[u8]; 3];
-    // fn key(&self) -> Pubkey;
 }
 
+// Helper trait to enable cloning of Box<dyn Strategy>
+// pub trait StrategyClone {
+//     fn clone_box(&self) -> Box<dyn Strategy>;
+// }
 
+// impl<T> StrategyClone for T
+// where
+//     T: 'static + Strategy + Clone,
+// {
+//     fn clone_box(&self) -> Box<dyn Strategy> {
+//         Box::new(self.clone())
+//     }
+// }
+
+// impl Clone for Box<dyn Strategy> {
+//     fn clone(&self) -> Box<dyn Strategy> {
+//         (**self).clone_box()
+//     }
+// }
+
+pub trait StrategyInfo {
+    fn available_withdraw() -> u64;
+}
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
 pub enum StrategyType {

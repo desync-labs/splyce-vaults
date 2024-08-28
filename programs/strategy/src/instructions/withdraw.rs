@@ -1,8 +1,9 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{self, Token, TokenAccount, Transfer};
+use anchor_spl::token::{Token, TokenAccount};
 
 use crate::state::*;
 use crate::error::ErrorCode;
+use crate::utils::*;
 
 #[derive(Accounts)]
 pub struct Withdraw<'info> {
@@ -37,17 +38,13 @@ where
 
     // retrieve seeds from strategy
     let seeds = strategy.seeds();
-    token::transfer(
-        CpiContext::new_with_signer(
-            ctx.accounts.token_program.to_account_info(),
-            Transfer {
-                from: ctx.accounts.token_account.to_account_info(),
-                to: ctx.accounts.vault_token_account.to_account_info(),
-                authority: strategy_acc.to_account_info(),
-            },
-            &[&seeds]
-        ),
-        amount,
-    )?;
-    Ok(())
+
+    token::transfer_token_from(
+        ctx.accounts.token_program.to_account_info(), 
+        ctx.accounts.token_account.to_account_info(), 
+        ctx.accounts.vault_token_account.to_account_info(), 
+        strategy_acc.to_account_info(), 
+        amount, 
+        &seeds
+    )
 }
