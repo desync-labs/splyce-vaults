@@ -65,7 +65,7 @@ pub fn handle_initialize<T>(ctx: Context<Initialize>, config: Vec<u8>) -> Result
         ctx.accounts.vault.key(),
         ctx.accounts.underlying_mint.as_ref(),
         ctx.accounts.token_account.key(),
-        config
+        config,
     );
 
     // Serialize the strategy data into the account

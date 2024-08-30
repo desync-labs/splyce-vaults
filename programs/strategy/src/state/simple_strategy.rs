@@ -19,8 +19,6 @@ pub struct SimpleStrategy {
     pub undelying_decimals: u8,
     pub total_funds: u64,
     pub deposit_limit: u64,
-    pub current_debt: u64,
-    
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Default, Clone, Debug)]
@@ -78,21 +76,16 @@ impl Strategy for SimpleStrategy {
         ]
     }
 
-    fn free_funds(&mut self, amount: u64) -> Result<()> {
-        Ok(())
+    fn token_account(&self) -> Pubkey {
+        self.underlying_token_acc
     }
 
-    fn set_current_debt(&mut self, debt: u64) -> Result<()> {
-        self.current_debt = debt;
+    fn free_funds(&mut self, amount: u64) -> Result<()> {
         Ok(())
     }
 
     fn total_assets(&self) -> u64 {
         self.total_funds
-    }
-
-    fn current_debt(&self) -> u64 {
-        self.current_debt
     }
 
     fn available_deposit(&self) -> u64 {
@@ -107,26 +100,10 @@ impl Strategy for SimpleStrategy {
 
 
 impl SimpleStrategy {
-    pub const LEN: usize = 8 + 1 + 32 + 32 + 32 + 1 + 8 + 8 + 8;
-
-    // fn key(&self) -> Pubkey {
-    //     let seeds = [
-    //             &STRATEGY_SEED.as_bytes(),
-    //             // self.vault.as_ref(),
-    //             // self.bump.as_ref(),
-    //         ];
-    //     Pubkey::create_program_address(&seeds, &crate::id()).unwrap()
-    // }
+    pub const LEN: usize = 8 + 1 + 32 + 32 + 32 + 1 + 8 + 8;
 
     fn owner(&self) -> Pubkey {
         // self.vault
         Pubkey::default()
     }
-
-   
-
-    // fn deploy_funds(&mut self, amount: u64) -> Result<()> {
-    //     self.total_idle -= amount;
-    //     Ok(())
-    // }
 }

@@ -18,7 +18,6 @@ pub struct TradeFintechStrategy {
     pub underlying_token_acc: Pubkey,
     pub undelying_decimals: u8,
 
-    pub current_debt: u64,
     pub total_idle: u64,
     pub total_funds: u64,
     pub deposit_limit: u64,
@@ -91,17 +90,12 @@ impl Strategy for TradeFintechStrategy {
         Ok(())
     }
 
-    fn set_current_debt(&mut self, debt: u64) -> Result<()> {
-        self.current_debt = debt;
-        Ok(())
+    fn token_account(&self) -> Pubkey {
+        self.underlying_token_acc
     }
 
     fn total_assets(&self) -> u64 {
         self.total_funds
-    }
-
-    fn current_debt(&self) -> u64 {
-        self.current_debt
     }
 
     fn available_deposit(&self) -> u64 {
@@ -132,10 +126,5 @@ impl Strategy for TradeFintechStrategy {
 }
 
 impl TradeFintechStrategy {
-    pub const LEN: usize = 8 + 1 + 32 + 32 + 32 + 1 + 8 + 8 + 8 + 8 + 8 + 8;
-
-    fn deploy_funds(&mut self, amount: u64) -> Result<()> {
-        self.total_idle -= amount;
-        Ok(())
-    }
+    pub const LEN: usize = 8 + 1 + 32 + 32 + 32 + 1 + 8 + 8 + 8 + 8 + 8;
 }

@@ -18,21 +18,21 @@ pub trait Strategy {
     fn deposit(&mut self, amount: u64) -> Result<()>;
     fn withdraw(&mut self, amount: u64) -> Result<()>;
     fn harvest(&mut self) -> Result<()>;
-    fn set_current_debt(&mut self, debt: u64) -> Result<()>;
     fn free_funds(&mut self, amount: u64) -> Result<()>;
+
+    fn strategy_type(&self) -> StrategyType;
+    fn seeds(&self) -> [&[u8]; 3];
+    fn key(&self) -> Pubkey {
+        let seeds = self.seeds();
+        Pubkey::create_program_address(&seeds, &crate::id()).unwrap()
+    }
+    fn token_account(&self) -> Pubkey;
 
     // getters
     /// Returns the total funds in the strategy, this value is affected by gains and losses
     fn total_assets(&self) -> u64;
-    /// Strategy debt managed by the vault
-    fn current_debt(&self) -> u64;
-    /// Returns the total idle funds in the strategy
-    /// Consider if we need to store it 
-
     fn available_deposit(&self) -> u64;
     fn available_withdraw(&self) -> u64;
-    fn strategy_type(&self) -> StrategyType;
-    fn seeds(&self) -> [&[u8]; 3];
 }
 
 // Helper trait to enable cloning of Box<dyn Strategy>

@@ -1,6 +1,5 @@
 use anchor_lang::prelude::*;
 use anchor_lang::{AnchorDeserialize, AnchorSerialize};
-use anchor_spl::token_2022::spl_token_2022::solana_zk_token_sdk::instruction::withdraw;
 use anchor_spl::token_interface::Mint;
 
 use crate::constants::{VAULT_SEED, MAX_BPS};
@@ -45,7 +44,7 @@ pub struct StrategyData {
 
 
 impl Vault {
-    pub const LEN : usize = 8 + 1 + 8 + 32 + 32 + 1 + 8 + 8 + 8 + 8 + 8 + 8 + 1 + 10 * 32;
+    pub const LEN : usize = 8 + 1 + 8 + 32 + 32 + 1 + 8 + 8 + 8 + 8 + 8 + 8 + 1 + 10 * (32 + 8 + 8 + 8 + 1);
     pub fn seeds(&self) -> [&[u8]; 4] {
     [
         &VAULT_SEED.as_bytes(),
@@ -94,7 +93,7 @@ impl Vault {
         self.deposit_limit - self.total_funds()
     }
 
-    pub fn max_withdraw(&self, shares: u64, strategies: &[AccountInfo], max_loss: u64) -> Result<u64> {
+    pub fn max_withdraw(&self, shares: u64, strategies: &Vec<AccountInfo<'_>>, max_loss: u64) -> Result<u64> {
         let mut max_assets = self.convert_to_underlying(shares);
 
         if max_assets > self.total_idle {
@@ -108,7 +107,11 @@ impl Vault {
                 }
 
                 let mut to_withdraw = std::cmp::min(max_assets - have, strategy_data.current_debt);
-                let mut unrealised_loss = self.assess_share_of_unrealised_losses(strategy_acc, to_withdraw)?;
+                let mut unrealised_loss = strategy::assess_share_of_unrealised_losses(
+                    strategy_acc, 
+                    to_withdraw, 
+                    strategy_data.current_debt
+                )?;
                 let strategy_limit = strategy::get_max_withdraw(strategy_acc)?;
 
                 if strategy_limit < to_withdraw - unrealised_loss {
@@ -193,36 +196,15 @@ impl Vault {
         }
     }
 
-    pub fn set_current_debt(&mut self, strategy: Pubkey, debt: u64) -> Result<()> {
-        let strategy_data = self.strategies.iter_mut().find(|x| x.key == strategy).unwrap();
-        strategy_data.current_debt = debt;
-        Ok(())
-    }
-
-    pub fn assess_share_of_unrealised_losses(
-        &self, 
-        strategy: &AccountInfo, 
-        assets_needed: u64
-    ) -> Result<u64> {
-
-        let strategy_assets = strategy::get_total_assets(&strategy)?;
-        let strategy_current_debt = self.strategies.iter().find(|x| x.key == *strategy.key).unwrap().current_debt;
-
-        if strategy_assets >= strategy_current_debt || strategy_current_debt == 0 {
-            return Ok(0);
-        }
-
-        let numerator = assets_needed * strategy_assets;
-        let losses_user_share = assets_needed - numerator / strategy_current_debt;
-
-        Ok(losses_user_share)
-    }
-
     pub fn is_vault_strategy(&self, strategy: Pubkey) -> bool {
         self.strategies.iter().any(|x| x.key == strategy)
     }
 
     pub fn get_strategy_data(&self, strategy: Pubkey) -> Result<&StrategyData> {
         self.strategies.iter().find(|x| x.key == strategy).ok_or(ErrorCode::StrategyNotFound.into())
+    }
+
+    pub fn get_strategy_data_mut(&mut self, strategy: Pubkey) -> Result<&mut StrategyData> {
+        self.strategies.iter_mut().find(|x| x.key == strategy).ok_or(ErrorCode::StrategyNotFound.into())
     }
 }

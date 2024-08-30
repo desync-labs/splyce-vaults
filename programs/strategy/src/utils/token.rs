@@ -1,16 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, TokenAccount, Transfer};
 
-
-pub fn get_token_balance<'a>(
-    token_program: AccountInfo<'a>,
-    account: AccountInfo<'a>,
-) -> Result<u64> {
-    let account_data = account.try_borrow_data()?;
-    let token_account = TokenAccount::try_deserialize(&mut &account_data[..])?;
-    Ok(token_account.amount)
-}
-
 pub fn transfer_token_from<'a>(
     token_program: AccountInfo<'a>,
     from: AccountInfo<'a>,

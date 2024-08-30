@@ -48,8 +48,6 @@ where
 
     drop(strategy_data);
 
-    msg!("Depositing {} tokens to strategy", amount);
-
     transfer_token_to(
         ctx.accounts.token_program.to_account_info(),
         ctx.accounts.vault_token_account.to_account_info(), 

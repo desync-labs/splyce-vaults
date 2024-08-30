@@ -41,7 +41,6 @@ pub mod strategy_program {
                 return handle_initialize::<TradeFintechStrategy>(ctx, config)
             }
             _ => {
-                msg!("Invalid strategy type");
                 return Err(InvalidStrategyData.into())
             }
         }
@@ -58,7 +57,6 @@ pub mod strategy_program {
                 return handle_deposit::<TradeFintechStrategy>(&ctx, amount)
             },
             _ => {
-                msg!("Invalid discriminator");
                 return Err(InvalidStrategyData.into())
             }
         }
@@ -75,7 +73,6 @@ pub mod strategy_program {
                 return handle_withdraw::<TradeFintechStrategy>(&ctx, amount)
             },
             _ => {
-                msg!("Invalid discriminator");
                 return Err(InvalidStrategyData.into())
             }
         }

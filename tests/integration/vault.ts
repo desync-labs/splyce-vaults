@@ -150,7 +150,7 @@ describe("tokenized_vault", () => {
 
     // get the vault strategies
     const vaultAccount = await vaultProgram.account.vault.fetch(vault);
-    assert.ok(vaultAccount.strategies[0].equals(strategy));
+    assert.ok(vaultAccount.strategies[0].key.equals(strategy));
   });
 
   it("Deposits tokens into the vault", async () => {
@@ -201,7 +201,6 @@ describe("tokenized_vault", () => {
         vault,
         vaultTokenAccount,
         strategy,
-        strategyData,
         strategyTokenAccount,
         admin: admin.publicKey,
         tokenProgram: token.TOKEN_PROGRAM_ID,
@@ -221,6 +220,12 @@ describe("tokenized_vault", () => {
     // Fetch the strategy account to verify the state change
     let strategyAccount = await strategyProgram.account.simpleStrategy.fetch(strategy);
     assert.strictEqual(strategyAccount.totalFunds.toString(), '60');
+
+    // check strategy debt
+    const vaultAccount = await vaultProgram.account.vault.fetch(vault);
+    assert.strictEqual(vaultAccount.strategies[0].currentDebt.toString(), '60');
+    assert.strictEqual(vaultAccount.totalDebt.toString(), '60');
+    assert.strictEqual(vaultAccount.totalIdle.toString(), '40');
   });
 
   it("Deallocates tokens from the strategy", async () => {
@@ -231,7 +236,6 @@ describe("tokenized_vault", () => {
       vault,
       vaultTokenAccount,
       strategy,
-      strategyData,
       strategyTokenAccount,
       admin: admin.publicKey,
       tokenProgram: token.TOKEN_PROGRAM_ID,
@@ -251,17 +255,24 @@ describe("tokenized_vault", () => {
     // Fetch the strategy account to verify the state change
     let strategyAccount = await strategyProgram.account.simpleStrategy.fetch(strategy);
     assert.strictEqual(strategyAccount.totalFunds.toString(), '30');
+
+       // check strategy debt
+    const vaultAccount = await vaultProgram.account.vault.fetch(vault);
+    assert.strictEqual(vaultAccount.strategies[0].currentDebt.toString(), '30');
+    assert.strictEqual(vaultAccount.totalDebt.toString(), '30');
+    assert.strictEqual(vaultAccount.totalIdle.toString(), '70');
   });
 
-  xit("Withdraws tokens from the vault", async () => {
+  it("Withdraws tokens from the vault", async () => {
     const provider = anchor.AnchorProvider.env();
 
-    const shares = new BN(10);
-
     let vaultAccount = await vaultProgram.account.vault.fetch(vault);
-    assert.strictEqual(vaultAccount.totalDebt.toString(), '30');
+    assert.strictEqual(vaultAccount.totalIdle.toString(), '70');
 
-    await vaultProgram.methods.withdraw(shares)
+    console.log("Vault balance before withdraw:", vaultAccount.totalIdle.toString());
+    console.log("Vault debt before withdraw:", vaultAccount.totalDebt.toString());
+
+    await vaultProgram.methods.withdraw(new BN(10), new BN(0))
       .accounts({
         vault,
         user: user.publicKey,
@@ -270,16 +281,19 @@ describe("tokenized_vault", () => {
         sharesMint,
         userSharesAccount,
         tokenProgram: token.TOKEN_PROGRAM_ID,
-        tokenMetadataProgram: TOKEN_METADATA_PROGRAM_ID,
+        strategyProgram: strategyProgram.programId,
       })
       .remainingAccounts([
         { pubkey: strategy, isWritable: true, isSigner: false },
+        { pubkey: strategyTokenAccount, isWritable: true, isSigner: false },
       ])
       .signers([user])
       .rpc();
 
     vaultAccount = await vaultProgram.account.vault.fetch(vault);
-    assert.strictEqual(vaultAccount.totalDebt.toString(), '20');
+    console.log("Vault balance after withdraw:", vaultAccount.totalIdle.toString());
+    console.log("Vault debt after withdraw:", vaultAccount.totalDebt.toString());
+    assert.strictEqual(vaultAccount.totalIdle.toString(), '60');
 
     let vaultTokenAccountInfo = await token.getAccount(provider.connection, vaultTokenAccount);
     assert.strictEqual(vaultTokenAccountInfo.amount.toString(), '60');
@@ -293,7 +307,7 @@ describe("tokenized_vault", () => {
     assert.strictEqual(userTokenAccountInfo.amount.toString(), '910');
   });
 
-  xit("transfer shares and withdraw", async () => {
+  it("transfer shares and withdraw", async () => {
     const provider = anchor.AnchorProvider.env();
 
     const newOwner = anchor.web3.Keypair.generate();
@@ -317,7 +331,7 @@ describe("tokenized_vault", () => {
     let newOwnerSharesAccountInfo = await token.getAccount(provider.connection, newOwnerSharesAccount);
     assert.strictEqual(newOwnerSharesAccountInfo.amount.toString(), '10');
 
-    await vaultProgram.methods.withdraw(shares)
+    await vaultProgram.methods.withdraw(shares, new BN(0))
       .accounts({
         vault,
         user: newOwner.publicKey,
@@ -326,7 +340,12 @@ describe("tokenized_vault", () => {
         sharesMint,
         userSharesAccount: newOwnerSharesAccount,
         tokenProgram: token.TOKEN_PROGRAM_ID,
+        strategyProgram: strategyProgram.programId,
       })
+      .remainingAccounts([
+        { pubkey: strategy, isWritable: true, isSigner: false },
+        { pubkey: strategyTokenAccount, isWritable: true, isSigner: false },
+      ])
       .signers([newOwner])
       .rpc();
 

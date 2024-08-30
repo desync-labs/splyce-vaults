@@ -1,7 +1,5 @@
-use core::str;
-
 use anchor_lang::prelude::*;
-use anchor_spl::token::{self, Token, TokenAccount, Transfer};
+use anchor_spl::token::{Token, TokenAccount};
 use strategy_program::cpi::accounts::{
     Deposit as DepositAccounts,
     Withdraw as WithdrawAccounts
@@ -12,7 +10,6 @@ use strategy_program::{self};
 use crate::state::*;
 use crate::error::ErrorCode;
 use crate::utils::strategy::*;
-use crate::utils::token::*;
 
 #[derive(Accounts)]
 pub struct UpdateStrategyDebt<'info> {
@@ -83,6 +80,7 @@ pub fn handle_update_debt(
             }), 
             assets_to_withdraw
         )?;
+        ctx.accounts.vault_token_account.reload()?;
         let post_balance = ctx.accounts.vault_token_account.amount;
 
         let withdrawn = post_balance - pre_balance;
@@ -138,16 +136,9 @@ pub fn handle_update_debt(
         vault.total_debt += assets_to_deposit;
         new_debt = current_debt + assets_to_deposit;
     }
-    vault.set_current_debt(strategy.key(), new_debt)?;
-    
-    Ok(())
-}
+    let strategy_data_mut = vault.get_strategy_data_mut(strategy.key())?;
+    strategy_data_mut.current_debt = new_debt;
+    // vault.set_current_debt(strategy.key(), new_debt)?;
 
-pub fn get_token_balance<'a>(
-    token_program: AccountInfo<'a>,
-    account: AccountInfo<'a>,
-) -> Result<u64> {
-    let account_data = account.try_borrow_data()?;
-    let token_account = TokenAccount::try_deserialize(&mut &account_data[..])?;
-    Ok(token_account.amount)
+    Ok(())
 }

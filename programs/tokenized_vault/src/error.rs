@@ -60,5 +60,11 @@ pub enum ErrorCode {
     IsNotVaultStrategy,
 
     #[msg("Exceed withdraw limit")]
-    ExceedWithdrawLimit
+    ExceedWithdrawLimit,
+
+    #[msg("Invalid strategy / token account pairs")]
+    InvalidAccountPairs,
+
+    #[msg("Loss is too high")]
+    TooMuchLoss,
 }

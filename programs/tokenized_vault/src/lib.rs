@@ -25,7 +25,7 @@ pub mod tokenized_vault {
         handle_deposit(ctx, amount)
     }
 
-    pub fn withdraw(ctx: Context<Withdraw>, shares: u64, max_loss: u64) -> Result<()> {
+    pub fn withdraw<'info>(ctx: Context<'_, '_, '_, 'info, Withdraw<'info>>, shares: u64, max_loss: u64) -> Result<()> {
         handle_redeem(ctx, shares, max_loss)
     }
 
@@ -37,19 +37,19 @@ pub mod tokenized_vault {
         handle_update_debt(ctx, amount)
     }
 
-    pub fn allocate(
-        ctx: Context<AllocateToStrategy>,
-        amount: u64
-    ) -> Result<()> {
-        handle_allocate(ctx, amount)
-    }
+    // pub fn allocate(
+    //     ctx: Context<AllocateToStrategy>,
+    //     amount: u64
+    // ) -> Result<()> {
+    //     handle_allocate(ctx, amount)
+    // }
 
-    pub fn deallocate(
-        ctx: Context<DeallocateFromStrategy>,
-        amount: u64
-    ) -> Result<()> {
-        handle_deallocate(ctx, amount)
-    }
+    // pub fn deallocate(
+    //     ctx: Context<DeallocateFromStrategy>,
+    //     amount: u64
+    // ) -> Result<()> {
+    //     handle_deallocate(ctx, amount)
+    // }
 
     pub fn set_deposit_limit(ctx: Context<SetDepositLimit>, limit: u64) -> Result<()> {
         handle_set_deposit_limit(ctx, limit)
