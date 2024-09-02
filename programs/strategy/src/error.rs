@@ -19,4 +19,7 @@ pub enum ErrorCode {
 
     #[msg("Debt cannot be reduced because of unrealised losses")]
     UnrealisedLosses,
+
+    #[msg("Cannot serialize strategy")]
+    SerializationError,
 }

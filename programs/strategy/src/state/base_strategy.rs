@@ -4,9 +4,18 @@ use anchor_spl::token_interface::Mint;
 
 use crate::state::*;
 use crate::constants::*;
+use crate::error::ErrorCode;
 
-// #[derive(Clone, Debug)]
-pub trait Strategy {
+pub trait StrategyDataAccount {
+    fn save_changes(&self, writer: &mut dyn std::io::Write) -> Result<()>;
+    fn seeds(&self) -> [&[u8]; 3];
+    fn key(&self) -> Pubkey {
+        let seeds = self.seeds();
+        Pubkey::create_program_address(&seeds, &crate::id()).unwrap()
+    }
+}
+
+pub trait StrategyInit {
     fn init(
         &mut self, 
         bump: u8,
@@ -15,48 +24,23 @@ pub trait Strategy {
         underlying_token_acc: Pubkey, 
         config_bytes: Vec<u8>
     ) -> Result<()>;
+}
+
+pub trait Strategy: StrategyDataAccount + StrategyInit {   
+    // setters 
     fn deposit(&mut self, amount: u64) -> Result<()>;
     fn withdraw(&mut self, amount: u64) -> Result<()>;
     fn harvest(&mut self) -> Result<()>;
     fn free_funds(&mut self, amount: u64) -> Result<()>;
-
-    fn strategy_type(&self) -> StrategyType;
-    fn seeds(&self) -> [&[u8]; 3];
-    fn key(&self) -> Pubkey {
-        let seeds = self.seeds();
-        Pubkey::create_program_address(&seeds, &crate::id()).unwrap()
-    }
-    fn token_account(&self) -> Pubkey;
 
     // getters
     /// Returns the total funds in the strategy, this value is affected by gains and losses
     fn total_assets(&self) -> u64;
     fn available_deposit(&self) -> u64;
     fn available_withdraw(&self) -> u64;
-}
 
-// Helper trait to enable cloning of Box<dyn Strategy>
-// pub trait StrategyClone {
-//     fn clone_box(&self) -> Box<dyn Strategy>;
-// }
-
-// impl<T> StrategyClone for T
-// where
-//     T: 'static + Strategy + Clone,
-// {
-//     fn clone_box(&self) -> Box<dyn Strategy> {
-//         Box::new(self.clone())
-//     }
-// }
-
-// impl Clone for Box<dyn Strategy> {
-//     fn clone(&self) -> Box<dyn Strategy> {
-//         (**self).clone_box()
-//     }
-// }
-
-pub trait StrategyInfo {
-    fn available_withdraw() -> u64;
+    fn strategy_type(&self) -> StrategyType;
+    fn token_account(&self) -> Pubkey;
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
@@ -73,7 +57,7 @@ impl StrategyType {
     pub fn to_seed(&self) -> Vec<u8> {
         match self {
             StrategyType::Simple => SIMPLE_STRATEGY_SEED.as_bytes().to_vec(),
-            StrategyType::TradeFintech => b"trade_fintech".to_vec(),
+            StrategyType::TradeFintech => TRADE_FINTECH_STRATEGY_SEED.as_bytes().to_vec(),
             StrategyType::RWA => b"rwa".to_vec(),
             StrategyType::Lending => b"lending".to_vec(),
             StrategyType::Liquidation => b"liquidation".to_vec(),

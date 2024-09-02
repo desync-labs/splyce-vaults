@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::token_interface::Mint;
 
 use crate::constants::*;
-use crate::strategy::*;
+use crate::base_strategy::*;
 use crate::error::ErrorCode;
 
 #[account()]
@@ -31,28 +31,6 @@ impl Strategy for SimpleStrategy {
         StrategyType::Simple
     }
 
-    fn init(
-        &mut self,
-        bump: u8,
-        vault: Pubkey, 
-        underlying_mint: &InterfaceAccount<Mint>, 
-        underlying_token_acc: Pubkey, 
-        config_bytes: Vec<u8>
-    ) -> Result<()> {
-        let config = SimpleStrategyConfig::try_from_slice(&config_bytes)
-        .map_err(|_| ErrorCode::InvalidStrategyConfig)?;
-
-        self.bump = [bump]; 
-        self.vault = vault;
-        self.underlying_mint = underlying_mint.key();
-        self.undelying_decimals = underlying_mint.decimals;
-        self.underlying_token_acc = underlying_token_acc;
-        self.deposit_limit = config.deposit_limit;
-        self.total_funds = 0;
-
-        Ok(())
-    }
-
     fn deposit(&mut self, amount: u64) -> Result<()> {
         self.total_funds += amount;
         Ok(())
@@ -66,14 +44,6 @@ impl Strategy for SimpleStrategy {
     fn harvest(&mut self) -> Result<()> {
         // todo: implement harvest
         Ok(())
-    }
-
-    fn seeds(&self) -> [&[u8]; 3] {
-        [
-            &SIMPLE_STRATEGY_SEED.as_bytes(),
-            self.vault.as_ref(),
-            self.bump.as_ref(),
-        ]
     }
 
     fn token_account(&self) -> Pubkey {
@@ -95,15 +65,48 @@ impl Strategy for SimpleStrategy {
     fn available_withdraw(&self) -> u64 {
         self.deposit_limit
     }
-
 }
 
 
 impl SimpleStrategy {
     pub const LEN: usize = 8 + 1 + 32 + 32 + 32 + 1 + 8 + 8;
+}
 
-    fn owner(&self) -> Pubkey {
-        // self.vault
-        Pubkey::default()
+impl StrategyInit for SimpleStrategy {
+    fn init(
+        &mut self,
+        bump: u8,
+        vault: Pubkey, 
+        underlying_mint: &InterfaceAccount<Mint>, 
+        underlying_token_acc: Pubkey, 
+        config_bytes: Vec<u8>
+    ) -> Result<()> {
+        let config = SimpleStrategyConfig::try_from_slice(&config_bytes)
+        .map_err(|_| ErrorCode::InvalidStrategyConfig)?;
+
+        self.bump = [bump]; 
+        self.vault = vault;
+        self.underlying_mint = underlying_mint.key();
+        self.undelying_decimals = underlying_mint.decimals;
+        self.underlying_token_acc = underlying_token_acc;
+        self.deposit_limit = config.deposit_limit;
+        self.total_funds = 0;
+
+        Ok(())
+    }
+}
+
+impl StrategyDataAccount for SimpleStrategy {
+    fn save_changes(&self, writer: &mut dyn std::io::Write) -> Result<()> {
+        self.try_to_vec().map_err(|_| ErrorCode::SerializationError.into()).and_then(|vec| {
+            writer.write_all(&vec).map_err(|_| ErrorCode::SerializationError.into())
+        })
+    }
+    fn seeds(&self) -> [&[u8]; 3] {
+        [
+            &SIMPLE_STRATEGY_SEED.as_bytes(),
+            self.vault.as_ref(),
+            self.bump.as_ref(),
+        ]
     }
 }

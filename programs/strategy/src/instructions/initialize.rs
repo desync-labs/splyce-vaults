@@ -7,6 +7,7 @@ use anchor_spl::{
 };
 use crate::constants::UNDERLYING_SEED;
 use crate::state::*;
+use crate::error::ErrorCode;
 
 #[derive(Accounts)]
 #[instruction(strategy_type: StrategyType)]
@@ -47,10 +48,24 @@ pub struct Initialize<'info> {
     pub rent: Sysvar<'info, Rent>,
 }
 
-// TODO: make single fn for all strategies
-pub fn handle_initialize<T>(ctx: Context<Initialize>, config: Vec<u8>) -> Result<()> 
-    where
-        T: Strategy + anchor_lang::AnchorDeserialize + anchor_lang::AnchorSerialize + Discriminator + Default
+pub fn initialize(ctx: Context<Initialize>, strategy_type: StrategyType, config: Vec<u8>) -> Result<()> {
+    match strategy_type {
+        StrategyType::Simple => {
+            return handle_initialize::<SimpleStrategy>(ctx, config)
+        }
+        StrategyType::TradeFintech => {
+            return handle_initialize::<TradeFintechStrategy>(ctx, config)
+        }
+        _ => {
+            return Err(ErrorCode::InvalidStrategyData.into())
+        }
+    }
+}
+
+fn handle_initialize<T>(ctx: Context<Initialize>, config: Vec<u8>) -> Result<()> 
+where 
+    T: Strategy + AnchorDeserialize + AnchorSerialize + Discriminator + Default
+
 {
     let strategy = &mut ctx.accounts.strategy;
     let strategy_info = strategy.to_account_info();
@@ -69,7 +84,7 @@ pub fn handle_initialize<T>(ctx: Context<Initialize>, config: Vec<u8>) -> Result
     );
 
     // Serialize the strategy data into the account
-    strategy_data.serialize(&mut &mut data[8..])?;
+    strategy_data.save_changes(&mut &mut data[8..])?;
 
     Ok(())
 }
