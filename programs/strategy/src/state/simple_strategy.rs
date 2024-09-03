@@ -4,6 +4,7 @@ use anchor_spl::token_interface::Mint;
 use crate::constants::*;
 use crate::base_strategy::*;
 use crate::error::ErrorCode;
+use crate::utils::token;
 
 #[account()]
 #[derive(Default, Debug)]
@@ -17,7 +18,7 @@ pub struct SimpleStrategy {
     pub underlying_token_acc: Pubkey,
     // this value mast be u64 because of the borsh serialization
     pub undelying_decimals: u8,
-    pub total_funds: u64,
+    pub total_assets: u64,
     pub deposit_limit: u64,
 }
 
@@ -32,17 +33,23 @@ impl Strategy for SimpleStrategy {
     }
 
     fn deposit(&mut self, amount: u64) -> Result<()> {
-        self.total_funds += amount;
+        self.total_assets += amount;
         Ok(())
     }
 
     fn withdraw(&mut self, amount: u64) -> Result<()> {
-        self.total_funds -= amount;
+        self.total_assets -= amount;
         Ok(())
     }
 
-    fn harvest(&mut self) -> Result<()> {
-        // todo: implement harvest
+    /// accounts[0] - underlying token account
+    fn report<'info>(&mut self, accounts: &[AccountInfo<'info>]) -> Result<()> {
+        // check if the remaining_accounts[0] is the strategy token account
+        if *accounts[0].key != self.underlying_token_acc {
+            return Err(ErrorCode::InvalidAccount.into());
+        }
+
+        self.total_assets = token::get_balance(&accounts[0])?;
         Ok(())
     }
 
@@ -50,16 +57,20 @@ impl Strategy for SimpleStrategy {
         self.underlying_token_acc
     }
 
-    fn free_funds(&mut self, amount: u64) -> Result<()> {
+    fn deploy_funds<'info>(&mut self, _accounts: &[AccountInfo<'info>], _amount: u64) -> Result<()> {
+        Ok(())
+    }
+
+    fn free_funds<'info>(&mut self, _accounts: &[AccountInfo<'info>], _amount: u64) -> Result<()> {
         Ok(())
     }
 
     fn total_assets(&self) -> u64 {
-        self.total_funds
+        self.total_assets
     }
 
     fn available_deposit(&self) -> u64 {
-        self.deposit_limit - self.total_funds
+        self.deposit_limit - self.total_assets
     }
 
     fn available_withdraw(&self) -> u64 {
@@ -90,7 +101,7 @@ impl StrategyInit for SimpleStrategy {
         self.undelying_decimals = underlying_mint.decimals;
         self.underlying_token_acc = underlying_token_acc;
         self.deposit_limit = config.deposit_limit;
-        self.total_funds = 0;
+        self.total_assets = 0;
 
         Ok(())
     }

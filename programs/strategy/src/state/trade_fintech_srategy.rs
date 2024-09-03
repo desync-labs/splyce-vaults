@@ -4,6 +4,8 @@ use anchor_spl::token_interface::Mint;
 use crate::base_strategy::*;
 use crate::error::ErrorCode;
 use crate::constants::TRADE_FINTECH_STRATEGY_SEED;
+use crate::utils::token;
+
 #[account]
 // #[repr(packed)]
 #[derive(Default, Debug)]
@@ -18,19 +20,27 @@ pub struct TradeFintechStrategy {
     pub underlying_token_acc: Pubkey,
     pub undelying_decimals: u8,
 
-    pub total_idle: u64,
-    pub total_funds: u64,
+    pub total_invested: u64,
+    pub total_assets: u64,
     pub deposit_limit: u64,
 
-    pub deposit_period_ends: u64,
-    pub lock_period_ends: u64,
+    pub deposit_period_ends: i64,
+    pub lock_period_ends: i64,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
 pub struct TradeFintechConfig {
     pub deposit_limit: u64,
-    pub deposit_period_ends: u64,
-    pub lock_period_ends: u64,
+    pub deposit_period_ends: i64,
+    pub lock_period_ends: i64,
+}
+
+#[error_code]
+pub enum TradeFintechErrorCode {
+    #[msg("Deposit period has not ended")]
+    DepositPeriodNotEnded,
+    #[msg("Lock period has not ended")]
+    LockPeriodNotEnded,
 }
 
 impl Strategy for TradeFintechStrategy {
@@ -39,21 +49,80 @@ impl Strategy for TradeFintechStrategy {
     }
 
     fn deposit(&mut self, amount: u64) -> Result<()> {
-        self.total_funds += amount;
+        self.total_assets += amount;
         Ok(())
     }
 
     fn withdraw(&mut self, amount: u64) -> Result<()> {
-        self.total_funds -= amount;
+        self.total_assets -= amount;
         Ok(())
     }
 
-    fn harvest(&mut self) -> Result<()> {
-        // todo: implement harvest
+    /// accounts[0] - underlying token account
+    fn report<'info>(&mut self, accounts: &[AccountInfo<'info>]) -> Result<()> {
+        // check if the remaining_accounts[0] is the strategy token account
+        if *accounts[0].key != self.underlying_token_acc {
+            return Err(ErrorCode::InvalidAccount.into());
+        }
+
+        self.total_assets = token::get_balance(&accounts[0])?;
         Ok(())
     }
 
-    fn free_funds(&mut self, amount: u64) -> Result<()> {
+    /// accounts should be the next:
+    /// - manager token account
+    /// - strategy token account
+    /// - manager account 
+    /// - token program
+    fn free_funds<'info>(&mut self, accounts: &[AccountInfo<'info>], amount: u64) -> Result<()> {
+        let timestamp = Clock::get()?.unix_timestamp;
+
+        // if it's still in the deposit period we don't do anything, cause no funds were deployed
+        if timestamp < self.deposit_period_ends {
+            return Ok(())
+        }
+
+        // can't free funds during lock period
+        if timestamp < self.lock_period_ends {
+            return Err(TradeFintechErrorCode::LockPeriodNotEnded.into());
+        }
+
+        token::transfer_token_to(
+            accounts[3].to_account_info(),
+            accounts[0].to_account_info(),
+            accounts[1].to_account_info(),
+            accounts[2].to_account_info(),
+            amount
+        )?;
+
+        self.total_invested = 0;
+
+        // }
+        Ok(())
+    }
+
+    /// accounts should be the next:
+    /// - strategy token account
+    /// - manager token account
+    /// - strategy account
+    /// - token program
+    fn deploy_funds<'info>(&mut self, accounts: &[AccountInfo<'info>], amount: u64) -> Result<()> {
+        let timestamp = Clock::get()?.unix_timestamp;
+        if timestamp < self.deposit_period_ends {
+            return Err(TradeFintechErrorCode::DepositPeriodNotEnded.into());
+        }
+
+        let seeds = self.seeds();
+        token::transfer_token_from(
+            accounts[3].to_account_info(),
+            accounts[0].to_account_info(),
+            accounts[1].to_account_info(),
+            accounts[2].to_account_info(),
+            amount,
+            &seeds
+        )?;
+
+        self.total_invested += amount;
         Ok(())
     }
 
@@ -62,7 +131,7 @@ impl Strategy for TradeFintechStrategy {
     }
 
     fn total_assets(&self) -> u64 {
-        self.total_funds + self.total_idle
+        self.total_assets
     }
 
     fn available_deposit(&self) -> u64 {
@@ -75,20 +144,21 @@ impl Strategy for TradeFintechStrategy {
             }
             Err(_) => return 0,
         }
-        self.deposit_limit - self.total_funds
+        self.deposit_limit - self.total_assets
     }
 
     fn available_withdraw(&self) -> u64 {
         // if lock_period_ends is in the future, return 0
         match Clock::get() {
             Ok(clock) => {
-                if clock.unix_timestamp < self.lock_period_ends.try_into().unwrap_or(0) {
+                if clock.unix_timestamp < self.deposit_period_ends || clock.unix_timestamp > self.lock_period_ends {
+                    return self.total_assets;
+                } else {
                     return 0;
                 }
             }
             Err(_) => return 0,
         }
-        self.total_idle
     }
 }
 
@@ -105,7 +175,7 @@ impl StrategyInit for TradeFintechStrategy {
         underlying_token_acc: Pubkey, 
         config_bytes: Vec<u8>
     ) -> Result<()> {
-        let config = TradeFintechConfig::try_from_slice(&config_bytes)
+        let config: TradeFintechConfig = TradeFintechConfig::try_from_slice(&config_bytes)
         .map_err(|_| ErrorCode::InvalidStrategyConfig)?;
 
         self.bump = [bump];
@@ -116,8 +186,8 @@ impl StrategyInit for TradeFintechStrategy {
         self.deposit_limit = config.deposit_limit;
         self.deposit_period_ends = config.deposit_period_ends;
         self.lock_period_ends = config.lock_period_ends;
-        self.total_funds = 0;
-        self.total_idle = 0;
+        self.total_assets = 0;
+        self.total_invested = 0;
 
         Ok(())
     }

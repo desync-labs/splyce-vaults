@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{self, TokenAccount, Transfer};
+use anchor_spl::token::{self, Transfer};
 
 pub fn transfer_token_from<'a>(
     token_program: AccountInfo<'a>,
@@ -41,4 +41,9 @@ pub fn transfer_token_to<'a>(
         ),
         amount,
     )
+}
+
+pub fn get_balance(token_account: &AccountInfo) -> Result<u64> {
+    let amount = token::accessor::amount(token_account)?;
+    Ok(amount)
 }

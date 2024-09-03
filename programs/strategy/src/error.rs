@@ -17,9 +17,21 @@ pub enum ErrorCode {
     #[msg("Cannot withdraw")]
     CannotWithdraw,
 
+    #[msg("Invalid account")]
+    InvalidAccount,
+
     #[msg("Debt cannot be reduced because of unrealised losses")]
     UnrealisedLosses,
 
     #[msg("Cannot serialize strategy")]
     SerializationError,
+
+    #[msg("Operation not supported")]
+    NotSupported,
+
+    #[msg("Insufficient funds")]
+    InsufficientFunds,
+
+    #[msg("Max deposit reached")]
+    MaxDepositReached,
 }

@@ -9,7 +9,6 @@ use anchor_lang::prelude::*;
 pub use constants::*;
 pub use instructions::*;
 pub use state::*;
-use error::ErrorCode::InvalidStrategyData;
 
 declare_id!("FdFSegudTdDtCB8QvUN1FVLe6YpcCCLu5e1aJoiqAdtZ");
 

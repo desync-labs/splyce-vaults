@@ -1,8 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{Token, TokenAccount};
-use borsh::de;
 
-use crate::state::base_strategy;
 use crate::error::ErrorCode;
 use crate::utils::strategy;
 use crate::utils::token;
@@ -11,7 +9,7 @@ use crate::utils::token;
 pub struct Withdraw<'info> {
     /// CHECK: can by any strategy
     #[account(mut)]
-    pub strategy: AccountInfo<'info>,
+    pub strategy: UncheckedAccount<'info>,
     #[account(mut)]
     pub token_account: Account<'info, TokenAccount>,
     #[account(mut)]
@@ -24,6 +22,12 @@ pub fn handle_withdraw<'info>(
     amount: u64,
 ) -> Result<()> {
     let mut strategy = strategy::from_acc_info(&ctx.accounts.strategy)?;
+
+    let max_withdraw = strategy.available_withdraw();
+
+    if amount > max_withdraw {
+        return Err(ErrorCode::InsufficientFunds.into());
+    }
 
     strategy.withdraw(amount)?;
     strategy.save_changes(&mut &mut ctx.accounts.strategy.try_borrow_mut_data()?[8..])?;

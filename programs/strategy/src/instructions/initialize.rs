@@ -38,7 +38,7 @@ pub struct Initialize<'info> {
     pub token_account: Box<Account<'info, TokenAccount>>,
     /// CHECK: This should be a vault account
     #[account()]
-    pub vault: AccountInfo<'info>,
+    pub vault: UncheckedAccount<'info>,
     #[account(mut)]
     pub underlying_mint: Box<InterfaceAccount<'info, InterfaceMint>>,
     #[account(mut)]

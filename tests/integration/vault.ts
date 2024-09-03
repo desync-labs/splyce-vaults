@@ -219,7 +219,7 @@ describe("tokenized_vault", () => {
   
     // Fetch the strategy account to verify the state change
     let strategyAccount = await strategyProgram.account.simpleStrategy.fetch(strategy);
-    assert.strictEqual(strategyAccount.totalFunds.toString(), '60');
+    assert.strictEqual(strategyAccount.totalAssets.toString(), '60');
 
     // check strategy debt
     const vaultAccount = await vaultProgram.account.vault.fetch(vault);
@@ -254,7 +254,7 @@ describe("tokenized_vault", () => {
   
     // Fetch the strategy account to verify the state change
     let strategyAccount = await strategyProgram.account.simpleStrategy.fetch(strategy);
-    assert.strictEqual(strategyAccount.totalFunds.toString(), '30');
+    assert.strictEqual(strategyAccount.totalAssets.toString(), '30');
 
        // check strategy debt
     const vaultAccount = await vaultProgram.account.vault.fetch(vault);

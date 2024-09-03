@@ -161,7 +161,6 @@ fn withdraw_assets<'info>(
     let mut requested_assets = assets;
     let mut assets_needed = 0;
     let mut previous_balance = vault_token_account.amount;
-    let mut unrealised_losses_share: u64 = 0;
     let mut total_idle = vault.total_idle;
     let mut total_debt = vault.total_debt;
 
