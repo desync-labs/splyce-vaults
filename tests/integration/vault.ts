@@ -6,7 +6,7 @@ import { BN } from "@coral-xyz/anchor";
 import * as token from "@solana/spl-token";
 import * as borsh from 'borsh';
 import * as assert from 'assert';
-import { SimpleStrategySchema, SimpleStrategy } from "../utils/schemas";
+import { SimpleStrategy, SimpleStrategySchema } from "../utils/schemas";
 
 
 describe("tokenized_vault", () => {
@@ -44,7 +44,7 @@ describe("tokenized_vault", () => {
     const airdropSignature2 = await provider.connection.requestAirdrop(admin.publicKey, 10e9);
     await provider.connection.confirmTransaction(airdropSignature);
     await provider.connection.confirmTransaction(airdropSignature2);
-    
+
     console.log("Airdropped 1 SOL to user:", user.publicKey.toBase58());
 
     underlyingMint = await token.createMint(provider.connection, admin, admin.publicKey, null, 18);
@@ -52,8 +52,8 @@ describe("tokenized_vault", () => {
 
     vault = anchor.web3.PublicKey.findProgramAddressSync(
       [
-        Buffer.from("vault"), 
-        underlyingMint.toBuffer(), 
+        Buffer.from("vault"),
+        underlyingMint.toBuffer(),
         Buffer.from(new Uint8Array(new BigUint64Array([BigInt(1)]).buffer))
       ],
       vaultProgram.programId
@@ -61,14 +61,14 @@ describe("tokenized_vault", () => {
     console.log("Vault PDA:", vault.toBase58());
 
     sharesMint = anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("shares"), vault.toBuffer()], 
+      [Buffer.from("shares"), vault.toBuffer()],
       vaultProgram.programId
     )[0];
     console.log("Shares sharesMintDerived public key:", sharesMint.toBase58());
     console.log("vaultProgram.programId:", vaultProgram.programId.toBase58());
 
     vaultTokenAccount = anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("underlying"), vault.toBuffer()], 
+      [Buffer.from("underlying"), vault.toBuffer()],
       vaultProgram.programId,
     )[0];
     console.log("Vault token account:", vaultTokenAccount.toBase58());
@@ -79,7 +79,7 @@ describe("tokenized_vault", () => {
       .accounts({
         vault,
         sharesMint,
-        tokenAccount : vaultTokenAccount,
+        tokenAccount: vaultTokenAccount,
         underlyingMint,
         admin: admin.publicKey,
         systemProgram: anchor.web3.SystemProgram.programId,
@@ -133,11 +133,6 @@ describe("tokenized_vault", () => {
   });
 
   it("Adds a strategy to the vault", async () => {
-    // strategyData = anchor.web3.PublicKey.findProgramAddressSync(
-    //   [Buffer.from("strategy"), vault.toBuffer(), strategy.toBuffer()],
-    //   vaultProgram.programId
-    // )[0];
-
     await vaultProgram.methods.addStrategy(new BN(1000000000))
       .accounts({
         // strategyData,
@@ -208,15 +203,15 @@ describe("tokenized_vault", () => {
       })
       .signers([admin])
       .rpc();
-  
+
     // Fetch the vault token account balance to verify the allocation
     let vaultTokenAccountInfo = await token.getAccount(provider.connection, vaultTokenAccount);
     assert.strictEqual(vaultTokenAccountInfo.amount.toString(), '40');
-  
+
     // Fetch the strategy token account balance to verify the allocation
     let strategyTokenAccountInfo = await token.getAccount(provider.connection, strategyTokenAccount);
     assert.strictEqual(strategyTokenAccountInfo.amount.toString(), '60');
-  
+
     // Fetch the strategy account to verify the state change
     let strategyAccount = await strategyProgram.account.simpleStrategy.fetch(strategy);
     assert.strictEqual(strategyAccount.totalAssets.toString(), '60');
@@ -232,31 +227,31 @@ describe("tokenized_vault", () => {
     const provider = anchor.AnchorProvider.env();
 
     await vaultProgram.methods.updateDebt(new BN(30))
-    .accounts({
-      vault,
-      vaultTokenAccount,
-      strategy,
-      strategyTokenAccount,
-      admin: admin.publicKey,
-      tokenProgram: token.TOKEN_PROGRAM_ID,
-      strategyProgram: strategyProgram.programId,
-    })
-    .signers([admin])
-    .rpc();
-  
+      .accounts({
+        vault,
+        vaultTokenAccount,
+        strategy,
+        strategyTokenAccount,
+        admin: admin.publicKey,
+        tokenProgram: token.TOKEN_PROGRAM_ID,
+        strategyProgram: strategyProgram.programId,
+      })
+      .signers([admin])
+      .rpc();
+
     // Fetch the vault token account balance to verify the allocation
     let vaultTokenAccountInfo = await token.getAccount(provider.connection, vaultTokenAccount);
     assert.strictEqual(vaultTokenAccountInfo.amount.toString(), '70');
-  
+
     // Fetch the strategy token account balance to verify the allocation
     let strategyTokenAccountInfo = await token.getAccount(provider.connection, strategyTokenAccount);
     assert.strictEqual(strategyTokenAccountInfo.amount.toString(), '30');
-  
+
     // Fetch the strategy account to verify the state change
     let strategyAccount = await strategyProgram.account.simpleStrategy.fetch(strategy);
     assert.strictEqual(strategyAccount.totalAssets.toString(), '30');
 
-       // check strategy debt
+    // check strategy debt
     const vaultAccount = await vaultProgram.account.vault.fetch(vault);
     assert.strictEqual(vaultAccount.strategies[0].currentDebt.toString(), '30');
     assert.strictEqual(vaultAccount.totalDebt.toString(), '30');
@@ -272,7 +267,16 @@ describe("tokenized_vault", () => {
     console.log("Vault balance before withdraw:", vaultAccount.totalIdle.toString());
     console.log("Vault debt before withdraw:", vaultAccount.totalDebt.toString());
 
-    await vaultProgram.methods.withdraw(new BN(10), new BN(0))
+    const remainingAccountsMap = {
+      accountsMap: [
+      {
+        strategyAcc: new BN(0),
+        strategyTokenAccount: new BN(1),
+        remainingAccountsToStrategies: [new BN(0)],
+      }]
+    };
+
+    await vaultProgram.methods.withdraw(new BN(10), new BN(0), remainingAccountsMap)
       .accounts({
         vault,
         user: user.publicKey,
@@ -331,7 +335,16 @@ describe("tokenized_vault", () => {
     let newOwnerSharesAccountInfo = await token.getAccount(provider.connection, newOwnerSharesAccount);
     assert.strictEqual(newOwnerSharesAccountInfo.amount.toString(), '10');
 
-    await vaultProgram.methods.withdraw(shares, new BN(0))
+    const remainingAccountsMap = {
+      accountsMap: [
+      {
+        strategyAcc: new BN(0),
+        strategyTokenAccount: new BN(1),
+        remainingAccountsToStrategies: [new BN(0)],
+      }]
+    };
+
+    await vaultProgram.methods.withdraw(shares, new BN(0), remainingAccountsMap)
       .accounts({
         vault,
         user: newOwner.publicKey,
@@ -362,12 +375,12 @@ describe("tokenized_vault", () => {
     const newDepositLimit = new BN(2000);
 
     await vaultProgram.methods.setDepositLimit(newDepositLimit)
-    .accounts({
-      vault,
-      admin: admin.publicKey,
-    })
-    .signers([admin])
-    .rpc();
+      .accounts({
+        vault,
+        admin: admin.publicKey,
+      })
+      .signers([admin])
+      .rpc();
 
     const vaultAccount = await vaultProgram.account.vault.fetch(vault);
     assert.strictEqual(vaultAccount.depositLimit.toString(), newDepositLimit.toString());

@@ -26,26 +26,38 @@ pub struct Withdraw<'info> {
     pub user_shares_account: Account<'info, TokenAccount>,
     pub token_program: Program<'info, Token>,
     pub strategy_program: Program<'info, StrategyProgram>,
-    // pub remaining_accounts: Vec<AccountInfo<'info>>,
-    // pub remaining_accounts2: Vec<AccountInfo<'info>>,
+}
+
+#[derive(Default, Clone, AnchorSerialize, AnchorDeserialize)]
+pub struct AccountsIndexes {
+    pub strategy_acc: u64,
+    pub strategy_token_account: u64,
+    pub remaining_accounts_to_strategies: Vec<u64>,
+}
+
+#[derive(Default, Clone, AnchorSerialize, AnchorDeserialize)]
+pub struct AccountsMap {
+    pub accounts_map: Vec<AccountsIndexes>,
 }
 
 pub fn handle_withdraw<'info>(
     ctx: Context<'_, '_, '_, 'info, Withdraw<'info>>, 
     amount: u64, 
-    max_loss: u64
+    max_loss: u64,
+    remaining_accounts_map: AccountsMap
 ) -> Result<()> {
     let shares = ctx.accounts.vault.convert_to_shares(amount);
-    handle_internal(ctx, amount, shares, max_loss)
+    handle_internal(ctx, amount, shares, max_loss, remaining_accounts_map)
 }
 
 pub fn handle_redeem<'info>(
     ctx: Context<'_, '_, '_, 'info, Withdraw<'info>>, 
     shares: u64, 
-    max_loss: u64
+    max_loss: u64,
+    remaining_accounts_map: AccountsMap
 ) -> Result<()> {
     let amount = ctx.accounts.vault.convert_to_underlying(shares);
-    handle_internal(ctx, amount, shares, max_loss)
+    handle_internal(ctx, amount, shares, max_loss, remaining_accounts_map)
 }
 
 fn handle_internal<'info>(
@@ -53,6 +65,7 @@ fn handle_internal<'info>(
     assets: u64,
     shares_to_burn: u64,
     max_loss: u64,
+    remaining_accounts_map: AccountsMap
 ) -> Result<()> {
     if assets == 0 || shares_to_burn == 0 {
         return Err(ErrorCode::ZeroValue.into());
@@ -60,8 +73,15 @@ fn handle_internal<'info>(
 
     let vault = &mut ctx.accounts.vault;
     let user_shares_balance = ctx.accounts.user_shares_account.amount;
-    let remaining_accounts = ctx.remaining_accounts.clone();
-    let (strategies, strategy_token_accounts) = get_strategies_with_token_acc(remaining_accounts)?;
+    let remaining_accounts = ctx.remaining_accounts;
+    let (
+        strategies, 
+        strategy_token_accounts, 
+        strategy_remaining_accounts
+    ) = get_strategies_with_token_acc(
+        remaining_accounts, 
+        remaining_accounts_map
+    )?;
     if user_shares_balance < shares_to_burn {
         return Err(ErrorCode::InsufficientShares.into());
     }
@@ -121,32 +141,39 @@ fn handle_internal<'info>(
 
 fn get_strategies_with_token_acc<'info>(
     remaining_accounts: &[AccountInfo<'info>],
-) -> Result<(Vec<AccountInfo<'info>>, Vec<AccountInfo<'info>>)> {
+    remaining_accounts_map: AccountsMap
+) -> Result<(Vec<AccountInfo<'info>>, Vec<AccountInfo<'info>>, Vec<Vec<AccountInfo<'info>>>)> {
     // Ensure there are an even number of remaining accounts
     if remaining_accounts.len() % 2 != 0 {
         return Err(ErrorCode::InvalidAccountPairs.into());
     }
 
+    let accounts_map = &remaining_accounts_map.accounts_map;
+
     let half = remaining_accounts.len() / 2;
     let mut strategy_account_infos: Vec<AccountInfo<'info>> = Vec::new();
     let mut token_accounts: Vec<AccountInfo<'info>> = Vec::new();
+    let mut strategy_remaining_accounts: Vec<Vec<AccountInfo<'info>>> = Vec::new();
 
-    for i in 0..half {
-        // Process strategy accounts
-        let strategy_acc_info = &remaining_accounts[i];
-        // Process corresponding token accounts
-        let token_account_info = remaining_accounts[half + i].clone();
+    for i in 0..accounts_map.len() {
+        let strategy_acc_info: &AccountInfo<'info> = &remaining_accounts[accounts_map[i].strategy_acc as usize];
+        let token_account_info: &AccountInfo<'info> = &remaining_accounts[accounts_map[i].strategy_token_account as usize];
         let expected_token_account = strategy::get_token_account_key(&strategy_acc_info)?;
 
         if *token_account_info.key != expected_token_account {
             return Err(ErrorCode::InvalidAccountPairs.into());
         }
 
+        for j in 0..accounts_map[i].remaining_accounts_to_strategies.len() {
+            let acc: &AccountInfo<'info> = &remaining_accounts[accounts_map[i].remaining_accounts_to_strategies[j] as usize];
+            strategy_remaining_accounts.push(vec![acc.clone()]);
+        }
+
         strategy_account_infos.push(strategy_acc_info.clone());
-        token_accounts.push(token_account_info);
+        token_accounts.push(token_account_info.clone());
     }
 
-    Ok((strategy_account_infos, token_accounts))
+    Ok((strategy_account_infos, token_accounts, strategy_remaining_accounts))
 }
 
 fn withdraw_assets<'info>(
