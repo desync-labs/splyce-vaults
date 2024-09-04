@@ -23,17 +23,17 @@ pub fn handle_withdraw<'info>(
 ) -> Result<()> {
     let mut strategy = strategy::from_acc_info(&ctx.accounts.strategy)?;
 
-    let max_withdraw = strategy.available_withdraw();
-
-    if amount > max_withdraw {
+    if amount > strategy.available_withdraw() {
         return Err(ErrorCode::InsufficientFunds.into());
+    }
+
+    let balance = ctx.accounts.token_account.amount;
+    if amount > balance {
+        strategy.free_funds(&ctx.remaining_accounts, amount - balance)?;
     }
 
     strategy.withdraw(amount)?;
     strategy.save_changes(&mut &mut ctx.accounts.strategy.try_borrow_mut_data()?[8..])?;
-
-    // retrieve seeds from strategy
-    let seeds = strategy.seeds();
 
     token::transfer_token_from(
         ctx.accounts.token_program.to_account_info(), 
@@ -41,6 +41,6 @@ pub fn handle_withdraw<'info>(
         ctx.accounts.vault_token_account.to_account_info(), 
         ctx.accounts.strategy.to_account_info(), 
         amount, 
-        &seeds
+        &strategy.seeds()
     )
 }

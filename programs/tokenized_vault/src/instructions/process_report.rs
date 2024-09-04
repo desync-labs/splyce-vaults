@@ -1,8 +1,5 @@
 use anchor_lang::prelude::*;
-use anchor_spl::{
-    token::{self, Mint, MintTo, Token, TokenAccount, Transfer},
-};
-// use strategy_program::utils::strategy;
+use anchor_spl::token::{ Mint, Token, TokenAccount};
 
 use crate::state::*;
 use crate::error::ErrorCode::*;

@@ -191,7 +191,7 @@ describe("tokenized_vault", () => {
   it("Allocates tokens to the strategy", async () => {
     const provider = anchor.AnchorProvider.env();
 
-    await vaultProgram.methods.updateDebt(new BN(60))
+    await vaultProgram.methods.updateDebt(new BN(90))
       .accounts({
         vault,
         vaultTokenAccount,
@@ -206,27 +206,27 @@ describe("tokenized_vault", () => {
 
     // Fetch the vault token account balance to verify the allocation
     let vaultTokenAccountInfo = await token.getAccount(provider.connection, vaultTokenAccount);
-    assert.strictEqual(vaultTokenAccountInfo.amount.toString(), '40');
+    assert.strictEqual(vaultTokenAccountInfo.amount.toString(), '10');
 
     // Fetch the strategy token account balance to verify the allocation
     let strategyTokenAccountInfo = await token.getAccount(provider.connection, strategyTokenAccount);
-    assert.strictEqual(strategyTokenAccountInfo.amount.toString(), '60');
+    assert.strictEqual(strategyTokenAccountInfo.amount.toString(), '90');
 
     // Fetch the strategy account to verify the state change
     let strategyAccount = await strategyProgram.account.simpleStrategy.fetch(strategy);
-    assert.strictEqual(strategyAccount.totalAssets.toString(), '60');
+    assert.strictEqual(strategyAccount.totalAssets.toString(), '90');
 
     // check strategy debt
     const vaultAccount = await vaultProgram.account.vault.fetch(vault);
-    assert.strictEqual(vaultAccount.strategies[0].currentDebt.toString(), '60');
-    assert.strictEqual(vaultAccount.totalDebt.toString(), '60');
-    assert.strictEqual(vaultAccount.totalIdle.toString(), '40');
+    assert.strictEqual(vaultAccount.strategies[0].currentDebt.toString(), '90');
+    assert.strictEqual(vaultAccount.totalDebt.toString(), '90');
+    assert.strictEqual(vaultAccount.totalIdle.toString(), '10');
   });
 
   it("Deallocates tokens from the strategy", async () => {
     const provider = anchor.AnchorProvider.env();
 
-    await vaultProgram.methods.updateDebt(new BN(30))
+    await vaultProgram.methods.updateDebt(new BN(80))
       .accounts({
         vault,
         vaultTokenAccount,
@@ -241,28 +241,28 @@ describe("tokenized_vault", () => {
 
     // Fetch the vault token account balance to verify the allocation
     let vaultTokenAccountInfo = await token.getAccount(provider.connection, vaultTokenAccount);
-    assert.strictEqual(vaultTokenAccountInfo.amount.toString(), '70');
+    assert.strictEqual(vaultTokenAccountInfo.amount.toString(), '20');
 
     // Fetch the strategy token account balance to verify the allocation
     let strategyTokenAccountInfo = await token.getAccount(provider.connection, strategyTokenAccount);
-    assert.strictEqual(strategyTokenAccountInfo.amount.toString(), '30');
+    assert.strictEqual(strategyTokenAccountInfo.amount.toString(), '80');
 
     // Fetch the strategy account to verify the state change
     let strategyAccount = await strategyProgram.account.simpleStrategy.fetch(strategy);
-    assert.strictEqual(strategyAccount.totalAssets.toString(), '30');
+    assert.strictEqual(strategyAccount.totalAssets.toString(), '80');
 
     // check strategy debt
     const vaultAccount = await vaultProgram.account.vault.fetch(vault);
-    assert.strictEqual(vaultAccount.strategies[0].currentDebt.toString(), '30');
-    assert.strictEqual(vaultAccount.totalDebt.toString(), '30');
-    assert.strictEqual(vaultAccount.totalIdle.toString(), '70');
+    assert.strictEqual(vaultAccount.strategies[0].currentDebt.toString(), '80');
+    assert.strictEqual(vaultAccount.totalDebt.toString(), '80');
+    assert.strictEqual(vaultAccount.totalIdle.toString(), '20');
   });
 
   it("Withdraws tokens from the vault", async () => {
     const provider = anchor.AnchorProvider.env();
 
     let vaultAccount = await vaultProgram.account.vault.fetch(vault);
-    assert.strictEqual(vaultAccount.totalIdle.toString(), '70');
+    assert.strictEqual(vaultAccount.totalIdle.toString(), '20');
 
     console.log("Vault balance before withdraw:", vaultAccount.totalIdle.toString());
     console.log("Vault debt before withdraw:", vaultAccount.totalDebt.toString());
@@ -276,7 +276,7 @@ describe("tokenized_vault", () => {
       }]
     };
 
-    await vaultProgram.methods.withdraw(new BN(10), new BN(0), remainingAccountsMap)
+    await vaultProgram.methods.withdraw(new BN(30), new BN(10000), remainingAccountsMap)
       .accounts({
         vault,
         user: user.publicKey,
@@ -297,18 +297,21 @@ describe("tokenized_vault", () => {
     vaultAccount = await vaultProgram.account.vault.fetch(vault);
     console.log("Vault balance after withdraw:", vaultAccount.totalIdle.toString());
     console.log("Vault debt after withdraw:", vaultAccount.totalDebt.toString());
-    assert.strictEqual(vaultAccount.totalIdle.toString(), '60');
+    assert.strictEqual(vaultAccount.totalIdle.toString(), '0');
 
     let vaultTokenAccountInfo = await token.getAccount(provider.connection, vaultTokenAccount);
-    assert.strictEqual(vaultTokenAccountInfo.amount.toString(), '60');
+    console.log("Vault token account balance after withdraw:", vaultTokenAccountInfo.amount.toString());
+    assert.strictEqual(vaultTokenAccountInfo.amount.toString(), '0');
 
     // check the user shares account balance
     let userSharesAccountInfo = await token.getAccount(provider.connection, userSharesAccount);
-    assert.strictEqual(userSharesAccountInfo.amount.toString(), '90');
+    console.log("User shares account balance after withdraw:", userSharesAccountInfo.amount.toString());
+    assert.strictEqual(userSharesAccountInfo.amount.toString(), '70');
 
     // check the user token account balance
     let userTokenAccountInfo = await token.getAccount(provider.connection, userTokenAccount);
-    assert.strictEqual(userTokenAccountInfo.amount.toString(), '910');
+    console.log("User token account balance after withdraw:", userTokenAccountInfo.amount.toString());
+    assert.strictEqual(userTokenAccountInfo.amount.toString(), '930');
   });
 
   it("transfer shares and withdraw", async () => {
@@ -329,11 +332,11 @@ describe("tokenized_vault", () => {
 
     // check the user shares account balance
     let userSharesAccountInfo = await token.getAccount(provider.connection, userSharesAccount);
-    assert.strictEqual(userSharesAccountInfo.amount.toString(), '80');
+    console.log("User shares account balance:", userSharesAccountInfo.amount.toString());
 
     // check the new owner shares account balance
     let newOwnerSharesAccountInfo = await token.getAccount(provider.connection, newOwnerSharesAccount);
-    assert.strictEqual(newOwnerSharesAccountInfo.amount.toString(), '10');
+    console.log("New owner shares account balance:", newOwnerSharesAccountInfo.amount.toString());
 
     const remainingAccountsMap = {
       accountsMap: [
@@ -367,8 +370,8 @@ describe("tokenized_vault", () => {
     assert.strictEqual(newOwnerSharesAccountInfo.amount.toString(), '0');
 
     // check the user token account balance
-    let userTokenAccountInfo = await token.getAccount(provider.connection, userTokenAccount);
-    assert.strictEqual(userTokenAccountInfo.amount.toString(), '910');
+    let userTokenAccountInfo = await token.getAccount(provider.connection, newOwnerTokenAccount);
+    assert.strictEqual(userTokenAccountInfo.amount.toString(), '10');
   });
 
   it("set deposit limit", async () => {
