@@ -3,6 +3,7 @@ pub mod error;
 pub mod instructions;
 pub mod state;
 pub mod utils;
+pub mod events;
 
 use anchor_lang::prelude::*;
 
@@ -11,7 +12,7 @@ pub use state::*;
 pub use instructions::*;
 // pub use utils::*;
 
-declare_id!("8eDcyX8Z8yZXBQsuatwxDC1qzGbuUbP7wGERDBQoPmBH");
+declare_id!("CNyqz3mqw6koNmAe7rn2xHGHAS9ftXUNQohwHSiXhJLQ");
 
 #[program]
 pub mod tokenized_vault {

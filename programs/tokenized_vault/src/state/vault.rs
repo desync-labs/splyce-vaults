@@ -5,6 +5,8 @@ use anchor_spl::token_interface::Mint;
 use crate::constants::{VAULT_SEED, MAX_BPS};
 use crate::error::ErrorCode;
 use crate::utils::strategy;
+use crate::events::VaultInitEvent;
+
 
 #[account]
 // #[repr(packed)]
@@ -72,6 +74,19 @@ impl Vault {
         self.total_debt = 0;
         self.total_shares = 0;
         self.index_buffer = index.to_le_bytes();
+
+
+        //Emit the VaultInitEvent
+        emit!(VaultInitEvent {
+            //TODO: Do not hardcode this event id
+            event_id: [175, 175, 109, 31, 13, 152, 155, 237],
+            underlying_mint: self.underlying_mint,
+            underlying_token_acc: self.underlying_token_acc,
+            underlying_decimals: self.underlying_decimals,
+            deposit_limit: self.deposit_limit,
+            min_user_deposit: self.min_user_deposit,
+        });
+
         Ok(())
     }
 

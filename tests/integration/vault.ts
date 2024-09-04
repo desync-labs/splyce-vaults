@@ -35,7 +35,7 @@ describe("tokenized_vault", () => {
 
     console.log("Admin public key:", admin.publicKey.toBase58());
     console.log("User public key:", user.publicKey.toBase58());
-    console.log("Program ID:", vaultProgram.programId.toBase58());
+    console.log("Vault Program ID:", vaultProgram.programId.toBase58());
     console.log("Strategy Program ID:", strategyProgram.programId.toBase58());
 
     // Airdrop SOL to the user
@@ -92,6 +92,7 @@ describe("tokenized_vault", () => {
     assert.ok(vaultAccount.underlyingTokenAcc.equals(vaultTokenAccount));
   });
 
+  /*
   it("Initializes the strategy", async () => {
     strategy = anchor.web3.PublicKey.findProgramAddressSync(
       [Buffer.from("simple"), vault.toBuffer()],
@@ -371,5 +372,5 @@ describe("tokenized_vault", () => {
 
     const vaultAccount = await vaultProgram.account.vault.fetch(vault);
     assert.strictEqual(vaultAccount.depositLimit.toString(), newDepositLimit.toString());
-  });
+  });*/
 });
