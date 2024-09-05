@@ -15,7 +15,8 @@ declare_id!("FdFSegudTdDtCB8QvUN1FVLe6YpcCCLu5e1aJoiqAdtZ");
 // we need to define a trait for the strategies
 // they aren't defined otherwise, because we work with unchecked accounts
 #[derive(Accounts)]
-#[instruction(strategy_type: StrategyType)]pub struct RegAcc<'info> {
+#[instruction(strategy_type: StrategyType)]
+pub struct RegAcc<'info> {
     #[account()]
     pub simple_strategy: Account<'info, SimpleStrategy>,
     #[account()]

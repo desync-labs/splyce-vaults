@@ -1,10 +1,12 @@
+use anchor_lang::accounts::account;
 use anchor_lang::prelude::*;
-use anchor_spl::token::{ Mint, Token, TokenAccount};
+use anchor_spl::token::{self, Mint, MintTo, Token, TokenAccount};
 
 use crate::state::*;
 use crate::error::ErrorCode::*;
 use crate::utils::token::*;
 use crate::utils::strategy;
+use crate::constants::FEE_BPS;
 
 #[derive(Accounts)]
 pub struct ProcessReport<'info> {
@@ -17,6 +19,8 @@ pub struct ProcessReport<'info> {
     pub admin: Signer<'info>,
     #[account(mut)]
     pub shares_mint: Account<'info, Mint>,
+    #[account(mut)]
+    pub fee_shares_recipient: Account<'info, TokenAccount>,
     pub token_program: Program<'info, Token>,
 }
 
@@ -29,7 +33,29 @@ pub fn handle_process_report(ctx: Context<ProcessReport>) -> Result<()> {
     if strategy_assets > strategy_data.current_debt {
         // We have a gain.
         let gain = strategy_assets - strategy_data.current_debt;
+
+        // calculate fees
         vault.total_debt += gain;
+
+        let total_fees = (gain * vault.performance_fee) / FEE_BPS;
+        let fee_shares = vault.convert_to_shares(total_fees);
+
+        // Transfer fees to fee share token account
+
+        token::mint_to(
+            CpiContext::new_with_signer(
+                ctx.accounts.token_program.to_account_info(), 
+                MintTo {
+                    mint: ctx.accounts.shares_mint.to_account_info(),
+                    to: ctx.accounts.fee_shares_recipient.to_account_info(),
+                    authority: vault.to_account_info(),
+                }, 
+                &[&vault.seeds()]
+            ), 
+            fee_shares
+        )?;
+
+        vault.total_shares += fee_shares;
     } else {
         // We have a loss.
         let loss = strategy_data.current_debt - strategy_assets;
@@ -92,17 +118,5 @@ pub fn handle_process_report(ctx: Context<ProcessReport>) -> Result<()> {
 
         // Record the report of profit timestamp.
         strategies[strategy].lastReport = block.timestamp;
-
-        // We have to recalculate the fees paid for cases with an overall loss.
-        emit StrategyReported(
-            strategy,
-            report.gain,
-            report.loss,
-            strategies[strategy].currentDebt,
-            report.protocolFees,
-            report.totalFees,
-            report.assessmentFees.totalRefunds
-        );
-
         return (report.gain, report.loss);
 */

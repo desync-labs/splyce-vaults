@@ -1,4 +1,6 @@
 use anchor_lang::prelude::*;
+use anchor_lang::Discriminator;
+
 use anchor_spl::{
     token::{ Mint, Token, TokenAccount},
     token_interface::Mint as InterfaceMint,
@@ -52,12 +54,14 @@ pub struct Initialize<'info> {
 
 pub fn handle_initialize(ctx: Context<Initialize>, index: u64) -> Result<()> {
     let vault = &mut ctx.accounts.vault;
+    // TODO: pass config params
     vault.init(
         ctx.bumps.vault,
         ctx.accounts.underlying_mint.as_ref(),
         ctx.accounts.token_account.key(),
-        1000000,
+        1_000_000,
         0,
+        1000,
         index
     )
 }

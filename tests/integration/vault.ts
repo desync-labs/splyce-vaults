@@ -377,10 +377,21 @@ describe("tokenized_vault", () => {
   it("report profit", async () => { 
     const provider = anchor.AnchorProvider.env();
 
+    const feeRecipient = anchor.web3.Keypair.generate();
+    const airdropSignature = await provider.connection.requestAirdrop(feeRecipient.publicKey, 10e9);
+    await provider.connection.confirmTransaction(airdropSignature);
+
+    const feeRecipientSharesAccount = await token.createAccount(provider.connection, feeRecipient, sharesMint, feeRecipient.publicKey);
+    const feeRecipientTokenAccount = await token.createAccount(provider.connection, feeRecipient, underlyingMint, feeRecipient.publicKey);
+
     // 60 tokens profit for the srategy
     await token.mintTo(provider.connection, admin, underlyingMint, strategyTokenAccount, admin.publicKey, 60);
 
     console.log("Minted 60 tokens to strategy:", strategyTokenAccount.toBase58());
+
+    // check total shares before report
+    let vaultAccount = await vaultProgram.account.vault.fetch(vault);
+    assert.strictEqual(vaultAccount.totalShares.toString(), '60');
 
     await strategyProgram.methods.report()
       .accounts({
@@ -395,20 +406,20 @@ describe("tokenized_vault", () => {
       .signers([admin])
       .rpc();
 
-      console.log("reported profit");
-
       await vaultProgram.methods.processReport()
-      .accounts({
-        vault,
-        strategy,
-        admin: admin.publicKey,
-        sharesMint,
-        tokenProgram: token.TOKEN_PROGRAM_ID,
-      })
-      .signers([admin])
-      .rpc();
+        .accounts({
+          vault,
+          strategy,
+          admin: admin.publicKey,
+          feeSharesRecipient: feeRecipientSharesAccount,
+          sharesMint,
+          tokenProgram: token.TOKEN_PROGRAM_ID,
+        })
+        .signers([admin])
+        .rpc();
 
-      console.log("processed report");
+    vaultAccount = await vaultProgram.account.vault.fetch(vault);
+    assert.strictEqual(vaultAccount.totalShares.toString(), '63');
 
     // check the strategy token account balance
     let strategyTokenAccountInfo = await token.getAccount(provider.connection, strategyTokenAccount);
@@ -450,9 +461,39 @@ describe("tokenized_vault", () => {
     let userSharesAccountInfo = await token.getAccount(provider.connection, userSharesAccount);
     assert.strictEqual(userSharesAccountInfo.amount.toString(), '50');
 
-    // check the user token account balance (received 20 tokens)
+    // check the user token account balance (received 19 tokens)
     let userTokenAccountInfo = await token.getAccount(provider.connection, userTokenAccount);
-    assert.strictEqual(userTokenAccountInfo.amount.toString(), '950');
+    assert.strictEqual(userTokenAccountInfo.amount.toString(), '949');
+
+    let feeRecipientSharesAccountInfo = await token.getAccount(provider.connection, feeRecipientSharesAccount);
+    assert.strictEqual(feeRecipientSharesAccountInfo.amount.toString(), '3');
+
+    // withdraw fee
+    await vaultProgram.methods.withdraw(new BN(3), new BN(0), remainingAccountsMap)
+      .accounts({
+        vault,
+        user: feeRecipient.publicKey,
+        userTokenAccount: feeRecipientTokenAccount,
+        vaultTokenAccount,
+        sharesMint,
+        userSharesAccount: feeRecipientSharesAccount,
+        tokenProgram: token.TOKEN_PROGRAM_ID,
+        strategyProgram: strategyProgram.programId,
+      })
+      .remainingAccounts([
+        { pubkey: strategy, isWritable: true, isSigner: false },
+        { pubkey: strategyTokenAccount, isWritable: true, isSigner: false },
+      ])
+      .signers([feeRecipient])
+      .rpc();
+
+    // check the fee recipient shares account balance (burned 3 shares)
+    feeRecipientSharesAccountInfo = await token.getAccount(provider.connection, feeRecipientSharesAccount);
+    assert.strictEqual(feeRecipientSharesAccountInfo.amount.toString(), '0');
+
+    // check the fee recipient token account balance (received 3 tokens)
+    let feeRecipientTokenAccountInfo = await token.getAccount(provider.connection, feeRecipientTokenAccount);
+    assert.strictEqual(feeRecipientTokenAccountInfo.amount.toString(), '5');
   });
 
   it("set deposit limit", async () => {
