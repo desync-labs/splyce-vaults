@@ -42,4 +42,8 @@ pub mod strategy_program {
     pub fn withdraw_funds(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
         withdraw::handle_withdraw(&ctx, amount)
     }
+
+    pub fn report(ctx: Context<Report>) -> Result<()> {
+        report::handle_report(ctx)
+    }
 }

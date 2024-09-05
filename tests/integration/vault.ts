@@ -374,6 +374,87 @@ describe("tokenized_vault", () => {
     assert.strictEqual(userTokenAccountInfo.amount.toString(), '10');
   });
 
+  it("report profit", async () => { 
+    const provider = anchor.AnchorProvider.env();
+
+    // 60 tokens profit for the srategy
+    await token.mintTo(provider.connection, admin, underlyingMint, strategyTokenAccount, admin.publicKey, 60);
+
+    console.log("Minted 60 tokens to strategy:", strategyTokenAccount.toBase58());
+
+    await strategyProgram.methods.report()
+      .accounts({
+        strategy,
+        tokenAccount: strategyTokenAccount,
+        admin: admin.publicKey,
+        tokenProgram: token.TOKEN_PROGRAM_ID,
+      })
+      .remainingAccounts([
+        { pubkey: strategyTokenAccount, isWritable: true, isSigner: false },
+      ])
+      .signers([admin])
+      .rpc();
+
+      console.log("reported profit");
+
+      await vaultProgram.methods.processReport()
+      .accounts({
+        vault,
+        strategy,
+        admin: admin.publicKey,
+        sharesMint,
+        tokenProgram: token.TOKEN_PROGRAM_ID,
+      })
+      .signers([admin])
+      .rpc();
+
+      console.log("processed report");
+
+    // check the strategy token account balance
+    let strategyTokenAccountInfo = await token.getAccount(provider.connection, strategyTokenAccount);
+    assert.strictEqual(strategyTokenAccountInfo.amount.toString(), '120');
+
+    // check the vault token account balance
+    let vaultTokenAccountInfo = await token.getAccount(provider.connection, vaultTokenAccount);
+    assert.strictEqual(vaultTokenAccountInfo.amount.toString(), '0');
+
+    // withdraw
+    const remainingAccountsMap = {
+      accountsMap: [
+      {
+        strategyAcc: new BN(0),
+        strategyTokenAccount: new BN(1),
+        remainingAccountsToStrategies: [new BN(0)],
+      }]
+    };
+
+    await vaultProgram.methods.withdraw(new BN(10), new BN(0), remainingAccountsMap)
+      .accounts({
+        vault,
+        user: user.publicKey,
+        userTokenAccount,
+        vaultTokenAccount,
+        sharesMint,
+        userSharesAccount,
+        tokenProgram: token.TOKEN_PROGRAM_ID,
+        strategyProgram: strategyProgram.programId,
+      })
+      .remainingAccounts([
+        { pubkey: strategy, isWritable: true, isSigner: false },
+        { pubkey: strategyTokenAccount, isWritable: true, isSigner: false },
+      ])
+      .signers([user])
+      .rpc();
+
+    // check the user shares account balance (burned 10 shares)
+    let userSharesAccountInfo = await token.getAccount(provider.connection, userSharesAccount);
+    assert.strictEqual(userSharesAccountInfo.amount.toString(), '50');
+
+    // check the user token account balance (received 20 tokens)
+    let userTokenAccountInfo = await token.getAccount(provider.connection, userTokenAccount);
+    assert.strictEqual(userTokenAccountInfo.amount.toString(), '950');
+  });
+
   it("set deposit limit", async () => {
     const newDepositLimit = new BN(2000);
 

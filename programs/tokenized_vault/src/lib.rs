@@ -45,5 +45,9 @@ pub mod tokenized_vault {
     pub fn set_deposit_limit(ctx: Context<SetDepositLimit>, limit: u64) -> Result<()> {
         handle_set_deposit_limit(ctx, limit)
     }
+
+    pub fn process_report(ctx: Context<ProcessReport>) -> Result<()> {
+        handle_process_report(ctx)
+    }
 }
 

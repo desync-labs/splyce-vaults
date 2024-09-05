@@ -14,9 +14,7 @@ pub struct ProcessReport<'info> {
     #[account()]
     pub strategy: AccountInfo<'info>,
     #[account(mut)]
-    pub user: Signer<'info>,
-    #[account(mut)]
-    pub shares_account: Account<'info, TokenAccount>,
+    pub admin: Signer<'info>,
     #[account(mut)]
     pub shares_mint: Account<'info, Mint>,
     pub token_program: Program<'info, Token>,
