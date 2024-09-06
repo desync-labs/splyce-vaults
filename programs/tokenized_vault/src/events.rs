@@ -36,3 +36,9 @@ pub struct VaultWithdrawlEvent {
     pub assets_to_transfer: u64,
     pub shares_to_burn: u64,
 }
+
+#[event]
+pub struct VaultUpdateDepositLimitEvent {
+    pub vault_index: [u8; 8],
+    pub new_limit: u64,
+}
