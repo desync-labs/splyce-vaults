@@ -4,6 +4,9 @@ use anchor_spl::token_interface::Mint;
 use crate::constants::*;
 use crate::base_strategy::*;
 use crate::error::ErrorCode;
+use crate::events::StrategyDepositEvent;
+use crate::events::StrategyInitEvent;
+use crate::events::StrategyWithdrawEvent;
 
 #[account()]
 #[derive(Default, Debug)]
@@ -33,11 +36,31 @@ impl Strategy for SimpleStrategy {
 
     fn deposit(&mut self, amount: u64) -> Result<()> {
         self.total_funds += amount;
+        
+        emit!(
+            StrategyDepositEvent 
+            {
+                account_key: self.key(),
+                amount: amount,
+                total_funds: self.total_funds,
+            }
+        );
+
         Ok(())
     }
 
     fn withdraw(&mut self, amount: u64) -> Result<()> {
         self.total_funds -= amount;
+
+        emit!(
+            StrategyWithdrawEvent 
+            {
+                account_key: self.key(),
+                amount: amount,
+                total_funds: self.total_funds,
+            }
+        );
+
         Ok(())
     }
 
@@ -91,6 +114,22 @@ impl StrategyInit for SimpleStrategy {
         self.underlying_token_acc = underlying_token_acc;
         self.deposit_limit = config.deposit_limit;
         self.total_funds = 0;
+
+        emit!(
+            StrategyInitEvent 
+            {
+                account_key: self.key(),
+                strategy_type: String::from("Simple"),
+                vault: self.vault,
+                underlying_mint: self.underlying_mint,
+                underlying_token_acc: self.underlying_token_acc,
+                undelying_decimals: self.undelying_decimals,
+                total_idle: 0,
+                total_funds: self.total_funds,
+                deposit_limit: self.deposit_limit,
+                deposit_period_ends: 0,
+                lock_period_ends: 0,
+            });
 
         Ok(())
     }

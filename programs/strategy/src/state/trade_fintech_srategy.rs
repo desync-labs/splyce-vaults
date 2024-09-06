@@ -4,6 +4,7 @@ use anchor_spl::token_interface::Mint;
 use crate::base_strategy::*;
 use crate::error::ErrorCode;
 use crate::constants::TRADE_FINTECH_STRATEGY_SEED;
+use crate::events::{StrategyDepositEvent, StrategyInitEvent, StrategyWithdrawEvent};
 #[account]
 // #[repr(packed)]
 #[derive(Default, Debug)]
@@ -40,11 +41,31 @@ impl Strategy for TradeFintechStrategy {
 
     fn deposit(&mut self, amount: u64) -> Result<()> {
         self.total_funds += amount;
+
+        emit!(
+            StrategyDepositEvent 
+            {
+                account_key: self.key(),
+                amount: amount,
+                total_funds: self.total_funds,
+            }
+        );
+
         Ok(())
     }
 
     fn withdraw(&mut self, amount: u64) -> Result<()> {
         self.total_funds -= amount;
+
+        emit!(
+            StrategyWithdrawEvent 
+            {
+                account_key: self.key(),
+                amount: amount,
+                total_funds: self.total_funds,
+            }
+        );
+
         Ok(())
     }
 
@@ -118,6 +139,22 @@ impl StrategyInit for TradeFintechStrategy {
         self.lock_period_ends = config.lock_period_ends;
         self.total_funds = 0;
         self.total_idle = 0;
+
+        emit!(
+            StrategyInitEvent 
+            {
+                account_key: self.key(),
+                strategy_type: String::from("trade-fintech"),
+                vault: self.vault,
+                underlying_mint: self.underlying_mint,
+                underlying_token_acc: self.underlying_token_acc,
+                undelying_decimals: self.undelying_decimals,
+                total_idle: self.total_idle,
+                total_funds: self.total_funds,
+                deposit_limit: self.deposit_limit,
+                deposit_period_ends: self.deposit_period_ends,
+                lock_period_ends: self.lock_period_ends,
+            });
 
         Ok(())
     }

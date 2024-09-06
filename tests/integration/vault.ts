@@ -74,6 +74,7 @@ describe("tokenized_vault", () => {
     console.log("Vault token account:", vaultTokenAccount.toBase58());
   });
 
+  
   it("Initializes the vault", async () => {
     await vaultProgram.methods.initialize(new BN(1))
       .accounts({
@@ -92,7 +93,7 @@ describe("tokenized_vault", () => {
     assert.ok(vaultAccount.underlyingTokenAcc.equals(vaultTokenAccount));
   });
 
-  /*
+    //TODO:
   it("Initializes the strategy", async () => {
     strategy = anchor.web3.PublicKey.findProgramAddressSync(
       [Buffer.from("simple"), vault.toBuffer()],
@@ -154,6 +155,7 @@ describe("tokenized_vault", () => {
     assert.ok(vaultAccount.strategies[0].key.equals(strategy));
   });
 
+
   it("Deposits tokens into the vault", async () => {
     const provider = anchor.AnchorProvider.env();
 
@@ -194,6 +196,9 @@ describe("tokenized_vault", () => {
     let userSharesAccountInfo = await token.getAccount(provider.connection, userSharesAccount);
     assert.strictEqual(userSharesAccountInfo.amount.toString(), '100');
   });
+
+  
+  //TODO:
   it("Allocates tokens to the strategy", async () => {
     const provider = anchor.AnchorProvider.env();
 
@@ -229,6 +234,7 @@ describe("tokenized_vault", () => {
     assert.strictEqual(vaultAccount.totalIdle.toString(), '40');
   });
 
+    //TODO:
   it("Deallocates tokens from the strategy", async () => {
     const provider = anchor.AnchorProvider.env();
 
@@ -264,6 +270,7 @@ describe("tokenized_vault", () => {
     assert.strictEqual(vaultAccount.totalIdle.toString(), '70');
   });
 
+  
   it("Withdraws tokens from the vault", async () => {
     const provider = anchor.AnchorProvider.env();
 
@@ -308,6 +315,7 @@ describe("tokenized_vault", () => {
     assert.strictEqual(userTokenAccountInfo.amount.toString(), '910');
   });
 
+  
   it("transfer shares and withdraw", async () => {
     const provider = anchor.AnchorProvider.env();
 
@@ -372,5 +380,5 @@ describe("tokenized_vault", () => {
 
     const vaultAccount = await vaultProgram.account.vault.fetch(vault);
     assert.strictEqual(vaultAccount.depositLimit.toString(), newDepositLimit.toString());
-  });*/
+  });
 });
