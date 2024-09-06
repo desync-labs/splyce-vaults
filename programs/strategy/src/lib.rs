@@ -11,7 +11,7 @@ pub use instructions::*;
 pub use state::*;
 use error::ErrorCode::InvalidStrategyData;
 
-declare_id!("FdFSegudTdDtCB8QvUN1FVLe6YpcCCLu5e1aJoiqAdtZ");
+declare_id!("ErJGueTn3xVKETP4dc8vrmS5Lu7iupJZ2pr7kYJkCtUE");
 
 // we need to define a trait for the strategies
 // they aren't defined otherwise, because we work with unchecked accounts

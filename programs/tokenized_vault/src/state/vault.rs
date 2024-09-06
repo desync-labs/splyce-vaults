@@ -5,7 +5,7 @@ use anchor_spl::token_interface::Mint;
 use crate::constants::{VAULT_SEED, MAX_BPS};
 use crate::error::ErrorCode;
 use crate::utils::strategy;
-use crate::events::VaultInitEvent;
+use crate::events::{VaultAddStrategyEvent, VaultDepositEvent, VaultInitEvent};
 
 
 #[account]
@@ -78,8 +78,7 @@ impl Vault {
 
         //Emit the VaultInitEvent
         emit!(VaultInitEvent {
-            //TODO: Do not hardcode this event id
-            event_id: [175, 175, 109, 31, 13, 152, 155, 237],
+            vault_index: self.index_buffer,
             underlying_mint: self.underlying_mint,
             underlying_token_acc: self.underlying_token_acc,
             underlying_decimals: self.underlying_decimals,
@@ -97,6 +96,12 @@ impl Vault {
     pub fn handle_deposit(&mut self, amount: u64, shares: u64) {
         self.total_idle += amount;
         self.total_shares += shares;
+
+        emit!(VaultDepositEvent {
+            vault_index: self.index_buffer,
+            amount,
+            share: shares,
+        });
     }
 
     pub fn handle_withdraw(&mut self, amount: u64, shares: u64) {
@@ -198,6 +203,15 @@ impl Vault {
 
         let pos = self.strategies.iter().position(|x| x.key == Pubkey::default()).unwrap();
         self.strategies[pos] = strategy_data;
+
+        emit!(VaultAddStrategyEvent {
+            vault_index: self.index_buffer,
+            strategy_key: strategy,
+            current_debt: 0,
+            max_debt,
+            last_update: 0,
+            is_active: true,
+        });
 
         Ok(())
     }
