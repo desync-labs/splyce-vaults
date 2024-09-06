@@ -26,3 +26,13 @@ pub struct VaultDepositEvent {
     pub amount: u64,
     pub share: u64,
 }
+
+
+#[event]
+pub struct VaultWithdrawlEvent {
+    pub vault_index: [u8; 8],
+    pub total_idle: u64,
+    pub total_share: u64,
+    pub assets_to_transfer: u64,
+    pub shares_to_burn: u64,
+}

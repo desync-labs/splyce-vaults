@@ -5,7 +5,7 @@ use anchor_spl::token_interface::Mint;
 use crate::constants::{VAULT_SEED, MAX_BPS};
 use crate::error::ErrorCode;
 use crate::utils::strategy;
-use crate::events::{VaultAddStrategyEvent, VaultDepositEvent, VaultInitEvent};
+use crate::events::{VaultAddStrategyEvent, VaultDepositEvent, VaultInitEvent, VaultWithdrawlEvent};
 
 
 #[account]
@@ -107,6 +107,14 @@ impl Vault {
     pub fn handle_withdraw(&mut self, amount: u64, shares: u64) {
         self.total_idle -= amount;
         self.total_shares -= shares;
+
+        emit!(VaultWithdrawlEvent {
+            vault_index: self.index_buffer,
+            total_idle: self.total_idle,
+            total_share: self.total_shares,
+            assets_to_transfer: amount,
+            shares_to_burn: shares,
+        });
     }
 
     pub fn max_deposit(&self) -> u64 {
