@@ -15,7 +15,7 @@ pub struct TradeFintechStrategy {
 
     /// vault
     pub vault: Pubkey,
-
+    pub manager: Pubkey,
     pub underlying_mint: Pubkey,
     pub underlying_token_acc: Pubkey,
     pub undelying_decimals: u8,
@@ -46,6 +46,19 @@ pub enum TradeFintechErrorCode {
 impl Strategy for TradeFintechStrategy {
     fn strategy_type(&self) -> StrategyType {
         StrategyType::TradeFintech
+    }
+
+    fn vault(&self) -> Pubkey {
+        self.vault
+    }
+
+    fn manager(&self) -> Pubkey {
+        self.manager
+    }
+
+    fn set_manager(&mut self, manager: Pubkey) -> Result<()> {
+        self.manager = manager;
+        Ok(())
     }
 
     fn deposit(&mut self, amount: u64) -> Result<()> {
@@ -163,7 +176,7 @@ impl Strategy for TradeFintechStrategy {
 }
 
 impl TradeFintechStrategy {
-    pub const LEN: usize = 8 + 1 + 32 + 32 + 32 + 1 + 8 + 8 + 8 + 8 + 8;
+    pub const LEN: usize = 8 + 1 + 32 + 32 + 32 + 32 + 1 + 8 + 8 + 8 + 8 + 8;
 }
 
 impl StrategyInit for TradeFintechStrategy {

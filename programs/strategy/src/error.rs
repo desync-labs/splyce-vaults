@@ -34,4 +34,7 @@ pub enum ErrorCode {
 
     #[msg("Max deposit reached")]
     MaxDepositReached,
+
+    #[msg("Signer has no access")]
+    AccessDenied,
 }

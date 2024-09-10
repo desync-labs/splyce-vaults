@@ -11,7 +11,7 @@ pub struct Deposit<'info> {
     #[account(mut)]
     pub strategy: UncheckedAccount<'info>,
     #[account(mut)]
-    pub vault: Signer<'info>,
+    pub signer: Signer<'info>,
     #[account(mut)]
     pub token_account: Account<'info, TokenAccount>,
     #[account(mut)]
@@ -20,10 +20,14 @@ pub struct Deposit<'info> {
 }
 
 pub fn handle_deposit<'info>(
-    ctx: &Context<Deposit<'info>>,
+    ctx: Context<Deposit<'info>>,
     amount: u64,
 ) -> Result<()> {
     let mut strategy = strategy::from_acc_info(&ctx.accounts.strategy)?;
+
+    if *ctx.accounts.signer.key != strategy.vault() {
+        return Err(ErrorCode::AccessDenied.into());
+    }
 
     let max_deposit = strategy.available_deposit();
 
@@ -35,7 +39,7 @@ pub fn handle_deposit<'info>(
         ctx.accounts.token_program.to_account_info(),
         ctx.accounts.vault_token_account.to_account_info(), 
         ctx.accounts.token_account.to_account_info(), 
-        ctx.accounts.vault.to_account_info(), 
+        ctx.accounts.signer.to_account_info(), 
         amount
     )?;
 

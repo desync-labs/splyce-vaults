@@ -1,6 +1,7 @@
 use anchor_lang::prelude::*;
 
 use crate::state::*;
+use crate::constants::ROLES_SEED;
 
 #[derive(Accounts)]
 pub struct AddStrategy<'info> {
@@ -9,7 +10,12 @@ pub struct AddStrategy<'info> {
     /// CHECK: is this a right way to do it?
     #[account()]
     pub strategy: AccountInfo<'info>,
-    #[account(mut)]
+    #[account(mut, seeds = [ROLES_SEED.as_bytes()], bump)]
+    pub roles_data: Account<'info, Roles>,
+    #[account(
+        mut, 
+        address = roles_data.vaults_admin
+    )]
     pub admin: Signer<'info>,
     pub system_program: Program<'info, System>,
     pub rent: Sysvar<'info, Rent>,

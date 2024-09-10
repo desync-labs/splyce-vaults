@@ -178,7 +178,7 @@ fn withdraw_assets<'info>(
     vault_token_account: &mut Account<'info, TokenAccount>,
     token_program: &AccountInfo<'info>,
     strategy_program: &AccountInfo<'info>,
-    vault: &mut Vault,
+    vault: &mut Account<'info, Vault>,
     assets: u64,
     strategies: Vec<AccountInfo<'info>>,
     token_accounts: Vec<AccountInfo<'info>>,
@@ -195,17 +195,18 @@ fn withdraw_assets<'info>(
 
         for i in 0..strategies.len() {
             let strategy_acc = &strategies[i];
-            let strategy_data = vault.get_strategy_data_mut(strategy_acc.key())?;
+            let strategy_data = vault.get_strategy_data(strategy_acc.key())?;
+            let mut current_debt = strategy_data.current_debt;
             if !strategy_data.is_active {
                 return Err(ErrorCode::InactiveStrategy.into());
             }
 
-            let mut to_withdraw = std::cmp::min(assets_needed as u64, strategy_data.current_debt);
+            let mut to_withdraw = std::cmp::min(assets_needed as u64, current_debt);
             let strategy_limit = strategy::get_max_withdraw(&strategy_acc)?;
             let mut unrealised_loss_share = strategy::assess_share_of_unrealised_losses(
                 &strategy_acc,
                 to_withdraw, 
-                strategy_data.current_debt
+                current_debt
             )?;
 
             if unrealised_loss_share > 0 {
@@ -223,8 +224,8 @@ fn withdraw_assets<'info>(
                 total_debt -= unrealised_loss_share;
 
                 if strategy_limit == 0 && unrealised_loss_share > 0 {
-                    let new_debt = strategy_data.current_debt - unrealised_loss_share;
-                    strategy_data.current_debt = new_debt;
+                    current_debt = current_debt - unrealised_loss_share;
+                    // strategy_data.current_debt = new_debt;
                 }
             }
 
@@ -234,18 +235,21 @@ fn withdraw_assets<'info>(
                 continue;
             }
 
-            let mut context = CpiContext::new(
+            let vault_seeds: &[&[&[u8]]] = &[&vault.seeds()];
+            let mut context = CpiContext::new_with_signer(
                 strategy_program.to_account_info(),
                 WithdrawAccounts {
                     strategy: strategy_acc.to_account_info(),
                     token_account: token_accounts[i].to_account_info(),
+                    signer: vault.to_account_info(),
                     vault_token_account: vault_token_account.to_account_info(),
                     token_program: token_program.to_account_info(),
-                }
+                },
+                vault_seeds
             );
             context.remaining_accounts = remaining_accounts[i].clone();
 
-            strategy_program::cpi::withdraw_funds(context, to_withdraw)?;
+            strategy_program::cpi::withdraw(context, to_withdraw)?;
 
             vault_token_account.reload()?;
             let post_balance = vault_token_account.amount;
@@ -253,8 +257,8 @@ fn withdraw_assets<'info>(
             let mut loss = 0;
 
             if withdrawn > to_withdraw {
-                if withdrawn > strategy_data.current_debt {
-                    to_withdraw = strategy_data.current_debt;
+                if withdrawn > current_debt {
+                    to_withdraw = current_debt;
                 } else {
                     to_withdraw = withdrawn;
                 }
@@ -266,8 +270,9 @@ fn withdraw_assets<'info>(
             requested_assets -= loss;
             total_debt -= to_withdraw;
 
-            let new_debt: u64 = strategy_data.current_debt - (to_withdraw + unrealised_loss_share);
-            strategy_data.current_debt = new_debt;
+            let new_debt: u64 = current_debt - (to_withdraw + unrealised_loss_share);
+            let strategy_data_mut = vault.get_strategy_data_mut(strategy_acc.key())?;
+            strategy_data_mut.current_debt = new_debt;
 
             if requested_assets <= total_idle {
                 break;

@@ -16,6 +16,7 @@ pub struct SimpleStrategy {
     pub vault: Pubkey,
     pub underlying_mint: Pubkey,
     pub underlying_token_acc: Pubkey,
+    pub manager: Pubkey,
     // this value mast be u64 because of the borsh serialization
     pub undelying_decimals: u8,
     pub total_assets: u64,
@@ -32,6 +33,14 @@ impl Strategy for SimpleStrategy {
         StrategyType::Simple
     }
 
+    fn vault(&self) -> Pubkey {
+        self.vault
+    }
+
+    fn manager(&self) -> Pubkey {
+        self.manager
+    }
+
     fn deposit(&mut self, amount: u64) -> Result<()> {
         self.total_assets += amount;
         Ok(())
@@ -39,6 +48,11 @@ impl Strategy for SimpleStrategy {
 
     fn withdraw(&mut self, amount: u64) -> Result<()> {
         self.total_assets -= amount;
+        Ok(())
+    }
+
+    fn set_manager(&mut self, manager: Pubkey) -> Result<()> {
+        self.manager = manager;
         Ok(())
     }
 
@@ -80,7 +94,7 @@ impl Strategy for SimpleStrategy {
 
 
 impl SimpleStrategy {
-    pub const LEN: usize = 8 + 1 + 32 + 32 + 32 + 1 + 8 + 8;
+    pub const LEN: usize = 8 + 1 + 32 + 32 + 32 + 32 + 1 + 8 + 8;
 }
 
 impl StrategyInit for SimpleStrategy {

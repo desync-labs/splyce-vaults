@@ -21,6 +21,14 @@ pub mod tokenized_vault {
         handle_initialize(ctx, index)
     }
 
+    pub fn init_roles(ctx: Context<InitializeRoles>) -> Result<()> {
+        handle_init_roles(ctx)
+    }
+
+    pub fn set_role(ctx: Context<SetRole>, role: Role, key: Pubkey) -> Result<()> {
+        handle_set_role(ctx, role, key)
+    }
+
     pub fn deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
         handle_deposit(ctx, amount)
     }

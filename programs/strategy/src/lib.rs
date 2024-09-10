@@ -36,15 +36,19 @@ pub mod strategy_program {
         instructions::initialize(ctx, strategy_type, config)
     }
 
-    pub fn deposit_funds(ctx: Context<Deposit>, amount: u64) -> Result<()> {
-        deposit::handle_deposit(&ctx, amount)
+    pub fn deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
+        deposit::handle_deposit(ctx, amount)
     }
 
-    pub fn withdraw_funds(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
-        withdraw::handle_withdraw(&ctx, amount)
+    pub fn withdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
+        withdraw::handle_withdraw(ctx, amount)
     }
 
     pub fn report(ctx: Context<Report>) -> Result<()> {
         report::handle_report(ctx)
+    }
+
+    pub fn transfer_management(ctx: Context<TransferManagement>, new_admin: Pubkey) -> Result<()> {
+        transfer_management::handle_transfer_management(ctx, new_admin)
     }
 }

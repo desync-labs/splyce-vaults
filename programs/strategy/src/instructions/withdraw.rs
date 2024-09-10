@@ -13,15 +13,21 @@ pub struct Withdraw<'info> {
     #[account(mut)]
     pub token_account: Account<'info, TokenAccount>,
     #[account(mut)]
+    pub signer: Signer<'info>,
+    #[account(mut)]
     pub vault_token_account: Account<'info, TokenAccount>,
     pub token_program: Program<'info, Token>,
 }
 
 pub fn handle_withdraw<'info>(
-    ctx: &Context<Withdraw<'info>>,
+    ctx: Context<Withdraw<'info>>,
     amount: u64,
 ) -> Result<()> {
     let mut strategy = strategy::from_acc_info(&ctx.accounts.strategy)?;
+
+    if *ctx.accounts.signer.key != strategy.vault() {
+        return Err(ErrorCode::AccessDenied.into());
+    }
 
     if amount > strategy.available_withdraw() {
         return Err(ErrorCode::InsufficientFunds.into());

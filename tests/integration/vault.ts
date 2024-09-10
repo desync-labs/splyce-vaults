@@ -5,7 +5,7 @@ import { Strategy } from "../target/types/strategy";
 import { BN } from "@coral-xyz/anchor";
 import * as token from "@solana/spl-token";
 import * as borsh from 'borsh';
-import * as assert from 'assert';
+import { assert, expect } from 'chai';
 import { SimpleStrategy, SimpleStrategySchema } from "../utils/schemas";
 
 
@@ -15,7 +15,6 @@ describe("tokenized_vault", () => {
 
   const vaultProgram = anchor.workspace.TokenizedVault as Program<TokenizedVault>;
   const strategyProgram = anchor.workspace.StrategyProgram as Program<Strategy>;
-  const TOKEN_METADATA_PROGRAM_ID = new anchor.web3.PublicKey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s");
 
   let vault: anchor.web3.PublicKey;
   let sharesMint: anchor.web3.PublicKey;
@@ -27,7 +26,7 @@ describe("tokenized_vault", () => {
   let user: anchor.web3.Keypair;
   let admin: anchor.web3.Keypair;
   let underlyingMint: anchor.web3.PublicKey;
-  // let strategyData: anchor.web3.PublicKey;
+  let rolesData: anchor.web3.PublicKey;
 
   before(async () => {
     user = anchor.web3.Keypair.generate();
@@ -72,6 +71,26 @@ describe("tokenized_vault", () => {
       vaultProgram.programId,
     )[0];
     console.log("Vault token account:", vaultTokenAccount.toBase58());
+  });
+
+  it("init roles account", async () => {
+    rolesData == anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("roles")],
+      vaultProgram.programId,
+    )[0];
+
+    await vaultProgram.methods.initRoles()
+      .accounts({
+        rolesData,
+        admin: admin.publicKey,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .signers([admin])
+      .rpc();
+
+      // check protocol admin
+      // const rolesAccount = await vaultProgram.account.roles.fetch(rolesData);
+      // assert.strictEqual(rolesAccount.protocolAdmin.toString(), admin.publicKey.toString());
   });
 
   it("Initializes the vault", async () => {
@@ -129,13 +148,28 @@ describe("tokenized_vault", () => {
     // console.log(await strategyProgram.account.simpleStrategy.fetch(strategy));
     const strategyAccount = await strategyProgram.account.simpleStrategy.fetch(strategy);
     assert.ok(strategyAccount.depositLimit.eq(new BN(1000)));
+  });
 
+  it("set vault admin", async () => {
+    const role = { vaultsAdmin: {} };
+    let key = admin.publicKey;
+
+    await vaultProgram.methods.setRole(role, key)
+      .accounts({
+        // rolesData,
+        admin: admin.publicKey,
+      })
+      .signers([admin])
+      .rpc();
+
+      // check protocol admin
+      // const rolesAccount = await vaultProgram.account.roles.fetch(rolesData);
+      // assert.strictEqual(rolesAccount.vaultsAdmin.toString(), admin.publicKey.toString());
   });
 
   it("Adds a strategy to the vault", async () => {
     await vaultProgram.methods.addStrategy(new BN(1000000000))
       .accounts({
-        // strategyData,
         vault,
         strategy,
         admin: admin.publicKey,
@@ -188,6 +222,7 @@ describe("tokenized_vault", () => {
     let userSharesAccountInfo = await token.getAccount(provider.connection, userSharesAccount);
     assert.strictEqual(userSharesAccountInfo.amount.toString(), '100');
   });
+
   it("Allocates tokens to the strategy", async () => {
     const provider = anchor.AnchorProvider.env();
 
@@ -314,6 +349,24 @@ describe("tokenized_vault", () => {
     assert.strictEqual(userTokenAccountInfo.amount.toString(), '930');
   });
 
+  it("withdraw directly from strategy -> should revert", async () => {
+    try {
+      await strategyProgram.methods.withdraw(new BN(1))
+        .accounts({
+          strategy,
+          vault: admin.publicKey,
+          tokenAccount: strategyTokenAccount,
+          vaultTokenAccount: userTokenAccount,
+          tokenProgram: token.TOKEN_PROGRAM_ID,
+        })
+        .signers([admin])
+        .rpc();
+      assert.fail("Expected error was not thrown");
+    } catch (err) {
+      assert.strictEqual(err.message, "unknown signer: " + admin.publicKey.toBase58());
+    }
+  });
+
   it("transfer shares and withdraw", async () => {
     const provider = anchor.AnchorProvider.env();
 
@@ -397,7 +450,7 @@ describe("tokenized_vault", () => {
       .accounts({
         strategy,
         tokenAccount: strategyTokenAccount,
-        admin: admin.publicKey,
+        signer: admin.publicKey,
         tokenProgram: token.TOKEN_PROGRAM_ID,
       })
       .remainingAccounts([
@@ -496,6 +549,31 @@ describe("tokenized_vault", () => {
     assert.strictEqual(feeRecipientTokenAccountInfo.amount.toString(), '5');
   });
 
+  it("strategy report - unauthorized", async () => {
+    const provider = anchor.AnchorProvider.env();
+
+    const newUser = anchor.web3.Keypair.generate();
+    const airdropSignature = await provider.connection.requestAirdrop(newUser.publicKey, 10e9);
+    await provider.connection.confirmTransaction(airdropSignature);
+    try {
+      await strategyProgram.methods.report()
+        .accounts({
+          strategy,
+          tokenAccount: strategyTokenAccount,
+          signer: newUser.publicKey,
+          tokenProgram: token.TOKEN_PROGRAM_ID,
+        })
+        .remainingAccounts([
+          { pubkey: strategyTokenAccount, isWritable: true, isSigner: false },
+        ])
+        .signers([newUser])
+        .rpc();
+      assert.fail("Expected error was not thrown");
+    } catch (err) {
+      assert.strictEqual(err.message, "AnchorError occurred. Error Code: AccessDenied. Error Number: 6011. Error Message: Signer has no access.");
+    }
+  });
+
   it("set deposit limit", async () => {
     const newDepositLimit = new BN(2000);
 
@@ -509,5 +587,26 @@ describe("tokenized_vault", () => {
 
     const vaultAccount = await vaultProgram.account.vault.fetch(vault);
     assert.strictEqual(vaultAccount.depositLimit.toString(), newDepositLimit.toString());
+  });
+
+  it("set deposit limit - unauthorized", async () => {
+    const provider = anchor.AnchorProvider.env();
+
+    const newUser = anchor.web3.Keypair.generate();
+    const airdropSignature = await provider.connection.requestAirdrop(newUser.publicKey, 10e9);
+    await provider.connection.confirmTransaction(airdropSignature);
+
+    try {
+      await vaultProgram.methods.setDepositLimit(new BN(1))
+        .accounts({
+          vault,
+          admin: newUser.publicKey,
+        })
+        .signers([newUser])
+        .rpc();
+      assert.fail("Expected error was not thrown");
+    } catch (err) {
+      expect(err.message).to.contain("AnchorError caused by account: admin. Error Code: ConstraintAddress. Error Number: 2012. Error Message: An address constraint was violated.");
+    }
   });
 });

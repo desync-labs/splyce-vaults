@@ -32,8 +32,11 @@ pub trait Strategy: StrategyDataAccount + StrategyInit {
     fn report<'info>(&mut self, accounts: &[AccountInfo<'info>]) -> Result<()>;
     fn deploy_funds<'info>(&mut self, accounts: &[AccountInfo<'info>], amount: u64) -> Result<()>;
     fn free_funds<'info>(&mut self, accounts: &[AccountInfo<'info>], amount: u64) -> Result<()>;
+    fn set_manager(&mut self, manager: Pubkey) -> Result<()>;
 
     // getters
+    fn vault(&self) -> Pubkey;
+    fn manager(&self) -> Pubkey;
     /// Returns the total funds in the strategy, this value is affected by gains and losses
     fn total_assets(&self) -> u64;
     fn available_deposit(&self) -> u64;
