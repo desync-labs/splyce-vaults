@@ -1,5 +1,4 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{Token, TokenAccount};
 
 use crate::utils::strategy;
 use crate::error::ErrorCode;
@@ -11,7 +10,6 @@ pub struct TransferManagement<'info> {
     pub strategy: UncheckedAccount<'info>,
     #[account(mut)]
     pub signer: Signer<'info>,
-    pub token_program: Program<'info, Token>,
 }
 
 pub fn handle_transfer_management<'info>(ctx: Context<TransferManagement<'info>>, new_manager: Pubkey) -> Result<()> {
@@ -21,6 +19,6 @@ pub fn handle_transfer_management<'info>(ctx: Context<TransferManagement<'info>>
         return Err(ErrorCode::AccessDenied.into());
     }
 
-    strategy.set_manager(new_manager);
+    strategy.set_manager(new_manager)?;
     strategy.save_changes(&mut &mut ctx.accounts.strategy.try_borrow_mut_data()?[8..])
 }

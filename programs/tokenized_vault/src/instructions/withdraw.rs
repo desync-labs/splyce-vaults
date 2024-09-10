@@ -148,7 +148,6 @@ fn get_strategies_with_token_acc<'info>(
 
     let accounts_map = &remaining_accounts_map.accounts_map;
 
-    let half = remaining_accounts.len() / 2;
     let mut strategy_account_infos: Vec<AccountInfo<'info>> = Vec::new();
     let mut token_accounts: Vec<AccountInfo<'info>> = Vec::new();
     let mut strategy_remaining_accounts: Vec<Vec<AccountInfo<'info>>> = Vec::new();

@@ -1,9 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_lang::{AnchorDeserialize, AnchorSerialize};
 
-use crate::error::ErrorCode;
-use crate::utils::strategy;
-
 #[account]
 #[derive(Default, Debug)]
 pub struct Roles {
@@ -37,26 +34,4 @@ impl Roles {
 
         Ok(())
     }
-
-    // pub fn has_role(&self, role: Role, account: &Pubkey) -> Result<()> {
-    //     match role {
-    //         Role::ProtocolAdmin => {
-    //             if self.protocol_admin != *account {
-    //                 return Err(ErrorCode::Unauthorized.into());
-    //             }
-    //         }
-    //         Role::VaultsAdmin => {
-    //             if self.vaults_admin != *account {
-    //                 return Err(ErrorCode::Unauthorized.into());
-    //             }
-    //         }
-    //         Role::ReportingManager => {
-    //             if self.reporting_manager != *account {
-    //                 return Err(ErrorCode::Unauthorized.into());
-    //             }
-    //         }
-    //     }
-
-    //     Ok(())
-    // }
 }

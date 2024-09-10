@@ -74,14 +74,14 @@ where
     // we need to set the discriminator to the first 8 bytes of the account data
     data[..8].copy_from_slice(&T::discriminator());
 
-    let _ = strategy.init(
+    strategy.init(
         ctx.bumps.strategy,
         ctx.accounts.vault.key(),
         ctx.accounts.underlying_mint.as_ref(),
         ctx.accounts.token_account.key(),
         config,
-    );
-    strategy.set_manager(ctx.accounts.admin.key());
+    )?;
+    strategy.set_manager(ctx.accounts.admin.key())?;
 
     // Serialize the strategy data into the account
     strategy.save_changes(&mut &mut data[8..])?;

@@ -4,7 +4,6 @@ use anchor_spl::token::{self, Mint, MintTo, Token, TokenAccount};
 
 use crate::state::*;
 use crate::error::ErrorCode::*;
-use crate::utils::token::*;
 use crate::utils::strategy;
 use crate::constants::FEE_BPS;
 
@@ -68,55 +67,3 @@ pub fn handle_process_report(ctx: Context<ProcessReport>) -> Result<()> {
 
     Ok(())
 }
-
-/*
-    function assessFees(address strategy, uint256 gain, uint256 loss, address accountant, address factory) public returns (FeeAssessment memory) {
-        FeeAssessment memory fees = FeeAssessment(0, 0, 0, address(0));
-
-        if (accountant != address(0x00)) {
-            (fees.totalFees, fees.totalRefunds) = ((gain * _performanceFee) / FEE_BPS, 0)
-            if (fees.totalFees > 0) {
-                uint16 protocolFeeBps;
-                // Get the config for this vault.
-                (protocolFeeBps, fees.protocolFeeRecipient) = IFactory(factory).protocolFeeConfig();
-
-                if (protocolFeeBps > 0) {
-                    if (protocolFeeBps > MAX_BPS) {
-                        revert FeeExceedsMax();
-                    }
-                    // Protocol fees are a percent of the fees the accountant is charging.
-                    fees.protocolFees = (fees.totalFees * uint256(protocolFeeBps)) / MAX_BPS;
-                    // 1000 * 2000 / 10000 = 200
-                }
-            }
-        }
-
-        return fees;
-    }
-
-   // Make sure we have a valid strategy.
-        if (strategies[strategy].activation == 0) {
-            revert InactiveStrategy(strategy);
-        }
-
-        // Burn shares that have been unlocked since the last update
-        _burnUnlockedShares();
-
-        uint256 currentTotalSupply = _totalSupply();
-        uint256 currentTotalAssets = _totalAssets();
-
-        ReportInfo memory report = VaultLogic.processReport(
-            strategy,
-            strategies[strategy].currentDebt,
-            currentTotalSupply,
-            currentTotalAssets,
-            accountant,
-            factory
-        );
-
-        _handleShareBurnsAndIssues(report.gain, report.loss, report.shares, report.assessmentFees, strategy);
-
-        // Record the report of profit timestamp.
-        strategies[strategy].lastReport = block.timestamp;
-        return (report.gain, report.loss);
-*/
