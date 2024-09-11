@@ -10,15 +10,12 @@ pub struct SetRole<'info> {
         seeds = [ROLES_SEED.as_bytes()], 
         bump,  
     )]
-    pub roles_data: Account<'info, Roles>,
-    #[account(
-        mut,
-        address = roles_data.protocol_admin
-    )]
+    pub roles: Account<'info, Roles>,
+    #[account(mut,address = roles.protocol_admin)]
     pub admin: Signer<'info>,
 }
 
 pub fn handle_set_role(ctx: Context<SetRole>, role: Role, key: Pubkey) -> Result<()> {
-    let roles = &mut ctx.accounts.roles_data;
+    let roles = &mut ctx.accounts.roles;
     roles.set_role(role, key)
 }

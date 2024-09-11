@@ -71,17 +71,17 @@ describe("tokenized_vault", () => {
       vaultProgram.programId,
     )[0];
     console.log("Vault token account:", vaultTokenAccount.toBase58());
-  });
 
-  it("init roles account", async () => {
-    rolesData == anchor.web3.PublicKey.findProgramAddressSync(
+    rolesData = anchor.web3.PublicKey.findProgramAddressSync(
       [Buffer.from("roles")],
       vaultProgram.programId,
     )[0];
+    console.log("Roles data:", rolesData.toBase58());
+  });
 
+  it("init roles account", async () => {
     await vaultProgram.methods.initRoles()
       .accounts({
-        rolesData,
         admin: admin.publicKey,
         systemProgram: anchor.web3.SystemProgram.programId,
       })
@@ -89,16 +89,14 @@ describe("tokenized_vault", () => {
       .rpc();
 
       // check protocol admin
-      // const rolesAccount = await vaultProgram.account.roles.fetch(rolesData);
-      // assert.strictEqual(rolesAccount.protocolAdmin.toString(), admin.publicKey.toString());
+      const rolesAccount = await vaultProgram.account.roles.fetch(rolesData);
+      assert.strictEqual(rolesAccount.protocolAdmin.toString(), admin.publicKey.toString());
+      console.log("Protocol admin:", rolesAccount.protocolAdmin.toString());
   });
 
   it("Initializes the vault", async () => {
     await vaultProgram.methods.initialize(new BN(1))
       .accounts({
-        vault,
-        sharesMint,
-        tokenAccount: vaultTokenAccount,
         underlyingMint,
         admin: admin.publicKey,
         systemProgram: anchor.web3.SystemProgram.programId,
@@ -133,7 +131,6 @@ describe("tokenized_vault", () => {
     await strategyProgram.methods.initialize(strategyType, configBytes)
       .accounts({
         strategy,
-        tokenAccount: strategyTokenAccount,
         underlyingMint,
         vault,
         admin: admin.publicKey,
@@ -150,21 +147,29 @@ describe("tokenized_vault", () => {
     assert.ok(strategyAccount.depositLimit.eq(new BN(1000)));
   });
 
-  it("set vault admin", async () => {
-    const role = { vaultsAdmin: {} };
-    let key = admin.publicKey;
+  it("set vault admin and reporting admin", async () => {
+    const key = admin.publicKey;
 
-    await vaultProgram.methods.setRole(role, key)
+    let vaultsAdmin = { vaultsAdmin: {} };
+    await vaultProgram.methods.setRole(vaultsAdmin, key)
       .accounts({
-        // rolesData,
         admin: admin.publicKey,
       })
       .signers([admin])
       .rpc();
 
-      // check protocol admin
-      // const rolesAccount = await vaultProgram.account.roles.fetch(rolesData);
-      // assert.strictEqual(rolesAccount.vaultsAdmin.toString(), admin.publicKey.toString());
+      let reportingManager = { reportingManager: {} };
+      await vaultProgram.methods.setRole(reportingManager, key)
+        .accounts({
+          admin: admin.publicKey,
+        })
+        .signers([admin])
+        .rpc();
+        
+      // check protocol admin and reporting manager
+      const rolesAccount = await vaultProgram.account.roles.fetch(rolesData);
+      assert.strictEqual(rolesAccount.vaultsAdmin.toString(), admin.publicKey.toString());
+      assert.strictEqual(rolesAccount.reportingManager.toString(), admin.publicKey.toString());
   });
 
   it("Adds a strategy to the vault", async () => {

@@ -57,5 +57,9 @@ pub mod tokenized_vault {
     pub fn process_report(ctx: Context<ProcessReport>) -> Result<()> {
         handle_process_report(ctx)
     }
+
+    pub fn shutdown_vault(ctx: Context<ShutdownVault>) -> Result<()> {
+        handle_shutdown_vault(ctx)
+    }
 }
 

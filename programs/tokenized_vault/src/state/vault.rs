@@ -83,6 +83,7 @@ impl Vault {
 
     pub fn shutdown(&mut self) {
         self.is_shutdown = true;
+        self.deposit_limit = 0;
     }
 
     pub fn handle_deposit(&mut self, amount: u64, shares: u64) {

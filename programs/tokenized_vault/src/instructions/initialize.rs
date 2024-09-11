@@ -1,12 +1,11 @@
 use anchor_lang::prelude::*;
-use anchor_lang::Discriminator;
 
 use anchor_spl::{
     token::{ Mint, Token, TokenAccount},
     token_interface::Mint as InterfaceMint,
 };
 use crate::constants::*;
-
+use crate::error::ErrorCode;
 use crate::state::*;
 
 #[derive(Accounts)]
@@ -45,12 +44,9 @@ pub struct Initialize<'info> {
     pub token_account: Box<Account<'info, TokenAccount>>,
     #[account(mut)]
     pub underlying_mint: Box<InterfaceAccount<'info, InterfaceMint>>,
-    #[account(mut, seeds = [ROLES_SEED.as_bytes()], bump)]
-    pub roles_data: Account<'info, Roles>,
-    #[account(
-        mut, 
-        address = roles_data.protocol_admin
-    )]
+    #[account(seeds = [ROLES_SEED.as_bytes()], bump)]
+    pub roles: Account<'info, Roles>,
+    #[account(mut, address = roles.protocol_admin)]
     pub admin: Signer<'info>,
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,

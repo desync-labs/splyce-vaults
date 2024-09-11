@@ -1,11 +1,9 @@
-use anchor_lang::accounts::account;
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Mint, MintTo, Token, TokenAccount};
 
 use crate::state::*;
-use crate::error::ErrorCode::*;
 use crate::utils::strategy;
-use crate::constants::FEE_BPS;
+use crate::constants::{ FEE_BPS, ROLES_SEED };
 
 #[derive(Accounts)]
 pub struct ProcessReport<'info> {
@@ -14,7 +12,9 @@ pub struct ProcessReport<'info> {
     /// CHECK: is this a right way to do it?
     #[account()]
     pub strategy: AccountInfo<'info>,
-    #[account(mut)]
+    #[account(seeds = [ROLES_SEED.as_bytes()], bump)]
+    pub roles: Account<'info, Roles>,
+    #[account(mut, address = roles.reporting_manager)]
     pub admin: Signer<'info>,
     #[account(mut)]
     pub shares_mint: Account<'info, Mint>,

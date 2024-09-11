@@ -23,12 +23,9 @@ pub struct UpdateStrategyDebt<'info> {
     pub strategy: AccountInfo<'info>,
     #[account(mut)]
     pub strategy_token_account: Account<'info, TokenAccount>,
-    #[account(mut, seeds = [ROLES_SEED.as_bytes()], bump)]
-    pub roles_data: Account<'info, Roles>,
-    #[account(
-        mut, 
-        address = roles_data.vaults_admin
-    )]
+    #[account(seeds = [ROLES_SEED.as_bytes()], bump)]
+    pub roles: Account<'info, Roles>,
+    #[account(mut, address = roles.vaults_admin)]
     pub admin: Signer<'info>,
     pub token_program: Program<'info, Token>,
     pub strategy_program: Program<'info, StrategyProgram>
