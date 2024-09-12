@@ -3,7 +3,7 @@ use anchor_lang::prelude::*;
 use crate::state::*;
 use crate::error::ErrorCode;
 
-pub fn from_acc_info(strategy_acc: &AccountInfo) -> Result<Box<dyn Strategy>> {
+pub fn from_acc_info(strategy_acc: &UncheckedAccount) -> Result<Box<dyn Strategy>> {
     let strategy_data = strategy_acc.try_borrow_data()?;
     let discriminator = get_discriminator(strategy_acc)?;
 
@@ -25,7 +25,7 @@ pub fn from_acc_info(strategy_acc: &AccountInfo) -> Result<Box<dyn Strategy>> {
     }
 }
 
-pub fn save_changes<T>(strategy_acc: &AccountInfo, strategy: Box<T>) -> Result<()> 
+pub fn save_changes<T>(strategy_acc: &UncheckedAccount, strategy: Box<T>) -> Result<()> 
 where
     T: Strategy + AnchorSerialize
 {
@@ -34,7 +34,7 @@ where
     Ok(())
 }
 
-fn get_discriminator(acc_info: &AccountInfo) -> Result<[u8; 8]> {
+fn get_discriminator(acc_info: &UncheckedAccount) -> Result<[u8; 8]> {
     let data = acc_info.try_borrow_data()?;
     let discriminator = data[0..8].try_into().map_err(|_| ErrorCode::InvalidStrategyData)?;
     Ok(discriminator)

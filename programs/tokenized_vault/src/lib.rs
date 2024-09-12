@@ -22,12 +22,25 @@ pub mod tokenized_vault {
         handle_initialize(ctx, index)
     }
 
+    pub fn init_roles(ctx: Context<InitializeRoles>) -> Result<()> {
+        handle_init_roles(ctx)
+    }
+
+    pub fn set_role(ctx: Context<SetRole>, role: Role, key: Pubkey) -> Result<()> {
+        handle_set_role(ctx, role, key)
+    }
+
     pub fn deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
         handle_deposit(ctx, amount)
     }
 
-    pub fn withdraw<'info>(ctx: Context<'_, '_, '_, 'info, Withdraw<'info>>, shares: u64, max_loss: u64) -> Result<()> {
-        handle_redeem(ctx, shares, max_loss)
+    pub fn withdraw<'info>(
+        ctx: Context<'_, '_, '_, 'info, Withdraw<'info>>, 
+        shares: u64, 
+        max_loss: u64,
+        remaining_accounts_map: AccountsMap
+    ) -> Result<()> {
+        handle_redeem(ctx, shares, max_loss, remaining_accounts_map)
     }
 
     pub fn add_strategy(ctx: Context<AddStrategy>, max_debt: u64) -> Result<()> {
@@ -38,22 +51,16 @@ pub mod tokenized_vault {
         handle_update_debt(ctx, amount)
     }
 
-    // pub fn allocate(
-    //     ctx: Context<AllocateToStrategy>,
-    //     amount: u64
-    // ) -> Result<()> {
-    //     handle_allocate(ctx, amount)
-    // }
-
-    // pub fn deallocate(
-    //     ctx: Context<DeallocateFromStrategy>,
-    //     amount: u64
-    // ) -> Result<()> {
-    //     handle_deallocate(ctx, amount)
-    // }
-
     pub fn set_deposit_limit(ctx: Context<SetDepositLimit>, limit: u64) -> Result<()> {
         handle_set_deposit_limit(ctx, limit)
+    }
+
+    pub fn process_report(ctx: Context<ProcessReport>) -> Result<()> {
+        handle_process_report(ctx)
+    }
+
+    pub fn shutdown_vault(ctx: Context<ShutdownVault>) -> Result<()> {
+        handle_shutdown_vault(ctx)
     }
 }
 

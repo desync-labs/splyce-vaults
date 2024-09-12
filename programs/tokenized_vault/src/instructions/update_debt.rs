@@ -10,6 +10,7 @@ use strategy_program::{self};
 use crate::state::*;
 use crate::error::ErrorCode;
 use crate::utils::strategy::*;
+use crate::constants::ROLES_SEED;
 
 #[derive(Accounts)]
 pub struct UpdateStrategyDebt<'info> {
@@ -22,7 +23,9 @@ pub struct UpdateStrategyDebt<'info> {
     pub strategy: AccountInfo<'info>,
     #[account(mut)]
     pub strategy_token_account: Account<'info, TokenAccount>,
-    #[account(mut)]
+    #[account(seeds = [ROLES_SEED.as_bytes()], bump)]
+    pub roles: Account<'info, Roles>,
+    #[account(mut, address = roles.vaults_admin)]
     pub admin: Signer<'info>,
     pub token_program: Program<'info, Token>,
     pub strategy_program: Program<'info, StrategyProgram>
@@ -70,14 +73,18 @@ pub fn handle_update_debt(
         }
 
         let pre_balance = ctx.accounts.vault_token_account.amount;
-        strategy_program::cpi::withdraw_funds(
-            CpiContext::new(
-            ctx.accounts.strategy_program.to_account_info(), WithdrawAccounts {
-                strategy: ctx.accounts.strategy.to_account_info(),
-                token_account: ctx.accounts.strategy_token_account.to_account_info(),
-                vault_token_account: ctx.accounts.vault_token_account.to_account_info(),
-                token_program: ctx.accounts.token_program.to_account_info(),
-            }), 
+        strategy_program::cpi::withdraw(
+            CpiContext::new_with_signer(
+                ctx.accounts.strategy_program.to_account_info(), 
+                WithdrawAccounts {
+                    strategy: ctx.accounts.strategy.to_account_info(),
+                    token_account: ctx.accounts.strategy_token_account.to_account_info(),
+                    signer: vault.to_account_info(),
+                    vault_token_account: ctx.accounts.vault_token_account.to_account_info(),
+                    token_program: ctx.accounts.token_program.to_account_info(),
+                },
+                &[&vault.seeds()]
+            ), 
             assets_to_withdraw
         )?;
         ctx.accounts.vault_token_account.reload()?;
@@ -117,12 +124,12 @@ pub fn handle_update_debt(
             assets_to_deposit = available_idle;
         }
 
-        strategy_program::cpi::deposit_funds(
+        strategy_program::cpi::deposit(
             CpiContext::new_with_signer(
                 ctx.accounts.strategy_program.to_account_info(),
                 DepositAccounts {
                     strategy: ctx.accounts.strategy.to_account_info(),
-                    vault: vault.to_account_info(),
+                    signer: vault.to_account_info(),
                     token_account: ctx.accounts.strategy_token_account.to_account_info(),
                     vault_token_account: ctx.accounts.vault_token_account.to_account_info(),
                     token_program: ctx.accounts.token_program.to_account_info(),

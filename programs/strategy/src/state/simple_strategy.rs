@@ -7,6 +7,7 @@ use crate::error::ErrorCode;
 use crate::events::StrategyDepositEvent;
 use crate::events::StrategyInitEvent;
 use crate::events::StrategyWithdrawEvent;
+use crate::utils::token;
 
 #[account()]
 #[derive(Default, Debug)]
@@ -18,9 +19,10 @@ pub struct SimpleStrategy {
     pub vault: Pubkey,
     pub underlying_mint: Pubkey,
     pub underlying_token_acc: Pubkey,
+    pub manager: Pubkey,
     // this value mast be u64 because of the borsh serialization
     pub undelying_decimals: u8,
-    pub total_funds: u64,
+    pub total_assets: u64,
     pub deposit_limit: u64,
 }
 
@@ -34,15 +36,23 @@ impl Strategy for SimpleStrategy {
         StrategyType::Simple
     }
 
+    fn vault(&self) -> Pubkey {
+        self.vault
+    }
+
+    fn manager(&self) -> Pubkey {
+        self.manager
+    }
+
     fn deposit(&mut self, amount: u64) -> Result<()> {
-        self.total_funds += amount;
+        self.total_assets += amount;
         
         emit!(
             StrategyDepositEvent 
             {
                 account_key: self.key(),
                 amount: amount,
-                total_funds: self.total_funds,
+                total_assets: self.total_assets,
             }
         );
 
@@ -50,22 +60,33 @@ impl Strategy for SimpleStrategy {
     }
 
     fn withdraw(&mut self, amount: u64) -> Result<()> {
-        self.total_funds -= amount;
+        self.total_assets -= amount;
 
         emit!(
             StrategyWithdrawEvent 
             {
                 account_key: self.key(),
                 amount: amount,
-                total_funds: self.total_funds,
+                total_assets: self.total_assets,
             }
         );
 
         Ok(())
     }
 
-    fn harvest(&mut self) -> Result<()> {
-        // todo: implement harvest
+    fn set_manager(&mut self, manager: Pubkey) -> Result<()> {
+        self.manager = manager;
+        Ok(())
+    }
+
+    /// accounts[0] - underlying token account
+    fn report<'info>(&mut self, accounts: &[AccountInfo<'info>]) -> Result<()> {
+        // check if the remaining_accounts[0] is the strategy token account
+        if *accounts[0].key != self.underlying_token_acc {
+            return Err(ErrorCode::InvalidAccount.into());
+        }
+
+        self.total_assets = token::get_balance(&accounts[0])?;
         Ok(())
     }
 
@@ -73,16 +94,20 @@ impl Strategy for SimpleStrategy {
         self.underlying_token_acc
     }
 
-    fn free_funds(&mut self, amount: u64) -> Result<()> {
+    fn deploy_funds<'info>(&mut self, _accounts: &[AccountInfo<'info>], _amount: u64) -> Result<()> {
+        Ok(())
+    }
+
+    fn free_funds<'info>(&mut self, _accounts: &[AccountInfo<'info>], _amount: u64) -> Result<()> {
         Ok(())
     }
 
     fn total_assets(&self) -> u64 {
-        self.total_funds
+        self.total_assets
     }
 
     fn available_deposit(&self) -> u64 {
-        self.deposit_limit - self.total_funds
+        self.deposit_limit - self.total_assets
     }
 
     fn available_withdraw(&self) -> u64 {
@@ -92,7 +117,7 @@ impl Strategy for SimpleStrategy {
 
 
 impl SimpleStrategy {
-    pub const LEN: usize = 8 + 1 + 32 + 32 + 32 + 1 + 8 + 8;
+    pub const LEN: usize = 8 + 1 + 32 + 32 + 32 + 32 + 1 + 8 + 8;
 }
 
 impl StrategyInit for SimpleStrategy {
@@ -113,19 +138,17 @@ impl StrategyInit for SimpleStrategy {
         self.undelying_decimals = underlying_mint.decimals;
         self.underlying_token_acc = underlying_token_acc;
         self.deposit_limit = config.deposit_limit;
-        self.total_funds = 0;
+        self.total_assets = 0;
 
         emit!(
             StrategyInitEvent 
             {
                 account_key: self.key(),
-                strategy_type: String::from("Simple"),
+                strategy_type: String::from("simple"),
                 vault: self.vault,
                 underlying_mint: self.underlying_mint,
                 underlying_token_acc: self.underlying_token_acc,
                 undelying_decimals: self.undelying_decimals,
-                total_idle: 0,
-                total_funds: self.total_funds,
                 deposit_limit: self.deposit_limit,
                 deposit_period_ends: 0,
                 lock_period_ends: 0,

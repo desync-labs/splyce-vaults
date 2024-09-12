@@ -22,6 +22,9 @@ pub struct Vault {
     pub underlying_token_acc: Pubkey,
     pub underlying_decimals: u8,
 
+    // TODO: move fee to accontant
+    pub performance_fee: u64,
+
     pub total_debt: u64,
     pub total_shares: u64,
     pub minimum_total_idle: u64,
@@ -46,7 +49,7 @@ pub struct StrategyData {
 
 
 impl Vault {
-    pub const LEN : usize = 8 + 1 + 8 + 32 + 32 + 1 + 8 + 8 + 8 + 8 + 8 + 8 + 1 + 10 * (32 + 8 + 8 + 8 + 1);
+    pub const LEN : usize = 8 + 1 + 8 + 32 + 32 + 1 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 1 + 10 * (32 + 8 + 8 + 8 + 1);
     pub fn seeds(&self) -> [&[u8]; 4] {
     [
         &VAULT_SEED.as_bytes(),
@@ -62,6 +65,7 @@ impl Vault {
         underlying_token_acc: Pubkey,
         deposit_limit: u64,
         min_user_deposit: u64,
+        performance_fee: u64,
         index: u64,
     ) -> Result<()> {
         self.bump = [bump];
@@ -70,9 +74,11 @@ impl Vault {
         self.underlying_decimals = underlying_mint.decimals;
         self.deposit_limit = deposit_limit;
         self.min_user_deposit = min_user_deposit;
+        self.performance_fee = performance_fee;
         self.is_shutdown = false;
         self.total_debt = 0;
         self.total_shares = 0;
+        self.total_idle = 0;
         self.index_buffer = index.to_le_bytes();
 
 
@@ -91,6 +97,7 @@ impl Vault {
 
     pub fn shutdown(&mut self) {
         self.is_shutdown = true;
+        self.deposit_limit = 0;
     }
 
     pub fn handle_deposit(&mut self, amount: u64, shares: u64) {
@@ -177,7 +184,7 @@ impl Vault {
         } else {
             (amount as u128 * self.total_shares as u128 / self.total_funds() as u128) as u64
         }
-    }
+    } 
 
     pub fn convert_to_underlying(&self, shares: u64) -> u64 {
         if self.total_shares == 0 {
@@ -186,6 +193,8 @@ impl Vault {
             (shares as u128 * self.total_funds() as u128 / self.total_shares as u128) as u64
         }
     }
+
+
 
     pub fn total_funds(&self) -> u64 {
         self.total_debt + self.total_idle

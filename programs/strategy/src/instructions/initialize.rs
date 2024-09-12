@@ -38,7 +38,7 @@ pub struct Initialize<'info> {
     pub token_account: Box<Account<'info, TokenAccount>>,
     /// CHECK: This should be a vault account
     #[account()]
-    pub vault: AccountInfo<'info>,
+    pub vault: UncheckedAccount<'info>,
     #[account(mut)]
     pub underlying_mint: Box<InterfaceAccount<'info, InterfaceMint>>,
     #[account(mut)]
@@ -65,26 +65,26 @@ pub fn initialize(ctx: Context<Initialize>, strategy_type: StrategyType, config:
 fn handle_initialize<T>(ctx: Context<Initialize>, config: Vec<u8>) -> Result<()> 
 where 
     T: Strategy + AnchorDeserialize + AnchorSerialize + Discriminator + Default
-
 {
-    let strategy = &mut ctx.accounts.strategy;
-    let strategy_info = strategy.to_account_info();
+    let strategy_acc = &mut ctx.accounts.strategy;
+    let strategy_info = strategy_acc.to_account_info();
 
-    let mut strategy_data = T::default();
+    let mut strategy = T::default();
     let mut data = strategy_info.data.borrow_mut();
     // we need to set the discriminator to the first 8 bytes of the account data
     data[..8].copy_from_slice(&T::discriminator());
 
-    let _ = strategy_data.init(
+    strategy.init(
         ctx.bumps.strategy,
         ctx.accounts.vault.key(),
         ctx.accounts.underlying_mint.as_ref(),
         ctx.accounts.token_account.key(),
         config,
-    );
+    )?;
+    strategy.set_manager(ctx.accounts.admin.key())?;
 
     // Serialize the strategy data into the account
-    strategy_data.save_changes(&mut &mut data[8..])?;
+    strategy.save_changes(&mut &mut data[8..])?;
 
     Ok(())
 }

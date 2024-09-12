@@ -4,7 +4,6 @@ use anchor_spl::token_interface::Mint;
 
 use crate::state::*;
 use crate::constants::*;
-use crate::error::ErrorCode;
 
 pub trait StrategyDataAccount {
     fn save_changes(&self, writer: &mut dyn std::io::Write) -> Result<()>;
@@ -30,10 +29,14 @@ pub trait Strategy: StrategyDataAccount + StrategyInit {
     // setters 
     fn deposit(&mut self, amount: u64) -> Result<()>;
     fn withdraw(&mut self, amount: u64) -> Result<()>;
-    fn harvest(&mut self) -> Result<()>;
-    fn free_funds(&mut self, amount: u64) -> Result<()>;
+    fn report<'info>(&mut self, accounts: &[AccountInfo<'info>]) -> Result<()>;
+    fn deploy_funds<'info>(&mut self, accounts: &[AccountInfo<'info>], amount: u64) -> Result<()>;
+    fn free_funds<'info>(&mut self, accounts: &[AccountInfo<'info>], amount: u64) -> Result<()>;
+    fn set_manager(&mut self, manager: Pubkey) -> Result<()>;
 
     // getters
+    fn vault(&self) -> Pubkey;
+    fn manager(&self) -> Pubkey;
     /// Returns the total funds in the strategy, this value is affected by gains and losses
     fn total_assets(&self) -> u64;
     fn available_deposit(&self) -> u64;

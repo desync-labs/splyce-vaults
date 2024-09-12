@@ -1,10 +1,11 @@
 use anchor_lang::prelude::*;
+
 use anchor_spl::{
     token::{ Mint, Token, TokenAccount},
     token_interface::Mint as InterfaceMint,
 };
 use crate::constants::*;
-
+use crate::error::ErrorCode;
 use crate::state::*;
 
 #[derive(Accounts)]
@@ -43,7 +44,9 @@ pub struct Initialize<'info> {
     pub token_account: Box<Account<'info, TokenAccount>>,
     #[account(mut)]
     pub underlying_mint: Box<InterfaceAccount<'info, InterfaceMint>>,
-    #[account(mut)]
+    #[account(seeds = [ROLES_SEED.as_bytes()], bump)]
+    pub roles: Account<'info, Roles>,
+    #[account(mut, address = roles.protocol_admin)]
     pub admin: Signer<'info>,
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
@@ -52,12 +55,14 @@ pub struct Initialize<'info> {
 
 pub fn handle_initialize(ctx: Context<Initialize>, index: u64) -> Result<()> {
     let vault = &mut ctx.accounts.vault;
+    // TODO: pass config params
     vault.init(
         ctx.bumps.vault,
         ctx.accounts.underlying_mint.as_ref(),
         ctx.accounts.token_account.key(),
-        1000000,
+        1_000_000,
         0,
+        1000,
         index
     )
 }

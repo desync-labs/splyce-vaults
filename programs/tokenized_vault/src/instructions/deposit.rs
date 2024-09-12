@@ -1,10 +1,8 @@
 use anchor_lang::prelude::*;
-use anchor_spl::{
-    token::{self, Mint, MintTo, Token, TokenAccount, Transfer},
-};
+use anchor_spl::token::{self, Mint, MintTo, Token, TokenAccount};
 
 use crate::state::*;
-use crate::error::ErrorCode::*;
+use crate::error::ErrorCode;
 use crate::utils::token::*;
 
 #[derive(Accounts)]
@@ -29,18 +27,20 @@ pub fn handle_deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
     // todo: track min user deposit properly
 
     if vault.is_shutdown == true {
-        return Err(VaultShutdown.into());
+        return Err(ErrorCode::VaultShutdown.into());
     }
+
     if amount == 0 {
-        return Err(ZeroValue.into());
+        return Err(ErrorCode::ZeroValue.into());
     }
+    
     if amount < vault.min_user_deposit {
-        return Err(MinDepositNotReached.into());
+        return Err(ErrorCode::MinDepositNotReached.into());
     }
 
     // todo: introduce deposit limit module
     if amount > vault.max_deposit() {
-        return Err(ExceedDepositLimit.into());
+        return Err(ErrorCode::ExceedDepositLimit.into());
     }
 
     transfer_token_to(
