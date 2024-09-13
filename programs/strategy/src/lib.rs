@@ -3,6 +3,7 @@ pub mod error;
 pub mod instructions;
 pub mod state;
 pub mod utils;
+pub mod events;
 
 use anchor_lang::prelude::*;
 
@@ -10,7 +11,7 @@ pub use constants::*;
 pub use instructions::*;
 pub use state::*;
 
-declare_id!("FdFSegudTdDtCB8QvUN1FVLe6YpcCCLu5e1aJoiqAdtZ");
+declare_id!("ErJGueTn3xVKETP4dc8vrmS5Lu7iupJZ2pr7kYJkCtUE");
 
 // we need to define a trait for the strategies
 // they aren't defined otherwise, because we work with unchecked accounts

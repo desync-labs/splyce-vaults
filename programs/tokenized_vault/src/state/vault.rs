@@ -5,6 +5,8 @@ use anchor_spl::token_interface::Mint;
 use crate::constants::{VAULT_SEED, MAX_BPS};
 use crate::error::ErrorCode;
 use crate::utils::strategy;
+use crate::events::{VaultAddStrategyEvent, VaultDepositEvent, VaultInitEvent, VaultWithdrawlEvent};
+
 
 #[account]
 // #[repr(packed)]
@@ -78,6 +80,18 @@ impl Vault {
         self.total_shares = 0;
         self.total_idle = 0;
         self.index_buffer = index.to_le_bytes();
+
+
+        //Emit the VaultInitEvent
+        emit!(VaultInitEvent {
+            vault_index: self.index_buffer,
+            underlying_mint: self.underlying_mint,
+            underlying_token_acc: self.underlying_token_acc,
+            underlying_decimals: self.underlying_decimals,
+            deposit_limit: self.deposit_limit,
+            min_user_deposit: self.min_user_deposit,
+        });
+
         Ok(())
     }
 
@@ -89,11 +103,25 @@ impl Vault {
     pub fn handle_deposit(&mut self, amount: u64, shares: u64) {
         self.total_idle += amount;
         self.total_shares += shares;
+
+        emit!(VaultDepositEvent {
+            vault_index: self.index_buffer,
+            amount,
+            share: shares,
+        });
     }
 
     pub fn handle_withdraw(&mut self, amount: u64, shares: u64) {
         self.total_idle -= amount;
         self.total_shares -= shares;
+
+        emit!(VaultWithdrawlEvent {
+            vault_index: self.index_buffer,
+            total_idle: self.total_idle,
+            total_share: self.total_shares,
+            assets_to_transfer: amount,
+            shares_to_burn: shares,
+        });
     }
 
     pub fn max_deposit(&self) -> u64 {
@@ -192,6 +220,15 @@ impl Vault {
 
         let pos = self.strategies.iter().position(|x| x.key == Pubkey::default()).unwrap();
         self.strategies[pos] = strategy_data;
+
+        emit!(VaultAddStrategyEvent {
+            vault_index: self.index_buffer,
+            strategy_key: strategy,
+            current_debt: 0,
+            max_debt,
+            last_update: 0,
+            is_active: true,
+        });
 
         Ok(())
     }

@@ -1,8 +1,8 @@
 use anchor_lang::prelude::*;
 
+use crate::{events::VaultUpdateDepositLimitEvent, state::*};
 use crate::constants::ROLES_SEED;
 use crate::error::ErrorCode;
-use crate::state::*;
 
 #[derive(Accounts)]
 pub struct SetDepositLimit<'info> {
@@ -22,6 +22,11 @@ pub fn handle_set_deposit_limit(ctx: Context<SetDepositLimit>, amount: u64) -> R
     }
 
     vault.deposit_limit = amount;
+
+    emit!(VaultUpdateDepositLimitEvent {
+        vault_index: vault.index_buffer,
+        new_limit: amount,
+    });
 
     Ok(())
 }
