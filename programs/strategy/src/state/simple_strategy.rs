@@ -5,6 +5,9 @@ use crate::constants::*;
 use crate::base_strategy::*;
 use crate::fee_data::*;
 use crate::error::ErrorCode;
+use crate::events::StrategyDepositEvent;
+use crate::events::StrategyInitEvent;
+use crate::events::StrategyWithdrawEvent;
 use crate::utils::token;
 
 use super::fee_data;
@@ -62,11 +65,31 @@ impl Strategy for SimpleStrategy {
 
     fn deposit(&mut self, amount: u64) -> Result<()> {
         self.total_assets += amount;
+        
+        emit!(
+            StrategyDepositEvent 
+            {
+                account_key: self.key(),
+                amount: amount,
+                total_assets: self.total_assets,
+            }
+        );
+
         Ok(())
     }
 
     fn withdraw(&mut self, amount: u64) -> Result<()> {
         self.total_assets -= amount;
+
+        emit!(
+            StrategyWithdrawEvent 
+            {
+                account_key: self.key(),
+                amount: amount,
+                total_assets: self.total_assets,
+            }
+        );
+
         Ok(())
     }
 
@@ -139,6 +162,19 @@ impl StrategyInit for SimpleStrategy {
             fee_balance: 0,
         };
 
+        emit!(
+            StrategyInitEvent 
+            {
+                account_key: self.key(),
+                strategy_type: String::from("simple"),
+                vault: self.vault,
+                underlying_mint: self.underlying_mint,
+                underlying_token_acc: self.underlying_token_acc,
+                undelying_decimals: self.undelying_decimals,
+                deposit_limit: self.deposit_limit,
+                deposit_period_ends: 0,
+                lock_period_ends: 0,
+            });
         Ok(())
     }
 }

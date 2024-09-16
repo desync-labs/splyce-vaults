@@ -34,7 +34,7 @@ describe("tokenized_vault", () => {
 
     console.log("Admin public key:", admin.publicKey.toBase58());
     console.log("User public key:", user.publicKey.toBase58());
-    console.log("Program ID:", vaultProgram.programId.toBase58());
+    console.log("Vault Program ID:", vaultProgram.programId.toBase58());
     console.log("Strategy Program ID:", strategyProgram.programId.toBase58());
 
     // Airdrop SOL to the user
@@ -94,6 +94,7 @@ describe("tokenized_vault", () => {
       console.log("Protocol admin:", rolesAccount.protocolAdmin.toString());
   });
 
+  
   it("Initializes the vault", async () => {
     await vaultProgram.methods.initialize(new BN(1))
       .accounts({
@@ -109,6 +110,7 @@ describe("tokenized_vault", () => {
     assert.ok(vaultAccount.underlyingTokenAcc.equals(vaultTokenAccount));
   });
 
+    //TODO:
   it("Initializes the strategy", async () => {
     strategy = anchor.web3.PublicKey.findProgramAddressSync(
       [Buffer.from("simple"), vault.toBuffer()],
@@ -239,6 +241,7 @@ describe("tokenized_vault", () => {
     assert.ok(vaultAccount.strategies[0].key.equals(strategy));
   });
 
+
   it("Deposits tokens into the vault", async () => {
     const provider = anchor.AnchorProvider.env();
 
@@ -315,6 +318,7 @@ describe("tokenized_vault", () => {
     assert.strictEqual(vaultAccount.totalIdle.toString(), '10');
   });
 
+    //TODO:
   it("Deallocates tokens from the strategy", async () => {
     const provider = anchor.AnchorProvider.env();
 
@@ -350,6 +354,7 @@ describe("tokenized_vault", () => {
     assert.strictEqual(vaultAccount.totalIdle.toString(), '20');
   });
 
+  
   it("Withdraws tokens from the vault", async () => {
     const provider = anchor.AnchorProvider.env();
 
@@ -424,6 +429,7 @@ describe("tokenized_vault", () => {
     }
   });
 
+  
   it("transfer shares and withdraw", async () => {
     const provider = anchor.AnchorProvider.env();
 
