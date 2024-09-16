@@ -25,25 +25,30 @@ pub trait StrategyInit {
     ) -> Result<()>;
 }
 
-pub trait Strategy: StrategyDataAccount + StrategyInit {   
+pub trait StrategyManagement {
+    fn manager(&self) -> Pubkey;
+    fn set_manager(&mut self, manager: Pubkey) -> Result<()>;
+}
+
+pub trait Strategy: StrategyDataAccount + StrategyInit + StrategyManagement {   
     // setters 
     fn deposit(&mut self, amount: u64) -> Result<()>;
     fn withdraw(&mut self, amount: u64) -> Result<()>;
-    fn report<'info>(&mut self, accounts: &[AccountInfo<'info>]) -> Result<()>;
+    fn harvest_and_report<'info>(&mut self, accounts: &[AccountInfo<'info>]) -> Result<u64>;
     fn deploy_funds<'info>(&mut self, accounts: &[AccountInfo<'info>], amount: u64) -> Result<()>;
     fn free_funds<'info>(&mut self, accounts: &[AccountInfo<'info>], amount: u64) -> Result<()>;
-    fn set_manager(&mut self, manager: Pubkey) -> Result<()>;
+    fn set_total_assets(&mut self, total_assets: u64);
 
     // getters
+    fn strategy_type(&self) -> StrategyType;
     fn vault(&self) -> Pubkey;
-    fn manager(&self) -> Pubkey;
     /// Returns the total funds in the strategy, this value is affected by gains and losses
     fn total_assets(&self) -> u64;
     fn available_deposit(&self) -> u64;
     fn available_withdraw(&self) -> u64;
-
-    fn strategy_type(&self) -> StrategyType;
     fn token_account(&self) -> Pubkey;
+
+    fn fee_data(&mut self) -> &mut FeeData;
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]

@@ -1,12 +1,17 @@
 import { BN } from "@coral-xyz/anchor";
+import * as anchor from "@coral-xyz/anchor";
 
 
 // Define the SimpleStrategy class
 export class SimpleStrategy {
     depositLimit: BN;
+    performanceFee: BN;
+    feeManager: anchor.web3.PublicKey;
 
-    constructor(fields: { depositLimit: BN }) {
+    constructor(fields: { depositLimit: BN, performanceFee: BN, feeManager: anchor.web3.PublicKey }) {
         this.depositLimit = fields.depositLimit;
+        this.performanceFee = fields.performanceFee;
+        this.feeManager = fields.feeManager;
     }
 }
 
@@ -38,7 +43,8 @@ export const SimpleStrategySchema = new Map([
             kind: 'struct',
             fields: [
                 ['depositLimit', 'u64'],
-                // Add other fields as needed
+                ['performanceFee', 'u64'],
+                ['feeManager', [32]],
             ],
         },
     ],

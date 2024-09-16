@@ -124,7 +124,8 @@ describe("tokenized_vault", () => {
 
     const config = new SimpleStrategy({
       depositLimit: new BN(1000),
-      // Add other fields as needed
+      performanceFee : new BN(1),
+      feeManager: admin.publicKey.toBuffer(),
     });
     const configBytes = Buffer.from(borsh.serialize(SimpleStrategySchema, config));
     console.log("strategy:", strategy);
@@ -145,6 +146,57 @@ describe("tokenized_vault", () => {
     // console.log(await strategyProgram.account.simpleStrategy.fetch(strategy));
     const strategyAccount = await strategyProgram.account.simpleStrategy.fetch(strategy);
     assert.ok(strategyAccount.depositLimit.eq(new BN(1000)));
+  });
+
+  it("set performance fee", async () => {
+    await strategyProgram.methods.setPerformanceFee(new BN(1000))
+      .accounts({
+        strategy,
+        signer: admin.publicKey,
+      })
+      .signers([admin])
+      .rpc();
+
+    const strategyAccount = await strategyProgram.account.simpleStrategy.fetch(strategy);
+    assert.strictEqual(strategyAccount.feeData.performanceFee.toString(), '1000');
+  });
+
+  it("set performance fee - unauthorized", async () => {
+    const provider = anchor.AnchorProvider.env();
+
+    const newUser = anchor.web3.Keypair.generate();
+    const airdropSignature = await provider.connection.requestAirdrop(newUser.publicKey, 10e9);
+    await provider.connection.confirmTransaction(airdropSignature);
+
+    try {
+      await strategyProgram.methods.setPerformanceFee(new BN(1))
+        .accounts({
+          strategy,
+          signer: newUser.publicKey,
+        })
+        .signers([newUser])
+        .rpc();
+      assert.fail("Expected error was not thrown");
+    } catch (err) {
+      assert.strictEqual(err.message, "AnchorError occurred. Error Code: AccessDenied. Error Number: 6011. Error Message: Signer has no access.");
+    }
+  });
+
+  it ("set fee manager", async () => {
+    const feeRecipient = anchor.web3.Keypair.generate();
+    const airdropSignature = await anchor.getProvider().connection.requestAirdrop(feeRecipient.publicKey, 10e9);
+    await anchor.getProvider().connection.confirmTransaction(airdropSignature);
+
+    await strategyProgram.methods.setFeeManager(feeRecipient.publicKey)
+      .accounts({
+        strategy,
+        signer: admin.publicKey,
+      })
+      .signers([admin])
+      .rpc();
+
+    const strategyAccount = await strategyProgram.account.simpleStrategy.fetch(strategy);
+    assert.strictEqual(strategyAccount.feeData.feeManager.toString(), feeRecipient.publicKey.toString());
   });
 
   it("set vault admin and reporting admin", async () => {
@@ -477,7 +529,11 @@ describe("tokenized_vault", () => {
         .rpc();
 
     vaultAccount = await vaultProgram.account.vault.fetch(vault);
-    assert.strictEqual(vaultAccount.totalShares.toString(), '63');
+    assert.strictEqual(vaultAccount.totalShares.toString(), '62');
+
+    // check fee balance
+    let strategyAccount = await strategyProgram.account.simpleStrategy.fetch(strategy);
+    assert.strictEqual(strategyAccount.feeData.feeBalance.toString(), '6');
 
     // check the strategy token account balance
     let strategyTokenAccountInfo = await token.getAccount(provider.connection, strategyTokenAccount);
@@ -521,13 +577,13 @@ describe("tokenized_vault", () => {
 
     // check the user token account balance (received 19 tokens)
     let userTokenAccountInfo = await token.getAccount(provider.connection, userTokenAccount);
-    assert.strictEqual(userTokenAccountInfo.amount.toString(), '949');
+    assert.strictEqual(userTokenAccountInfo.amount.toString(), '948');
 
     let feeRecipientSharesAccountInfo = await token.getAccount(provider.connection, feeRecipientSharesAccount);
-    assert.strictEqual(feeRecipientSharesAccountInfo.amount.toString(), '3');
+    assert.strictEqual(feeRecipientSharesAccountInfo.amount.toString(), '2');
 
     // withdraw fee
-    await vaultProgram.methods.withdraw(new BN(3), new BN(0), remainingAccountsMap)
+    await vaultProgram.methods.withdraw(new BN(2), new BN(0), remainingAccountsMap)
       .accounts({
         vault,
         user: feeRecipient.publicKey,
@@ -551,7 +607,7 @@ describe("tokenized_vault", () => {
 
     // check the fee recipient token account balance (received 3 tokens)
     let feeRecipientTokenAccountInfo = await token.getAccount(provider.connection, feeRecipientTokenAccount);
-    assert.strictEqual(feeRecipientTokenAccountInfo.amount.toString(), '5');
+    assert.strictEqual(feeRecipientTokenAccountInfo.amount.toString(), '3');
   });
 
   it("strategy report - unauthorized", async () => {

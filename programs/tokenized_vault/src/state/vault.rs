@@ -45,7 +45,6 @@ pub struct StrategyData {
     pub is_active: bool,
 }
 
-
 impl Vault {
     pub const LEN : usize = 8 + 1 + 8 + 32 + 32 + 1 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 1 + 10 * (32 + 8 + 8 + 8 + 1);
     pub fn seeds(&self) -> [&[u8]; 4] {

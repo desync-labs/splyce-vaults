@@ -2,8 +2,10 @@ use anchor_lang::prelude::*;
 use anchor_spl::token_interface::Mint;
 
 use crate::base_strategy::*;
+use crate::fee_data::*;
 use crate::error::ErrorCode;
 use crate::constants::TRADE_FINTECH_STRATEGY_SEED;
+
 use crate::utils::token;
 
 #[account]
@@ -26,6 +28,8 @@ pub struct TradeFintechStrategy {
 
     pub deposit_period_ends: i64,
     pub lock_period_ends: i64,
+
+    pub fee_data: FeeData,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
@@ -33,6 +37,8 @@ pub struct TradeFintechConfig {
     pub deposit_limit: u64,
     pub deposit_period_ends: i64,
     pub lock_period_ends: i64,
+    pub performance_fee: u64,
+    pub fee_manager: Pubkey,
 }
 
 #[error_code]
@@ -43,15 +49,11 @@ pub enum TradeFintechErrorCode {
     LockPeriodNotEnded,
 }
 
-impl Strategy for TradeFintechStrategy {
-    fn strategy_type(&self) -> StrategyType {
-        StrategyType::TradeFintech
-    }
+impl TradeFintechStrategy {
+    pub const LEN: usize = 8 + 1 + 32 + 32 + 32 + 32 + 32 + 1 + 8 + 8 + 8 + 8 + 8 + 8 + 8;
+}
 
-    fn vault(&self) -> Pubkey {
-        self.vault
-    }
-
+impl StrategyManagement for TradeFintechStrategy {
     fn manager(&self) -> Pubkey {
         self.manager
     }
@@ -59,6 +61,16 @@ impl Strategy for TradeFintechStrategy {
     fn set_manager(&mut self, manager: Pubkey) -> Result<()> {
         self.manager = manager;
         Ok(())
+    }
+}
+
+impl Strategy for TradeFintechStrategy {
+    fn strategy_type(&self) -> StrategyType {
+        StrategyType::TradeFintech
+    }
+
+    fn vault(&self) -> Pubkey {
+        self.vault
     }
 
     fn deposit(&mut self, amount: u64) -> Result<()> {
@@ -72,14 +84,14 @@ impl Strategy for TradeFintechStrategy {
     }
 
     /// accounts[0] - underlying token account
-    fn report<'info>(&mut self, accounts: &[AccountInfo<'info>]) -> Result<()> {
+    fn harvest_and_report<'info>(&mut self, accounts: &[AccountInfo<'info>]) -> Result<u64> {
         // check if the remaining_accounts[0] is the strategy token account
         if *accounts[0].key != self.underlying_token_acc {
             return Err(ErrorCode::InvalidAccount.into());
         }
 
-        self.total_assets = token::get_balance(&accounts[0])?;
-        Ok(())
+        let idle = token::get_balance(&accounts[0])?;
+        Ok(self.total_invested + idle)
     }
 
     /// accounts should be the next:
@@ -139,6 +151,10 @@ impl Strategy for TradeFintechStrategy {
         Ok(())
     }
 
+    fn set_total_assets(&mut self, total_assets: u64) {
+        self.total_assets = total_assets;
+    }
+
     fn token_account(&self) -> Pubkey {
         self.underlying_token_acc
     }
@@ -173,10 +189,10 @@ impl Strategy for TradeFintechStrategy {
             Err(_) => return 0,
         }
     }
-}
 
-impl TradeFintechStrategy {
-    pub const LEN: usize = 8 + 1 + 32 + 32 + 32 + 32 + 1 + 8 + 8 + 8 + 8 + 8;
+    fn fee_data(&mut self) -> &mut FeeData {
+        &mut self.fee_data
+    }
 }
 
 impl StrategyInit for TradeFintechStrategy {
@@ -201,6 +217,12 @@ impl StrategyInit for TradeFintechStrategy {
         self.lock_period_ends = config.lock_period_ends;
         self.total_assets = 0;
         self.total_invested = 0;
+
+        self.fee_data = FeeData {
+            fee_manager: config.fee_manager,
+            performance_fee: config.performance_fee,
+            fee_balance: 0,
+        };
 
         Ok(())
     }
