@@ -88,13 +88,13 @@ describe("tokenized_vault", () => {
       .signers([admin])
       .rpc();
 
-      // check protocol admin
-      const rolesAccount = await vaultProgram.account.roles.fetch(rolesData);
-      assert.strictEqual(rolesAccount.protocolAdmin.toString(), admin.publicKey.toString());
-      console.log("Protocol admin:", rolesAccount.protocolAdmin.toString());
+    // check protocol admin
+    const rolesAccount = await vaultProgram.account.roles.fetch(rolesData);
+    assert.strictEqual(rolesAccount.protocolAdmin.toString(), admin.publicKey.toString());
+    console.log("Protocol admin:", rolesAccount.protocolAdmin.toString());
   });
 
-  
+
   it("Initializes the vault", async () => {
     await vaultProgram.methods.initialize(new BN(1))
       .accounts({
@@ -110,7 +110,7 @@ describe("tokenized_vault", () => {
     assert.ok(vaultAccount.underlyingTokenAcc.equals(vaultTokenAccount));
   });
 
-    //TODO:
+  //TODO:
   it("Initializes the strategy", async () => {
     strategy = anchor.web3.PublicKey.findProgramAddressSync(
       [Buffer.from("simple"), vault.toBuffer()],
@@ -126,7 +126,7 @@ describe("tokenized_vault", () => {
 
     const config = new SimpleStrategy({
       depositLimit: new BN(1000),
-      performanceFee : new BN(1),
+      performanceFee: new BN(1),
       feeManager: admin.publicKey.toBuffer(),
     });
     const configBytes = Buffer.from(borsh.serialize(SimpleStrategySchema, config));
@@ -184,7 +184,7 @@ describe("tokenized_vault", () => {
     }
   });
 
-  it ("set fee manager", async () => {
+  it("set fee manager", async () => {
     const feeRecipient = anchor.web3.Keypair.generate();
     const airdropSignature = await anchor.getProvider().connection.requestAirdrop(feeRecipient.publicKey, 10e9);
     await anchor.getProvider().connection.confirmTransaction(airdropSignature);
@@ -212,18 +212,18 @@ describe("tokenized_vault", () => {
       .signers([admin])
       .rpc();
 
-      let reportingManager = { reportingManager: {} };
-      await vaultProgram.methods.setRole(reportingManager, key)
-        .accounts({
-          admin: admin.publicKey,
-        })
-        .signers([admin])
-        .rpc();
-        
-      // check protocol admin and reporting manager
-      const rolesAccount = await vaultProgram.account.roles.fetch(rolesData);
-      assert.strictEqual(rolesAccount.vaultsAdmin.toString(), admin.publicKey.toString());
-      assert.strictEqual(rolesAccount.reportingManager.toString(), admin.publicKey.toString());
+    let reportingManager = { reportingManager: {} };
+    await vaultProgram.methods.setRole(reportingManager, key)
+      .accounts({
+        admin: admin.publicKey,
+      })
+      .signers([admin])
+      .rpc();
+
+    // check protocol admin and reporting manager
+    const rolesAccount = await vaultProgram.account.roles.fetch(rolesData);
+    assert.strictEqual(rolesAccount.vaultsAdmin.toString(), admin.publicKey.toString());
+    assert.strictEqual(rolesAccount.reportingManager.toString(), admin.publicKey.toString());
   });
 
   it("Adds a strategy to the vault", async () => {
@@ -318,7 +318,7 @@ describe("tokenized_vault", () => {
     assert.strictEqual(vaultAccount.totalIdle.toString(), '10');
   });
 
-    //TODO:
+  //TODO:
   it("Deallocates tokens from the strategy", async () => {
     const provider = anchor.AnchorProvider.env();
 
@@ -354,7 +354,7 @@ describe("tokenized_vault", () => {
     assert.strictEqual(vaultAccount.totalIdle.toString(), '20');
   });
 
-  
+
   it("Withdraws tokens from the vault", async () => {
     const provider = anchor.AnchorProvider.env();
 
@@ -366,11 +366,11 @@ describe("tokenized_vault", () => {
 
     const remainingAccountsMap = {
       accountsMap: [
-      {
-        strategyAcc: new BN(0),
-        strategyTokenAccount: new BN(1),
-        remainingAccountsToStrategies: [new BN(0)],
-      }]
+        {
+          strategyAcc: new BN(0),
+          strategyTokenAccount: new BN(1),
+          remainingAccountsToStrategies: [new BN(0)],
+        }]
     };
 
     await vaultProgram.methods.withdraw(new BN(30), new BN(10000), remainingAccountsMap)
@@ -429,7 +429,7 @@ describe("tokenized_vault", () => {
     }
   });
 
-  
+
   it("transfer shares and withdraw", async () => {
     const provider = anchor.AnchorProvider.env();
 
@@ -456,11 +456,11 @@ describe("tokenized_vault", () => {
 
     const remainingAccountsMap = {
       accountsMap: [
-      {
-        strategyAcc: new BN(0),
-        strategyTokenAccount: new BN(1),
-        remainingAccountsToStrategies: [new BN(0)],
-      }]
+        {
+          strategyAcc: new BN(0),
+          strategyTokenAccount: new BN(1),
+          remainingAccountsToStrategies: [new BN(0)],
+        }]
     };
 
     await vaultProgram.methods.withdraw(shares, new BN(0), remainingAccountsMap)
@@ -490,7 +490,7 @@ describe("tokenized_vault", () => {
     assert.strictEqual(userTokenAccountInfo.amount.toString(), '10');
   });
 
-  it("report profit", async () => { 
+  it("report profit", async () => {
     const provider = anchor.AnchorProvider.env();
 
     const feeRecipient = anchor.web3.Keypair.generate();
@@ -522,17 +522,17 @@ describe("tokenized_vault", () => {
       .signers([admin])
       .rpc();
 
-      await vaultProgram.methods.processReport()
-        .accounts({
-          vault,
-          strategy,
-          admin: admin.publicKey,
-          feeSharesRecipient: feeRecipientSharesAccount,
-          sharesMint,
-          tokenProgram: token.TOKEN_PROGRAM_ID,
-        })
-        .signers([admin])
-        .rpc();
+    await vaultProgram.methods.processReport()
+      .accounts({
+        vault,
+        strategy,
+        admin: admin.publicKey,
+        feeSharesRecipient: feeRecipientSharesAccount,
+        sharesMint,
+        tokenProgram: token.TOKEN_PROGRAM_ID,
+      })
+      .signers([admin])
+      .rpc();
 
     vaultAccount = await vaultProgram.account.vault.fetch(vault);
     assert.strictEqual(vaultAccount.totalShares.toString(), '62');
@@ -552,11 +552,11 @@ describe("tokenized_vault", () => {
     // withdraw
     const remainingAccountsMap = {
       accountsMap: [
-      {
-        strategyAcc: new BN(0),
-        strategyTokenAccount: new BN(1),
-        remainingAccountsToStrategies: [new BN(0)],
-      }]
+        {
+          strategyAcc: new BN(0),
+          strategyTokenAccount: new BN(1),
+          remainingAccountsToStrategies: [new BN(0)],
+        }]
     };
 
     await vaultProgram.methods.withdraw(new BN(10), new BN(0), remainingAccountsMap)
@@ -675,5 +675,62 @@ describe("tokenized_vault", () => {
     } catch (err) {
       expect(err.message).to.contain("AnchorError caused by account: admin. Error Code: ConstraintAddress. Error Number: 2012. Error Message: An address constraint was violated.");
     }
+  });
+
+  it("remove strategy with debt", async () => {
+
+    try {
+      await vaultProgram.methods.removeStrategy(strategy, false)
+        .accounts({
+          vault,
+          admin: admin.publicKey,
+        })
+        .signers([admin])
+        .rpc();
+      assert.fail("Expected error was not thrown");
+    } catch (err) {
+      expect(err.message).to.contain("Error Code: StrategyHasDebt");
+    }
+  });
+
+  it("remove strategy with debt - force", async () => {
+    await vaultProgram.methods.removeStrategy(strategy, true)
+      .accounts({
+        vault,
+        admin: admin.publicKey,
+      })
+      .signers([admin])
+      .rpc();
+
+    // shpuld be default value
+    const vaultAccount = await vaultProgram.account.vault.fetch(vault);
+    assert.strictEqual(vaultAccount.strategies[0].key.toString(), '11111111111111111111111111111111');
+  });
+
+  it("remove strategy - no debt", async () => {
+    await vaultProgram.methods.addStrategy(new BN(1000000000))
+    .accounts({
+      vault,
+      strategy,
+      admin: admin.publicKey,
+    })
+    .signers([admin])
+    .rpc();
+
+    // get the vault strategies
+    let vaultAccount = await vaultProgram.account.vault.fetch(vault);
+    assert.ok(vaultAccount.strategies[0].key.equals(strategy));
+
+    await vaultProgram.methods.removeStrategy(strategy, false)
+    .accounts({
+      vault,
+      admin: admin.publicKey,
+    })
+    .signers([admin])
+    .rpc();
+
+  // shpuld be default value
+  vaultAccount = await vaultProgram.account.vault.fetch(vault);
+  assert.strictEqual(vaultAccount.strategies[0].key.toString(), '11111111111111111111111111111111');
   });
 });
