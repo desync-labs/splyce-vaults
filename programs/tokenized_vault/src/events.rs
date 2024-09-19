@@ -25,6 +25,9 @@ pub struct VaultDepositEvent {
     pub vault_index: [u8; 8],
     pub amount: u64,
     pub share: u64,
+    pub token_account: Pubkey,
+    pub share_account: Pubkey,
+    pub authority: Pubkey,
 }
 
 
@@ -35,6 +38,9 @@ pub struct VaultWithdrawlEvent {
     pub total_share: u64,
     pub assets_to_transfer: u64,
     pub shares_to_burn: u64,
+    pub token_account: Pubkey,
+    pub share_account: Pubkey,
+    pub authority: Pubkey,
 }
 
 #[event]
