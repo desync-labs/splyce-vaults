@@ -1,6 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Mint, MintTo, Token, TokenAccount};
 
+use crate::events::VaultDepositEvent;
 use crate::state::*;
 use crate::error::ErrorCode;
 use crate::utils::token::*;
@@ -25,7 +26,6 @@ pub struct Deposit<'info> {
 pub fn handle_deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
     let vault = &mut ctx.accounts.vault;
     // todo: track min user deposit properly
-
     if vault.is_shutdown == true {
         return Err(ErrorCode::VaultShutdown.into());
     }
@@ -69,6 +69,15 @@ pub fn handle_deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
 
     // Update balances
     vault.handle_deposit(amount, shares);
+
+    emit!(VaultDepositEvent {
+        vault_index: vault.index_buffer,
+        amount,
+        share: shares,
+        token_account: ctx.accounts.user_token_account.to_account_info().key(),
+        share_account: ctx.accounts.user_shares_account.to_account_info().key(),
+        authority: ctx.accounts.user.to_account_info().key(),
+    });
 
     Ok(())
 }

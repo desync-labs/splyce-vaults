@@ -1,9 +1,7 @@
-use anchor_lang::accounts::signer;
 use anchor_lang::prelude::*;
 
 use crate::state::*;
 use crate::constants::ROLES_SEED;
-use crate::error::ErrorCode;
 
 #[derive(Accounts)]
 pub struct AddStrategy<'info> {
@@ -16,8 +14,6 @@ pub struct AddStrategy<'info> {
     pub roles: Account<'info, Roles>,
     #[account(mut, address = roles.vaults_admin)]
     pub admin: Signer<'info>,
-    pub system_program: Program<'info, System>,
-    pub rent: Sysvar<'info, Rent>,
 }
 
 pub fn handle_add_strategy(ctx: Context<AddStrategy>, max_debt: u64) -> Result<()> {

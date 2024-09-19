@@ -5,7 +5,6 @@ use anchor_spl::{
     token_interface::Mint as InterfaceMint,
 };
 use crate::constants::*;
-use crate::error::ErrorCode;
 use crate::state::*;
 
 #[derive(Accounts)]

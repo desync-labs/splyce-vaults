@@ -5,7 +5,7 @@ use anchor_spl::token_interface::Mint;
 use crate::constants::{VAULT_SEED, MAX_BPS};
 use crate::error::ErrorCode;
 use crate::utils::strategy;
-use crate::events::{VaultAddStrategyEvent, VaultDepositEvent, VaultInitEvent, VaultWithdrawlEvent};
+use crate::events::{VaultAddStrategyEvent, VaultInitEvent};
 
 
 #[account]
@@ -46,7 +46,6 @@ pub struct StrategyData {
     pub last_update: i64,
     pub is_active: bool,
 }
-
 
 impl Vault {
     pub const LEN : usize = 8 + 1 + 8 + 32 + 32 + 1 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 1 + 10 * (32 + 8 + 8 + 8 + 1);
@@ -103,25 +102,13 @@ impl Vault {
     pub fn handle_deposit(&mut self, amount: u64, shares: u64) {
         self.total_idle += amount;
         self.total_shares += shares;
-
-        emit!(VaultDepositEvent {
-            vault_index: self.index_buffer,
-            amount,
-            share: shares,
-        });
     }
 
     pub fn handle_withdraw(&mut self, amount: u64, shares: u64) {
         self.total_idle -= amount;
         self.total_shares -= shares;
 
-        emit!(VaultWithdrawlEvent {
-            vault_index: self.index_buffer,
-            total_idle: self.total_idle,
-            total_share: self.total_shares,
-            assets_to_transfer: amount,
-            shares_to_burn: shares,
-        });
+        
     }
 
     pub fn max_deposit(&self) -> u64 {

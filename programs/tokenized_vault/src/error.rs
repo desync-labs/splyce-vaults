@@ -67,4 +67,7 @@ pub enum ErrorCode {
 
     #[msg("Loss is too high")]
     TooMuchLoss,
+
+    #[msg("Strategy has debt")]
+    StrategyHasDebt,
 }

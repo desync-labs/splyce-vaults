@@ -42,7 +42,7 @@ pub mod strategy_program {
     }
 
     pub fn withdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
-        withdraw::handle_withdraw(ctx, amount)
+        instructions::handle_withdraw(ctx, amount)
     }
 
     pub fn report(ctx: Context<Report>) -> Result<()> {
@@ -51,5 +51,17 @@ pub mod strategy_program {
 
     pub fn transfer_management(ctx: Context<TransferManagement>, new_admin: Pubkey) -> Result<()> {
         transfer_management::handle_transfer_management(ctx, new_admin)
+    }
+
+    pub fn set_performance_fee(ctx: Context<SetPerformanceFee>, fee: u64) -> Result<()> {
+        setters::handle_set_performance_fee(ctx, fee)
+    }
+
+    pub fn set_fee_manager(ctx: Context<SetFeeManager>, recipient: Pubkey) -> Result<()> {
+        setters::handle_set_fee_manager(ctx, recipient)
+    }
+
+    pub fn withdraw_fee(ctx: Context<WithdrawFee>, amount: u64) -> Result<()> {
+        withdraw_fee::handle_withdraw_fee(ctx, amount)
     }
 }

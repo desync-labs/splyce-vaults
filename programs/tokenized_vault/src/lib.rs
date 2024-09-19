@@ -47,6 +47,10 @@ pub mod tokenized_vault {
         handle_add_strategy(ctx, max_debt)
     }
 
+    pub fn remove_strategy(ctx: Context<RemoveStrategy>, strategy: Pubkey, force: bool) -> Result<()> {
+        handle_remove_strategy(ctx, strategy, force)
+    }
+
     pub fn update_debt(ctx: Context<UpdateStrategyDebt>, amount: u64) -> Result<()> {
         handle_update_debt(ctx, amount)
     }
