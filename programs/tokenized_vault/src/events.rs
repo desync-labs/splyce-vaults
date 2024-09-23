@@ -51,3 +51,12 @@ pub struct VaultUpdateDepositLimitEvent {
     pub vault_index: [u8; 8],
     pub new_limit: u64,
 }
+
+#[event]
+pub struct UpdatedCurrentDebtForStrategyEvent {
+    pub vault_index: [u8; 8],
+    pub strategy_key: Pubkey,
+    pub total_idle: u64,
+    pub total_debt: u64,
+    pub new_debt: u64,
+}

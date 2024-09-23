@@ -7,6 +7,7 @@ use strategy_program::cpi::accounts::{
 use strategy_program::program::StrategyProgram;
 use strategy_program::{self};
 
+use crate::events::UpdatedCurrentDebtForStrategyEvent;
 use crate::state::*;
 use crate::error::ErrorCode;
 use crate::utils::strategy::*;
@@ -146,6 +147,14 @@ pub fn handle_update_debt(
     let strategy_data_mut = vault.get_strategy_data_mut(strategy.key())?;
     strategy_data_mut.current_debt = new_debt;
     // vault.set_current_debt(strategy.key(), new_debt)?;
+
+    emit!(UpdatedCurrentDebtForStrategyEvent {
+        vault_index: vault.index_buffer,
+        strategy_key: strategy.key(),
+        total_idle: vault.total_idle,
+        total_debt: vault.total_debt,
+        new_debt,
+    });
 
     Ok(())
 }
