@@ -72,6 +72,9 @@ pub fn handle_deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
 
     emit!(VaultDepositEvent {
         vault_index: vault.index_buffer,
+        total_debt: vault.total_debt,
+        total_idle: vault.total_idle,
+        total_share: vault.total_shares,
         amount,
         share: shares,
         token_account: ctx.accounts.user_token_account.to_account_info().key(),

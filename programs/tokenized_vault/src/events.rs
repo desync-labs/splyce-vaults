@@ -23,6 +23,9 @@ pub struct VaultAddStrategyEvent {
 #[event]
 pub struct VaultDepositEvent {
     pub vault_index: [u8; 8],
+    pub total_debt: u64,
+    pub total_idle: u64,
+    pub total_share: u64,
     pub amount: u64,
     pub share: u64,
     pub token_account: Pubkey,
