@@ -60,3 +60,14 @@ pub struct UpdatedCurrentDebtForStrategyEvent {
     pub total_debt: u64,
     pub new_debt: u64,
 }
+
+#[event]
+pub struct StrategyReportedEvent {
+    pub strategy_key: Pubkey,
+    pub gain: u64,
+    pub loss: u64,
+    pub current_debt: u64,
+    pub protocol_fees: u64,
+    pub total_fees: u64,
+    pub timestamp: i64,
+}
