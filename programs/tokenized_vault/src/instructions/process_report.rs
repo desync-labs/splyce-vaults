@@ -1,6 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Mint, MintTo, Token, TokenAccount};
 
+use crate::events::StrategyReportedEvent;
 use crate::state::*;
 use crate::utils::strategy;
 use crate::constants::{ FEE_BPS, ROLES_SEED };
@@ -23,20 +24,26 @@ pub struct ProcessReport<'info> {
     pub token_program: Program<'info, Token>,
 }
 
+
+
 pub fn handle_process_report(ctx: Context<ProcessReport>) -> Result<()> {
     let strategy_assets = strategy::get_total_assets(&ctx.accounts.strategy)?;
     let vault = &mut ctx.accounts.vault;
     let strategy = &mut ctx.accounts.strategy;
     let strategy_data = vault.get_strategy_data(strategy.key())?;
 
+    let mut gain: u64 = 0;
+    let mut loss: u64 = 0;
+    let mut total_fees: u64 = 0;
+
     if strategy_assets > strategy_data.current_debt {
         // We have a gain.
-        let gain = strategy_assets - strategy_data.current_debt;
+        gain = strategy_assets - strategy_data.current_debt;
 
         // calculate fees
         vault.total_debt += gain;
 
-        let total_fees = (gain * vault.performance_fee) / FEE_BPS;
+        total_fees = (gain * vault.performance_fee) / FEE_BPS;
         let fee_shares = vault.convert_to_shares(total_fees);
 
         // Transfer fees to fee share token account
@@ -57,13 +64,23 @@ pub fn handle_process_report(ctx: Context<ProcessReport>) -> Result<()> {
         vault.total_shares += fee_shares;
     } else {
         // We have a loss.
-        let loss = strategy_data.current_debt - strategy_assets;
+        loss = strategy_data.current_debt - strategy_assets;
         vault.total_debt -= loss;
     }
 
     let strategy_data = vault.get_strategy_data_mut(strategy.key())?;
     strategy_data.current_debt = strategy_assets;
     strategy_data.last_update = Clock::get()?.unix_timestamp;
+
+    emit!(StrategyReportedEvent {
+        strategy_key: strategy.key(),
+        gain,
+        loss,
+        current_debt: strategy_data.current_debt,
+        protocol_fees: 0, //TODO: this is set as 0
+        total_fees,
+        timestamp: strategy_data.last_update,
+    });
 
     Ok(())
 }
