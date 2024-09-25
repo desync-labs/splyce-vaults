@@ -1,7 +1,78 @@
 use anchor_lang::prelude::*;
 use strategy_program::state::*;
+use anchor_spl::token::TokenAccount;
+ 
+use crate::state::*;
+use strategy_program::{self};
+use strategy_program::cpi::accounts::{
+    Deposit,
+    Withdraw
+};
 
 use crate::error::ErrorCode::*;
+// use crate::vault;
+
+pub fn deposit<'a>(
+    strategy: AccountInfo<'a>,
+    vault: AccountInfo<'a>,
+    token_account: AccountInfo<'a>,
+    vault_token_account: AccountInfo<'a>,
+    token_program: AccountInfo<'a>,
+    strategy_program: AccountInfo<'a>,
+    assets_to_deposit: u64,
+    seeds: &[&[u8]],
+) -> Result<()> {
+    // Perform the CPI deposit with pre-extracted data
+    strategy_program::cpi::deposit(
+        CpiContext::new_with_signer(
+            strategy_program,
+            Deposit {
+                strategy,
+                signer: vault,
+                token_account,
+                vault_token_account,
+                token_program,
+            },
+            &[&seeds],  // Pass in the seeds from the previously loaded vault
+        ),
+        assets_to_deposit,
+    )
+}
+
+pub fn withdraw<'a>(
+    strategy: AccountInfo<'a>,
+    vault: AccountInfo<'a>,
+    token_account: AccountInfo<'a>,
+    vault_token_account: &mut Account<'a, TokenAccount>,
+    token_program: AccountInfo<'a>,
+    strategy_program: AccountInfo<'a>,
+    assets_to_withdraw: u64,
+    seeds: &[&[&[u8]]],
+    remaining_accounts: Vec<AccountInfo<'a>>,
+) -> Result<u64> {
+    let pre_balance = vault_token_account.amount;
+
+    let mut context = CpiContext::new_with_signer(
+        strategy_program, 
+        Withdraw {
+            strategy,
+            token_account,
+            signer: vault,
+            vault_token_account: vault_token_account.to_account_info(),
+            token_program,
+        },
+        seeds,
+    );
+    
+    context.remaining_accounts = remaining_accounts;
+
+    strategy_program::cpi::withdraw(context, assets_to_withdraw)?;
+
+    vault_token_account.reload()?;
+    let post_balance = vault_token_account.amount;
+
+    Ok(post_balance - pre_balance)
+}
 
 pub fn get_max_withdraw(strategy_acc: &AccountInfo) -> Result<u64> {
     let strategy = deserialize(strategy_acc)?;

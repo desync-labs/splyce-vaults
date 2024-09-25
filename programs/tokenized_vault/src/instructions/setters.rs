@@ -7,7 +7,7 @@ use crate::error::ErrorCode;
 #[derive(Accounts)]
 pub struct SetDepositLimit<'info> {
     #[account(mut)]
-    pub vault: Account<'info, Vault>,
+    pub vault: AccountLoader<'info, Vault>,
     #[account(seeds = [ROLES_SEED.as_bytes()], bump)]
     pub roles: Account<'info, Roles>,
     #[account(mut, address = roles.vaults_admin)]
@@ -15,7 +15,7 @@ pub struct SetDepositLimit<'info> {
 }
 
 pub fn handle_set_deposit_limit(ctx: Context<SetDepositLimit>, amount: u64) -> Result<()> {
-    let vault = &mut ctx.accounts.vault;
+    let vault = &mut ctx.accounts.vault.load_mut()?;
 
     if vault.is_shutdown == true {
         return Err(ErrorCode::VaultShutdown.into());

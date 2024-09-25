@@ -14,6 +14,9 @@ pub enum ErrorCode {
     #[msg("Invalid strategy data")]
     InvalidStrategyData,
 
+    #[msg("Invalid strategy")]
+    InvalidStrategy,
+
     #[msg("Invalid account type")]
     InvalidAccountType,
 
@@ -67,4 +70,7 @@ pub enum ErrorCode {
 
     #[msg("Loss is too high")]
     TooMuchLoss,
+
+    #[msg("Strategy has debt")]
+    StrategyHasDebt,
 }

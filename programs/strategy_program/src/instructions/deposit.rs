@@ -10,7 +10,7 @@ pub struct Deposit<'info> {
     /// CHECK: can by any strategy
     #[account(mut)]
     pub strategy: UncheckedAccount<'info>,
-    #[account(mut)]
+    #[account()]
     pub signer: Signer<'info>,
     #[account(mut)]
     pub token_account: Account<'info, TokenAccount>,

@@ -5,18 +5,15 @@ use anchor_spl::token_interface::Mint;
 use crate::constants::{VAULT_SEED, MAX_BPS};
 use crate::error::ErrorCode;
 use crate::utils::strategy;
-use crate::events::{VaultAddStrategyEvent, VaultDepositEvent, VaultInitEvent, VaultWithdrawlEvent};
+use crate::events::{VaultAddStrategyEvent, VaultInitEvent};
 
 
-#[account]
-// #[repr(packed)]
+#[account(zero_copy(unsafe))]
+#[repr(packed)]
 #[derive(Default, Debug)]
 pub struct Vault {
     pub bump: [u8; 1],
     pub index_buffer: [u8; 8],
-
-    // /// Owner of the vault
-    // pub owner: Pubkey,
 
     pub underlying_mint: Pubkey,
     pub underlying_token_acc: Pubkey,
@@ -34,11 +31,18 @@ pub struct Vault {
 
     pub is_shutdown: bool,
 
+    pub profit_max_unlock_time: u64,
+    pub full_profit_unlock_date: u64,
+    pub profit_unlocking_rate: u64,
+    pub last_profit_update: i64,
+
     // pub strategies: [Pubkey; 10],
     pub strategies: [StrategyData; 10],
 }
 
-#[derive(AnchorDeserialize, AnchorSerialize, Default, Debug, Clone)]
+#[zero_copy(unsafe)]
+#[repr(packed)]
+#[derive(Default, Debug, PartialEq, Eq)]
 pub struct StrategyData {
     pub key: Pubkey,
     pub current_debt: u64,
@@ -47,9 +51,8 @@ pub struct StrategyData {
     pub is_active: bool,
 }
 
-
 impl Vault {
-    pub const LEN : usize = 8 + 1 + 8 + 32 + 32 + 1 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 1 + 10 * (32 + 8 + 8 + 8 + 1);
+    pub const LEN : usize = 8 + 1 + 8 + 32 + 32 + 1 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 1 + 8 + 8 + 8 + 8 + (10 * (32 + 8 + 8 + 8 + 1));
     pub fn seeds(&self) -> [&[u8]; 4] {
     [
         &VAULT_SEED.as_bytes(),
@@ -67,6 +70,7 @@ impl Vault {
         min_user_deposit: u64,
         performance_fee: u64,
         index: u64,
+        profit_max_unlock_time: u64,
     ) -> Result<()> {
         self.bump = [bump];
         self.underlying_mint = underlying_mint.key();
@@ -80,6 +84,7 @@ impl Vault {
         self.total_shares = 0;
         self.total_idle = 0;
         self.index_buffer = index.to_le_bytes();
+        self.profit_max_unlock_time = profit_max_unlock_time;
 
 
         //Emit the VaultInitEvent
@@ -103,25 +108,13 @@ impl Vault {
     pub fn handle_deposit(&mut self, amount: u64, shares: u64) {
         self.total_idle += amount;
         self.total_shares += shares;
-
-        emit!(VaultDepositEvent {
-            vault_index: self.index_buffer,
-            amount,
-            share: shares,
-        });
     }
 
     pub fn handle_withdraw(&mut self, amount: u64, shares: u64) {
         self.total_idle -= amount;
         self.total_shares -= shares;
 
-        emit!(VaultWithdrawlEvent {
-            vault_index: self.index_buffer,
-            total_idle: self.total_idle,
-            total_share: self.total_shares,
-            assets_to_transfer: amount,
-            shares_to_burn: shares,
-        });
+        
     }
 
     pub fn max_deposit(&self) -> u64 {
@@ -193,8 +186,6 @@ impl Vault {
             (shares as u128 * self.total_funds() as u128 / self.total_shares as u128) as u64
         }
     }
-
-
 
     pub fn total_funds(&self) -> u64 {
         self.total_debt + self.total_idle

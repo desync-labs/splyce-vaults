@@ -1,17 +1,12 @@
 use anchor_lang::prelude::*;
 
-use anchor_spl::{
-    token::{ Mint, Token, TokenAccount},
-    token_interface::Mint as InterfaceMint,
-};
+use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 use crate::constants::*;
-use crate::error::ErrorCode;
 use crate::state::*;
 
 #[derive(Accounts)]
 #[instruction(index: u64)]
 pub struct Initialize<'info> {
-    // TODO: need to think about proper seeds
     #[account(
         init, 
         seeds = [
@@ -23,7 +18,8 @@ pub struct Initialize<'info> {
         payer = admin, 
         space = Vault::LEN,
     )]
-    pub vault: Account<'info, Vault>,
+    pub vault: AccountLoader<'info, Vault>,
+    
     #[account(
         init, 
         seeds = [SHARES_SEED.as_bytes(), vault.key().as_ref()], 
@@ -32,7 +28,8 @@ pub struct Initialize<'info> {
         mint::decimals = 18, 
         mint::authority = vault,
     )]
-    pub mint: Box<Account<'info, Mint>>,
+    pub shares_mint: Box<InterfaceAccount<'info, Mint>>,
+    
     #[account(
         init, 
         seeds = [UNDERLYING_SEED.as_bytes(), vault.key().as_ref()], 
@@ -41,20 +38,33 @@ pub struct Initialize<'info> {
         token::mint = underlying_mint,
         token::authority = vault,
     )]
-    pub token_account: Box<Account<'info, TokenAccount>>,
+    pub token_account: Box<InterfaceAccount<'info, TokenAccount>>,
+    
+    #[account(
+        init, 
+        seeds = [SHARES_ACCOUNT_SEED.as_bytes(), vault.key().as_ref()], 
+        bump, 
+        payer = admin, 
+        token::mint = shares_mint,
+        token::authority = vault,
+    )]
+    pub shares_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
+    
     #[account(mut)]
-    pub underlying_mint: Box<InterfaceAccount<'info, InterfaceMint>>,
+    pub underlying_mint: Box<InterfaceAccount<'info, Mint>>,
+    
     #[account(seeds = [ROLES_SEED.as_bytes()], bump)]
     pub roles: Account<'info, Roles>,
+    
     #[account(mut, address = roles.protocol_admin)]
     pub admin: Signer<'info>,
-    pub token_program: Program<'info, Token>,
+    
+    pub token_program: Interface<'info, TokenInterface>,
     pub system_program: Program<'info, System>,
     pub rent: Sysvar<'info, Rent>,
 }
-
 pub fn handle_initialize(ctx: Context<Initialize>, index: u64) -> Result<()> {
-    let vault = &mut ctx.accounts.vault;
+    let vault = &mut ctx.accounts.vault.load_init()?;
     // TODO: pass config params
     vault.init(
         ctx.bumps.vault,
@@ -63,6 +73,9 @@ pub fn handle_initialize(ctx: Context<Initialize>, index: u64) -> Result<()> {
         1_000_000,
         0,
         1000,
-        index
+        index,
+        0,
     )
+
+    // Ok(())
 }

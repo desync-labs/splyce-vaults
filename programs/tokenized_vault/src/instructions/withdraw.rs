@@ -3,6 +3,7 @@ use anchor_spl::token::{self, Burn, Mint, Token, TokenAccount, Transfer};
 use strategy_program::program::StrategyProgram;
 use strategy_program::cpi::accounts::Withdraw as WithdrawAccounts;
 
+use crate::events::VaultWithdrawlEvent;
 use crate::{state::*, utils::strategy};
 use crate::error::ErrorCode;
 use crate::constants;
@@ -10,7 +11,7 @@ use crate::constants;
 #[derive(Accounts)]
 pub struct Withdraw<'info> {
     #[account(mut)]
-    pub vault: Account<'info, Vault>,
+    pub vault: AccountLoader<'info, Vault>,
     #[account(mut)]
     pub user: Signer<'info>,
     #[account(mut)]
@@ -43,7 +44,7 @@ pub fn handle_withdraw<'info>(
     max_loss: u64,
     remaining_accounts_map: AccountsMap
 ) -> Result<()> {
-    let shares = ctx.accounts.vault.convert_to_shares(amount);
+    let shares = ctx.accounts.vault.load()?.convert_to_shares(amount);
     handle_internal(ctx, amount, shares, max_loss, remaining_accounts_map)
 }
 
@@ -53,7 +54,7 @@ pub fn handle_redeem<'info>(
     max_loss: u64,
     remaining_accounts_map: AccountsMap
 ) -> Result<()> {
-    let amount = ctx.accounts.vault.convert_to_underlying(shares);
+    let amount = ctx.accounts.vault.load()?.convert_to_underlying(shares);
     handle_internal(ctx, amount, shares, max_loss, remaining_accounts_map)
 }
 
@@ -67,7 +68,6 @@ fn handle_internal<'info>(
     if assets == 0 || shares_to_burn == 0 {
         return Err(ErrorCode::ZeroValue.into());
     }
-    let vault = &mut ctx.accounts.vault;
     let vault_token_account = &mut ctx.accounts.vault_token_account;
     let user_shares_balance = ctx.accounts.user_shares_account.amount;
     let remaining_accounts = ctx.remaining_accounts;
@@ -83,7 +83,7 @@ fn handle_internal<'info>(
         return Err(ErrorCode::InsufficientShares.into());
     }
 
-    let max_withdraw = vault.max_withdraw(user_shares_balance, &strategies, max_loss)?;
+    let max_withdraw = ctx.accounts.vault.load()?.max_withdraw(user_shares_balance, &strategies, max_loss)?;
     if assets > max_withdraw {
         return Err(ErrorCode::ExceedWithdrawLimit.into());
     }
@@ -94,7 +94,7 @@ fn handle_internal<'info>(
         vault_token_account,
         &ctx.accounts.token_program.to_account_info(),
         &ctx.accounts.strategy_program.to_account_info(),
-        vault,
+        &ctx.accounts.vault,
         assets,
         strategies,
         strategy_token_accounts,
@@ -125,14 +125,26 @@ fn handle_internal<'info>(
             Transfer {
                 from: ctx.accounts.vault_token_account.to_account_info(),
                 to: ctx.accounts.user_token_account.to_account_info(),
-                authority: vault.to_account_info(),
+                authority: ctx.accounts.vault.to_account_info(),
             }, 
-            &[&vault.seeds()]
+            &[&ctx.accounts.vault.load()?.seeds()]
         ), 
         assets_to_transfer
     )?;
 
+    let mut vault = ctx.accounts.vault.load_mut()?;
     vault.handle_withdraw(assets_to_transfer, shares_to_burn);
+
+    emit!(VaultWithdrawlEvent {
+        vault_index: vault.index_buffer,
+        total_idle: vault.total_idle,
+        total_share: vault.total_shares,
+        assets_to_transfer,
+        shares_to_burn,
+        token_account: ctx.accounts.user_token_account.to_account_info().key(),
+        share_account: ctx.accounts.user_shares_account.to_account_info().key(),
+        authority: ctx.accounts.user.to_account_info().key(),
+    });
 
     Ok(())
 }
@@ -177,24 +189,24 @@ fn withdraw_assets<'info>(
     vault_token_account: &mut Account<'info, TokenAccount>,
     token_program: &AccountInfo<'info>,
     strategy_program: &AccountInfo<'info>,
-    vault: &mut Account<'info, Vault>,
+    vault_acc: &AccountLoader<'info, Vault>,
     assets: u64,
     strategies: Vec<AccountInfo<'info>>,
     token_accounts: Vec<AccountInfo<'info>>,
     remaining_accounts: Vec<Vec<AccountInfo<'info>>>
 ) -> Result<u64> {
+    let vault = vault_acc.load()?.clone();
     let mut requested_assets = assets;
     let mut assets_needed = 0;
-    let mut previous_balance = vault_token_account.amount;
     let mut total_idle = vault.total_idle;
     let mut total_debt = vault.total_debt;
 
-    if requested_assets > vault.total_idle {
-        assets_needed = requested_assets - vault.total_idle;
+    if requested_assets > total_idle {
+        assets_needed = requested_assets - total_idle;
 
         for i in 0..strategies.len() {
             let strategy_acc = &strategies[i];
-            let strategy_data = vault.get_strategy_data(strategy_acc.key())?;
+            let strategy_data = vault.get_strategy_data(strategy_acc.key())?.clone();
             let mut current_debt = strategy_data.current_debt;
             if !strategy_data.is_active {
                 return Err(ErrorCode::InactiveStrategy.into());
@@ -215,7 +227,6 @@ fn withdraw_assets<'info>(
                     to_withdraw = strategy_limit;
                 } else {
                     to_withdraw -= unrealised_loss_share;
-                 
                 }
 
                 requested_assets -= unrealised_loss_share;
@@ -224,7 +235,6 @@ fn withdraw_assets<'info>(
 
                 if strategy_limit == 0 && unrealised_loss_share > 0 {
                     current_debt = current_debt - unrealised_loss_share;
-                    // strategy_data.current_debt = new_debt;
                 }
             }
 
@@ -234,25 +244,18 @@ fn withdraw_assets<'info>(
                 continue;
             }
 
-            let vault_seeds: &[&[&[u8]]] = &[&vault.seeds()];
-            let mut context = CpiContext::new_with_signer(
+            let withdrawn = strategy::withdraw(
+                strategy_acc.to_account_info(),
+                vault_acc.to_account_info(),
+                token_accounts[i].to_account_info(),
+                vault_token_account,
+                token_program.to_account_info(),
                 strategy_program.to_account_info(),
-                WithdrawAccounts {
-                    strategy: strategy_acc.to_account_info(),
-                    token_account: token_accounts[i].to_account_info(),
-                    signer: vault.to_account_info(),
-                    vault_token_account: vault_token_account.to_account_info(),
-                    token_program: token_program.to_account_info(),
-                },
-                vault_seeds
-            );
-            context.remaining_accounts = remaining_accounts[i].clone();
+                to_withdraw,
+                &[&vault.seeds()],
+                remaining_accounts[i].clone()
+            )?;
 
-            strategy_program::cpi::withdraw(context, to_withdraw)?;
-
-            vault_token_account.reload()?;
-            let post_balance = vault_token_account.amount;
-            let withdrawn = post_balance - previous_balance;
             let mut loss = 0;
 
             if withdrawn > to_withdraw {
@@ -270,23 +273,23 @@ fn withdraw_assets<'info>(
             total_debt -= to_withdraw;
 
             let new_debt: u64 = current_debt - (to_withdraw + unrealised_loss_share);
-            let strategy_data_mut = vault.get_strategy_data_mut(strategy_acc.key())?;
+
+            let vault_mut = &mut vault_acc.load_mut()?;
+            let strategy_data_mut = vault_mut.get_strategy_data_mut(strategy_acc.key())?;
             strategy_data_mut.current_debt = new_debt;
+            vault_mut.total_debt = total_debt;
+            vault_mut.total_idle = total_idle;
 
             if requested_assets <= total_idle {
                 break;
             }
 
-            previous_balance = post_balance;
             assets_needed -= to_withdraw;
         }
 
         if total_idle < requested_assets {
             return Err(ErrorCode::InsufficientFunds.into());
         }
-
-        vault.total_debt = total_debt;
-        vault.total_idle = total_idle;
     }
 
     Ok(requested_assets)
