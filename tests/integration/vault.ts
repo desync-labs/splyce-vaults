@@ -1,7 +1,7 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
-import { TokenizedVault } from "../../target/types/tokenized_vault";
 import { Strategy } from "../target/types/strategy";
+import { TokenizedVault } from "../../target/types/tokenized_vault";
 import { BN } from "@coral-xyz/anchor";
 import * as token from "@solana/spl-token";
 import * as borsh from 'borsh';
@@ -94,7 +94,6 @@ describe("tokenized_vault", () => {
     console.log("Protocol admin:", rolesAccount.protocolAdmin.toString());
   });
 
-
   it("Initializes the vault", async () => {
     await vaultProgram.methods.initialize(new BN(1))
       .accounts({
@@ -110,7 +109,6 @@ describe("tokenized_vault", () => {
     assert.ok(vaultAccount.underlyingTokenAcc.equals(vaultTokenAccount));
   });
 
-  //TODO:
   it("Initializes the strategy", async () => {
     strategy = anchor.web3.PublicKey.findProgramAddressSync(
       [Buffer.from("simple"), vault.toBuffer()],

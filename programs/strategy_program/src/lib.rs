@@ -34,7 +34,7 @@ pub mod strategy_program {
     }
 
     pub fn initialize(ctx: Context<Initialize>, strategy_type: StrategyType, config: Vec<u8>) -> Result<()> {
-        instructions::initialize(ctx, strategy_type, config)
+        initialize::initialize(ctx, strategy_type, config)
     }
 
     pub fn deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
@@ -42,7 +42,7 @@ pub mod strategy_program {
     }
 
     pub fn withdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
-        instructions::handle_withdraw(ctx, amount)
+        withdraw::handle_withdraw(ctx, amount)
     }
 
     pub fn report(ctx: Context<Report>) -> Result<()> {

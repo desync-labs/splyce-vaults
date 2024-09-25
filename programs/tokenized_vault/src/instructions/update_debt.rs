@@ -1,25 +1,27 @@
+use std::cell::Ref;
+
 use anchor_lang::prelude::*;
 use anchor_spl::token::{Token, TokenAccount};
-use strategy_program::cpi::accounts::{
-    Deposit as DepositAccounts,
-    Withdraw as WithdrawAccounts
-};
+
 use strategy_program::program::StrategyProgram;
-use strategy_program::{self};
 
 use crate::state::*;
 use crate::error::ErrorCode;
-use crate::utils::strategy::*;
+use crate::utils::strategy;
 use crate::constants::ROLES_SEED;
 
 #[derive(Accounts)]
+#[instruction(new_debt: u64)]
 pub struct UpdateStrategyDebt<'info> {
-    #[account(mut)]
-    pub vault: Account<'info, Vault>,
+    #[account(
+        mut,
+        constraint = !vault.load()?.is_shutdown || new_debt == 0,
+    )]
+    pub vault: AccountLoader<'info, Vault>,
     #[account(mut)]
     pub vault_token_account: Account<'info, TokenAccount>,
     /// CHECK: Should this be mut?
-    #[account(mut, constraint = vault.is_vault_strategy(strategy.key()))]
+    #[account(mut, constraint = vault.load()?.is_vault_strategy(strategy.key()))]
     pub strategy: AccountInfo<'info>,
     #[account(mut)]
     pub strategy_token_account: Account<'info, TokenAccount>,
@@ -31,121 +33,159 @@ pub struct UpdateStrategyDebt<'info> {
     pub strategy_program: Program<'info, StrategyProgram>
 }
 
-pub fn handle_update_debt(
-    ctx: Context<UpdateStrategyDebt>, 
-    mut new_debt: u64,
+pub fn handle_update_debt<'a, 'b, 'c, 'info>(
+    mut ctx: Context<'a, 'b, 'c, 'info, UpdateStrategyDebt<'info>>, 
+    new_debt: u64,
 ) -> Result<()> {
-    let vault = &mut ctx.accounts.vault;
-    let strategy = &ctx.accounts.strategy;
-    let strategy_data = vault.get_strategy_data(strategy.key())?;
-    let vault_idle =  vault.total_idle;
-    let current_debt = strategy_data.current_debt;
+    let (total_idle, total_debt, new_debt) = handle_internal(&mut ctx, new_debt)?;
 
-    if vault.is_shutdown {
-        new_debt = 0;
-    }
+    let vaut_mut = &mut ctx.accounts.vault.load_mut()?;
+    vaut_mut.total_idle = total_idle;
+    vaut_mut.total_debt = total_debt;
+
+    let strategy_data_mut = vaut_mut.get_strategy_data_mut(ctx.accounts.strategy.key())?;
+    strategy_data_mut.current_debt = new_debt;
+
+    Ok(())
+}
+
+
+fn handle_internal<'a, 'b, 'c, 'info>(
+    ctx: &mut Context<'a, 'b, 'c, 'info, UpdateStrategyDebt<'info>>,
+    mut new_debt: u64,
+) -> Result<(u64, u64, u64)> {
+    let vault = ctx.accounts.vault.load()?;
+    let vault_seeds: &[&[u8]] = &vault.seeds();
+    let current_debt = vault.get_strategy_data(ctx.accounts.strategy.key())?.current_debt;
 
     if new_debt == current_debt {
         return Err(ErrorCode::SameDebt.into());
     }
 
-    if new_debt < current_debt     {
-        let mut assets_to_withdraw = current_debt - new_debt;
-
-        if vault_idle + assets_to_withdraw < vault.minimum_total_idle {
-            assets_to_withdraw = vault.minimum_total_idle - vault_idle;
-            if assets_to_withdraw > current_debt {
-                assets_to_withdraw = current_debt;
-            }
-        }
-
-        let withdrawable = get_max_withdraw(&strategy)?;
-        if withdrawable == 0 {
-            return Err(ErrorCode::CannotWithdraw.into());
-        }
-
-        if assets_to_withdraw > withdrawable {
-            assets_to_withdraw = withdrawable;
-        }
-
-        if current_debt > get_total_assets(&strategy)? {
-            return Err(ErrorCode::UnrealisedLosses.into());
-        }
-
-        let pre_balance = ctx.accounts.vault_token_account.amount;
-        strategy_program::cpi::withdraw(
-            CpiContext::new_with_signer(
-                ctx.accounts.strategy_program.to_account_info(), 
-                WithdrawAccounts {
-                    strategy: ctx.accounts.strategy.to_account_info(),
-                    token_account: ctx.accounts.strategy_token_account.to_account_info(),
-                    signer: vault.to_account_info(),
-                    vault_token_account: ctx.accounts.vault_token_account.to_account_info(),
-                    token_program: ctx.accounts.token_program.to_account_info(),
-                },
-                &[&vault.seeds()]
-            ), 
-            assets_to_withdraw
+    if new_debt < current_debt {
+        let mut assets_to_withdraw = get_assets_to_withdraw(
+            &vault,
+            ctx.accounts.strategy.to_account_info(),
+            current_debt,
+            new_debt
         )?;
-        ctx.accounts.vault_token_account.reload()?;
-        let post_balance = ctx.accounts.vault_token_account.amount;
 
-        let withdrawn = post_balance - pre_balance;
+        let remaining_accounts: Vec<AccountInfo> = ctx.remaining_accounts.to_vec();
 
+        let withdrawn = strategy::withdraw(
+            ctx.accounts.strategy.to_account_info(),
+            ctx.accounts.vault.to_account_info(),
+            ctx.accounts.strategy_token_account.to_account_info(),
+            &mut ctx.accounts.vault_token_account,
+            ctx.accounts.token_program.to_account_info(),
+            ctx.accounts.strategy_program.to_account_info(),
+            assets_to_withdraw,
+            &[&vault_seeds],
+            remaining_accounts
+        )?;
+    
         if withdrawn > assets_to_withdraw {
             assets_to_withdraw = withdrawn;
         }
 
-        vault.total_idle += withdrawn;
-        vault.total_debt -= assets_to_withdraw;
         new_debt = current_debt - assets_to_withdraw;
-    } else if new_debt > strategy_data.current_debt {
-        if new_debt > strategy_data.max_debt {
-            return Err(ErrorCode::DebtHigherThanMaxDebt.into());
-        }
 
-        let max_deposit = get_max_deposit(&strategy)?;
-        if max_deposit == 0 {
-            return Err(ErrorCode::CannotDeposit.into());
-        }
-
-        let mut assets_to_deposit = new_debt - current_debt;
-        if assets_to_deposit > max_deposit {
-            assets_to_deposit = max_deposit;
-        }
-
-        if vault.total_idle <= vault.minimum_total_idle {
-            return Err(ErrorCode::InsufficientFunds.into());
-        }
-
-        let available_idle = vault.total_idle - vault.minimum_total_idle;
-
-        if assets_to_deposit > available_idle {
-            assets_to_deposit = available_idle;
-        }
-
-        strategy_program::cpi::deposit(
-            CpiContext::new_with_signer(
-                ctx.accounts.strategy_program.to_account_info(),
-                DepositAccounts {
-                    strategy: ctx.accounts.strategy.to_account_info(),
-                    signer: vault.to_account_info(),
-                    token_account: ctx.accounts.strategy_token_account.to_account_info(),
-                    vault_token_account: ctx.accounts.vault_token_account.to_account_info(),
-                    token_program: ctx.accounts.token_program.to_account_info(),
-                },
-                &[&vault.seeds()],
-            ),
-            assets_to_deposit,
+        return Ok((
+            vault.total_idle + assets_to_withdraw, 
+            vault.total_debt - assets_to_withdraw, 
+            new_debt
+        ));
+    } else {
+        let assets_to_deposit = get_assets_deposit(
+            &vault,
+            ctx.accounts.strategy.to_account_info(),
+            current_debt,
+            new_debt,
         )?;
 
-        vault.total_idle -= assets_to_deposit;
-        vault.total_debt += assets_to_deposit;
-        new_debt = current_debt + assets_to_deposit;
-    }
-    let strategy_data_mut = vault.get_strategy_data_mut(strategy.key())?;
-    strategy_data_mut.current_debt = new_debt;
-    // vault.set_current_debt(strategy.key(), new_debt)?;
+        strategy::deposit(
+            ctx.accounts.strategy.to_account_info(),
+            ctx.accounts.vault.to_account_info(),
+            ctx.accounts.strategy_token_account.to_account_info(),
+            ctx.accounts.vault_token_account.to_account_info(),
+            ctx.accounts.token_program.to_account_info(),
+            ctx.accounts.strategy_program.to_account_info(),
+            assets_to_deposit,
+            vault_seeds
+        )?;
 
-    Ok(())
+        new_debt = current_debt + assets_to_deposit;
+
+        return Ok((
+            vault.total_idle - assets_to_deposit, 
+            vault.total_debt + assets_to_deposit, 
+            new_debt
+        ));
+    }
+
+
+}
+
+fn get_assets_to_withdraw(
+    vault: &Ref<Vault>,
+    strategy_acc: AccountInfo,
+    current_debt: u64,
+    new_debt: u64,
+) -> Result<u64> {
+    let mut assets_to_withdraw = current_debt - new_debt;
+    let vault_idle = vault.total_idle;
+
+    if vault_idle + assets_to_withdraw < vault.minimum_total_idle {
+        assets_to_withdraw = vault.minimum_total_idle - vault_idle;
+        if assets_to_withdraw > current_debt {
+            assets_to_withdraw = current_debt;
+        }
+    }
+
+    let withdrawable = strategy::get_max_withdraw(&strategy_acc)?;
+    if withdrawable == 0 {
+        return Err(ErrorCode::CannotWithdraw.into());
+    }
+
+    if assets_to_withdraw > withdrawable {
+        assets_to_withdraw = withdrawable;
+    }
+
+    if current_debt > strategy::get_total_assets(&strategy_acc)? {
+        return Err(ErrorCode::UnrealisedLosses.into());
+    }
+
+    Ok(assets_to_withdraw)
+}
+
+fn get_assets_deposit<'info>(
+    vault: &Ref<Vault>,
+    strategy_acc: AccountInfo,
+    current_debt: u64,
+    new_debt: u64,
+) -> Result<u64> { 
+    if new_debt > vault.get_strategy_data(strategy_acc.key())?.max_debt {
+        return Err(ErrorCode::DebtHigherThanMaxDebt.into());
+    }
+
+    let max_deposit = strategy::get_max_deposit(&strategy_acc)?;
+    if max_deposit == 0 {
+        return Err(ErrorCode::CannotDeposit.into());
+    }
+
+    let mut assets_to_deposit = new_debt - current_debt;
+    if assets_to_deposit > max_deposit {
+        assets_to_deposit = max_deposit;
+    }
+
+    if vault.total_idle <= vault.minimum_total_idle {
+        return Err(ErrorCode::InsufficientFunds.into());
+    }
+
+    let available_idle = vault.total_idle - vault.minimum_total_idle;
+    if assets_to_deposit > available_idle {
+        assets_to_deposit = available_idle;
+    }
+
+    Ok(assets_to_deposit)
 }

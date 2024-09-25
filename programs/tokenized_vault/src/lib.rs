@@ -51,7 +51,10 @@ pub mod tokenized_vault {
         handle_remove_strategy(ctx, strategy, force)
     }
 
-    pub fn update_debt(ctx: Context<UpdateStrategyDebt>, amount: u64) -> Result<()> {
+    pub fn update_debt<'a, 'b, 'c, 'info>(
+        ctx: Context<'a, 'b, 'c, 'info, UpdateStrategyDebt<'info>>, 
+        amount: u64
+    ) -> Result<()> {
         handle_update_debt(ctx, amount)
     }
 

@@ -10,8 +10,6 @@ use crate::events::StrategyInitEvent;
 use crate::events::StrategyWithdrawEvent;
 use crate::utils::token;
 
-use super::fee_data;
-
 #[account()]
 #[derive(Default, Debug)]
 pub struct SimpleStrategy {

@@ -1,6 +1,3 @@
-use anchor_lang::prelude::*;
-
-#[constant]
 pub const STRATEGY_SEED: &str = "strategy";
 pub const SIMPLE_STRATEGY_SEED: &str = "simple";
 pub const TRADE_FINTECH_STRATEGY_SEED: &str = "trade_fintech";

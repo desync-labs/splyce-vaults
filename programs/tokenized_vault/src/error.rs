@@ -14,6 +14,9 @@ pub enum ErrorCode {
     #[msg("Invalid strategy data")]
     InvalidStrategyData,
 
+    #[msg("Invalid strategy")]
+    InvalidStrategy,
+
     #[msg("Invalid account type")]
     InvalidAccountType,
 

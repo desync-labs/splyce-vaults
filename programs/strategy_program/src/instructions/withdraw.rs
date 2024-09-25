@@ -12,7 +12,7 @@ pub struct Withdraw<'info> {
     pub strategy: UncheckedAccount<'info>,
     #[account(mut)]
     pub token_account: Account<'info, TokenAccount>,
-    #[account(mut)]
+    #[account()]
     pub signer: Signer<'info>,
     #[account(mut)]
     pub vault_token_account: Account<'info, TokenAccount>,

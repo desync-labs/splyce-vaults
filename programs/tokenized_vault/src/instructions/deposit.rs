@@ -8,7 +8,7 @@ use crate::utils::token::*;
 #[derive(Accounts)]
 pub struct Deposit<'info> {
     #[account(mut)]
-    pub vault: Account<'info, Vault>,
+    pub vault: AccountLoader<'info, Vault>,
     #[account(mut)]
     pub user: Signer<'info>,
     #[account(mut)]
@@ -23,7 +23,37 @@ pub struct Deposit<'info> {
 }
 
 pub fn handle_deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
-    let vault = &mut ctx.accounts.vault;
+   let shares = handle_deposit_internal(&ctx.accounts.vault, amount)?;
+
+    transfer_token_to(
+        ctx.accounts.token_program.to_account_info(), 
+        ctx.accounts.user_token_account.to_account_info(), 
+        ctx.accounts.vault_token_account.to_account_info(), 
+        ctx.accounts.user.to_account_info(), 
+        amount
+    )?;
+
+    token::mint_to(
+        CpiContext::new_with_signer(
+            ctx.accounts.token_program.to_account_info(), 
+            MintTo {
+                mint: ctx.accounts.shares_mint.to_account_info(),
+                to: ctx.accounts.user_shares_account.to_account_info(),
+                authority: ctx.accounts.vault.to_account_info(),
+            }, 
+            &[&ctx.accounts.vault.load()?.seeds()]
+        ), 
+        shares
+    )?;
+
+    // Update balances
+
+    Ok(())
+}
+
+/// returns shares to mint
+fn handle_deposit_internal<'info>(vault_loader: &AccountLoader<'info, Vault>, amount: u64) -> Result<u64> {
+    let mut vault = vault_loader.load_mut()?;
     // todo: track min user deposit properly
 
     if vault.is_shutdown == true {
@@ -43,32 +73,10 @@ pub fn handle_deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
         return Err(ErrorCode::ExceedDepositLimit.into());
     }
 
-    transfer_token_to(
-        ctx.accounts.token_program.to_account_info(), 
-        ctx.accounts.user_token_account.to_account_info(), 
-        ctx.accounts.vault_token_account.to_account_info(), 
-        ctx.accounts.user.to_account_info(), 
-        amount
-    )?;
-
     // Calculate shares to mint
     let shares = vault.convert_to_shares(amount);
 
-    token::mint_to(
-        CpiContext::new_with_signer(
-            ctx.accounts.token_program.to_account_info(), 
-            MintTo {
-                mint: ctx.accounts.shares_mint.to_account_info(),
-                to: ctx.accounts.user_shares_account.to_account_info(),
-                authority: vault.to_account_info(),
-            }, 
-            &[&vault.seeds()]
-        ), 
-        shares
-    )?;
-
-    // Update balances
     vault.handle_deposit(amount, shares);
 
-    Ok(())
+    Ok(shares)
 }

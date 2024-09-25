@@ -1,7 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{Token, TokenAccount};
 
-use crate::fee_data;
 use crate::utils::strategy;
 use crate::error::ErrorCode;
 use crate::constants::FEE_BPS;
