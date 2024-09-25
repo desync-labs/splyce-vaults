@@ -5,6 +5,7 @@ use anchor_spl::token::{Token, TokenAccount};
 
 use strategy_program::program::StrategyProgram;
 
+use crate::events::UpdatedCurrentDebtForStrategyEvent;
 use crate::state::*;
 use crate::error::ErrorCode;
 use crate::utils::strategy;
@@ -46,9 +47,16 @@ pub fn handle_update_debt<'a, 'b, 'c, 'info>(
     let strategy_data_mut = vaut_mut.get_strategy_data_mut(ctx.accounts.strategy.key())?;
     strategy_data_mut.current_debt = new_debt;
 
+    emit!(UpdatedCurrentDebtForStrategyEvent {
+        vault_index: vaut_mut.index_buffer,
+        strategy_key: ctx.accounts.strategy.key(),
+        total_idle: total_idle,
+        total_debt: total_debt,
+        new_debt,
+    });
+
     Ok(())
 }
-
 
 fn handle_internal<'a, 'b, 'c, 'info>(
     ctx: &mut Context<'a, 'b, 'c, 'info, UpdateStrategyDebt<'info>>,

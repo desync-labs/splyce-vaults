@@ -3,6 +3,7 @@ use anchor_spl::token::{self, Burn, Mint, Token, TokenAccount, Transfer};
 use strategy_program::program::StrategyProgram;
 use strategy_program::cpi::accounts::Withdraw as WithdrawAccounts;
 
+use crate::events::VaultWithdrawlEvent;
 use crate::{state::*, utils::strategy};
 use crate::error::ErrorCode;
 use crate::constants;
@@ -133,6 +134,17 @@ fn handle_internal<'info>(
 
     let mut vault = ctx.accounts.vault.load_mut()?;
     vault.handle_withdraw(assets_to_transfer, shares_to_burn);
+
+    emit!(VaultWithdrawlEvent {
+        vault_index: vault.index_buffer,
+        total_idle: vault.total_idle,
+        total_share: vault.total_shares,
+        assets_to_transfer,
+        shares_to_burn,
+        token_account: ctx.accounts.user_token_account.to_account_info().key(),
+        share_account: ctx.accounts.user_shares_account.to_account_info().key(),
+        authority: ctx.accounts.user.to_account_info().key(),
+    });
 
     Ok(())
 }

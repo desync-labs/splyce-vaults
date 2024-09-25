@@ -1,5 +1,6 @@
 use anchor_lang::prelude::*;
 
+use crate::events::StrategyReportedEvent;
 use crate::state::*;
 use crate::constants::ROLES_SEED;
 use crate::error::ErrorCode;
@@ -18,15 +19,27 @@ pub fn handle_remove_strategy(ctx: Context<RemoveStrategy>, strategy: Pubkey, fo
     let vault = &mut ctx.accounts.vault.load_mut()?;
     let strategy_data = vault.get_strategy_data(strategy)?;
 
+    let mut loss: u64 = 0;
+
     if strategy_data.current_debt > 0 {
         if !force {
             return Err(ErrorCode::StrategyHasDebt.into());
         }
-        let loss = strategy_data.current_debt;
+        loss = strategy_data.current_debt;
         vault.total_debt -= loss;
     }
 
     vault.remove_strategy(strategy)?;
+
+    emit!(StrategyReportedEvent {
+        strategy_key: strategy,
+        gain: 0,
+        loss,
+        current_debt: 0,
+        protocol_fees: 0,
+        total_fees: 0,
+        timestamp: Clock::get()?.unix_timestamp,
+    });
 
     Ok(())
 }
