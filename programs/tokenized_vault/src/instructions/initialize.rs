@@ -1,9 +1,6 @@
 use anchor_lang::prelude::*;
 
-use anchor_spl::{
-    // token::{ Token},
-    token_interface::{Mint, TokenAccount, TokenInterface}
-};
+use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 use crate::constants::*;
 use crate::state::*;
 
@@ -31,7 +28,7 @@ pub struct Initialize<'info> {
         mint::decimals = 18, 
         mint::authority = vault,
     )]
-    pub vault_mint: Box<InterfaceAccount<'info, Mint>>,
+    pub shares_mint: Box<InterfaceAccount<'info, Mint>>,
     
     #[account(
         init, 
@@ -48,7 +45,7 @@ pub struct Initialize<'info> {
         seeds = [SHARES_ACCOUNT_SEED.as_bytes(), vault.key().as_ref()], 
         bump, 
         payer = admin, 
-        token::mint = vault_mint,
+        token::mint = shares_mint,
         token::authority = vault,
     )]
     pub shares_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
