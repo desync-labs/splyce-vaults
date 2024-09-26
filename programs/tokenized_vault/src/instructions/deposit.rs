@@ -1,6 +1,8 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Mint, MintTo, Token, TokenAccount};
 
+use crate::constants::WHITELIST_SEED;
+
 use crate::events::VaultDepositEvent;
 use crate::state::*;
 use crate::error::ErrorCode;
@@ -10,7 +12,19 @@ use crate::utils::token::*;
 pub struct Deposit<'info> {
     #[account(mut)]
     pub vault: AccountLoader<'info, Vault>,
-    #[account(mut)]
+    #[account(
+        mut,
+        seeds = [
+            WHITELIST_SEED.as_bytes(),
+            user.key().as_ref()
+        ],
+        bump,
+    )]
+    pub whitelist: Account<'info, Whitelist>,
+    #[account(
+        mut,
+        address = whitelist.whitelisted_account
+    )]
     pub user: Signer<'info>,
     #[account(mut)]
     pub user_token_account: Account<'info, TokenAccount>,

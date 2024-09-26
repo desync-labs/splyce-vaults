@@ -239,6 +239,106 @@ describe("tokenized_vault", () => {
     assert.ok(vaultAccount.strategies[0].key.equals(strategy));
   });
 
+  it("Whitelist user", async () => {
+    await vaultProgram.methods.whitelist(user.publicKey)
+      .accounts({
+        roles: rolesData,
+        signer: admin.publicKey,
+      })
+      .signers([admin])
+      .rpc();
+  });
+
+  it("Whitelist user - unauthorized", async () => {
+    const provider = anchor.AnchorProvider.env();
+
+    const newUser = anchor.web3.Keypair.generate();
+    const airdropSignature = await provider.connection.requestAirdrop(newUser.publicKey, 10e9);
+    await provider.connection.confirmTransaction(airdropSignature);
+
+    try {
+      await vaultProgram.methods.whitelist(newUser.publicKey)
+        .accounts({
+          roles: rolesData,
+          signer: newUser.publicKey,
+        })
+        .signers([newUser])
+        .rpc();
+      assert.fail("Expected error was not thrown");
+    } catch (err) {
+      expect(err.message).to.contain("AnchorError caused by account: signer. Error Code: ConstraintAddress. Error Number: 2012. Error Message: An address constraint was violated.");
+    }
+  });
+
+  it("Whitelist user - already whitelisted", async () => {
+    try {
+      await vaultProgram.methods.whitelist(user.publicKey)
+        .accounts({
+          roles: rolesData,
+          signer: admin.publicKey,
+        })
+        .signers([admin])
+        .rpc();
+      assert.fail("Expected error was not thrown");
+    } catch (err) {
+      expect(err.message).to.contain("already in use");
+    }
+  });
+
+  it("Remove user from whitelist", async () => {
+    const provider = anchor.AnchorProvider.env();
+
+    const newUser = anchor.web3.Keypair.generate();
+    const airdropSignature = await provider.connection.requestAirdrop(newUser.publicKey, 10e9);
+    await provider.connection.confirmTransaction(airdropSignature);
+
+    await vaultProgram.methods.whitelist(newUser.publicKey)
+      .accounts({
+        roles: rolesData,
+        signer: admin.publicKey,
+      })
+      .signers([admin])
+      .rpc();
+
+    await vaultProgram.methods.removeFromWhitelist(newUser.publicKey)
+      .accounts({
+        roles: rolesData,
+        signer: admin.publicKey,
+      })
+      .signers([admin])
+      .rpc();
+  });
+
+  it("Deposit as non-whitelisted user", async () => {
+    const provider = anchor.AnchorProvider.env();
+
+    const newUser = anchor.web3.Keypair.generate();
+    const airdropSignature = await provider.connection.requestAirdrop(newUser.publicKey, 10e9);
+    await provider.connection.confirmTransaction(airdropSignature);
+
+    const newUserTokenAccount = await token.createAccount(provider.connection, newUser, underlyingMint, newUser.publicKey);
+    const newUserSharesAccount = await token.createAccount(provider.connection, newUser, sharesMint, newUser.publicKey);
+
+    await token.mintTo(provider.connection, admin, underlyingMint, newUserTokenAccount, admin.publicKey, 1000);
+
+    try {
+      await vaultProgram.methods.deposit(new BN(100))
+        .accounts({
+          vault,
+          user: newUser.publicKey,
+          userTokenAccount: newUserTokenAccount,
+          vaultTokenAccount,
+          sharesMint,
+          userSharesAccount: newUserSharesAccount,
+          tokenProgram: token.TOKEN_PROGRAM_ID
+        })
+        .signers([newUser])
+        .rpc();
+      assert.fail("Expected error was not thrown");
+    } catch (err) {
+      expect(err.message).to.contain("AnchorError caused by account: whitelist. Error Code: AccountNotInitialized.");
+    }
+  });
 
   it("Deposits tokens into the vault", async () => {
     const provider = anchor.AnchorProvider.env();

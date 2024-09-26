@@ -1,5 +1,4 @@
 use anchor_lang::prelude::*;
-use anchor_lang::{AnchorDeserialize, AnchorSerialize};
 use anchor_spl::token_interface::Mint;
 
 use crate::constants::{VAULT_SEED, MAX_BPS};
@@ -36,7 +35,6 @@ pub struct Vault {
     pub profit_unlocking_rate: u64,
     pub last_profit_update: i64,
 
-    // pub strategies: [Pubkey; 10],
     pub strategies: [StrategyData; 10],
 }
 

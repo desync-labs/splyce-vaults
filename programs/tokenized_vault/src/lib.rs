@@ -69,5 +69,13 @@ pub mod tokenized_vault {
     pub fn shutdown_vault(ctx: Context<ShutdownVault>) -> Result<()> {
         handle_shutdown_vault(ctx)
     }
+
+    pub fn whitelist(ctx: Context<WhitelistAccount>, account_to_add: Pubkey) -> Result<()> {
+        handle_whitelist(ctx, account_to_add)
+    }
+
+    pub fn remove_from_whitelist(ctx: Context<RemoveFromWhitelist>, account_to_remove: Pubkey) -> Result<()> {
+        handle_remove_from_whitelist(ctx, account_to_remove)
+    }
 }
 

@@ -1,7 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Burn, Mint, Token, TokenAccount, Transfer};
 use strategy_program::program::StrategyProgram;
-use strategy_program::cpi::accounts::Withdraw as WithdrawAccounts;
 
 use crate::events::VaultWithdrawlEvent;
 use crate::{state::*, utils::strategy};
