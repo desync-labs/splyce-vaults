@@ -8,10 +8,10 @@ use crate::error::ErrorCode;
 pub struct SetDepositLimit<'info> {
     #[account(mut)]
     pub vault: AccountLoader<'info, Vault>,
-    #[account(seeds = [ROLES_SEED.as_bytes()], bump)]
-    pub roles: Account<'info, Roles>,
-    #[account(mut, address = roles.vaults_admin)]
-    pub admin: Signer<'info>,
+    #[account(seeds = [ROLES_SEED.as_bytes(), signer.key().as_ref()], bump)]
+    pub roles: Account<'info, AccountRoles>,
+    #[account(mut, constraint = roles.is_vaults_admin)]
+    pub signer: Signer<'info>,
 }
 
 pub fn handle_set_deposit_limit(ctx: Context<SetDepositLimit>, amount: u64) -> Result<()> {

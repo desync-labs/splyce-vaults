@@ -20,7 +20,7 @@ pub struct Initialize<'info> {
             vault.key().as_ref()
         ], 
         bump,  
-        payer = admin, 
+        payer = signer, 
         space = strategy_type.space(),
     )]
     pub strategy: UncheckedAccount<'info>,
@@ -31,7 +31,7 @@ pub struct Initialize<'info> {
             UNDERLYING_SEED.as_bytes()
             ], 
         bump, 
-        payer = admin, 
+        payer = signer, 
         token::mint = underlying_mint, 
         token::authority = strategy,
     )]
@@ -42,7 +42,7 @@ pub struct Initialize<'info> {
     #[account(mut)]
     pub underlying_mint: Box<InterfaceAccount<'info, InterfaceMint>>,
     #[account(mut)]
-    pub admin: Signer<'info>,
+    pub signer: Signer<'info>,
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
     pub rent: Sysvar<'info, Rent>,
@@ -81,7 +81,7 @@ where
         ctx.accounts.token_account.key(),
         config,
     )?;
-    strategy.set_manager(ctx.accounts.admin.key())?;
+    strategy.set_manager(ctx.accounts.signer.key())?;
 
     // Serialize the strategy data into the account
     strategy.save_changes(&mut &mut data[8..])?;

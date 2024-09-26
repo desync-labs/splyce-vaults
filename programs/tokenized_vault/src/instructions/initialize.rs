@@ -15,7 +15,7 @@ pub struct Initialize<'info> {
             index.to_le_bytes().as_ref()
         ], 
         bump,  
-        payer = admin, 
+        payer = signer, 
         space = Vault::LEN,
     )]
     pub vault: AccountLoader<'info, Vault>,
@@ -24,7 +24,7 @@ pub struct Initialize<'info> {
         init, 
         seeds = [SHARES_SEED.as_bytes(), vault.key().as_ref()], 
         bump, 
-        payer = admin, 
+        payer = signer, 
         mint::decimals = 18, 
         mint::authority = vault,
     )]
@@ -34,7 +34,7 @@ pub struct Initialize<'info> {
         init, 
         seeds = [UNDERLYING_SEED.as_bytes(), vault.key().as_ref()], 
         bump, 
-        payer = admin, 
+        payer = signer, 
         token::mint = underlying_mint,
         token::authority = vault,
     )]
@@ -44,7 +44,7 @@ pub struct Initialize<'info> {
         init, 
         seeds = [SHARES_ACCOUNT_SEED.as_bytes(), vault.key().as_ref()], 
         bump, 
-        payer = admin, 
+        payer = signer, 
         token::mint = shares_mint,
         token::authority = vault,
     )]
@@ -53,11 +53,11 @@ pub struct Initialize<'info> {
     #[account(mut)]
     pub underlying_mint: Box<InterfaceAccount<'info, Mint>>,
     
-    #[account(seeds = [ROLES_SEED.as_bytes()], bump)]
-    pub roles: Account<'info, Roles>,
+    #[account(seeds = [ROLES_SEED.as_bytes(), signer.key().as_ref()], bump)]
+    pub roles: Account<'info, AccountRoles>,
     
-    #[account(mut, address = roles.protocol_admin)]
-    pub admin: Signer<'info>,
+    #[account(mut, constraint = roles.is_vaults_admin)]
+    pub signer: Signer<'info>,
     
     pub token_program: Interface<'info, TokenInterface>,
     pub system_program: Program<'info, System>,

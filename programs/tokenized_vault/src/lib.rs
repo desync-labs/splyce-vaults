@@ -22,12 +22,16 @@ pub mod tokenized_vault {
         handle_initialize(ctx, index)
     }
 
-    pub fn init_roles(ctx: Context<InitializeRoles>) -> Result<()> {
-        handle_init_roles(ctx)
+    pub fn init_role_admin(ctx: Context<InitializeRoleAdmin>) -> Result<()> {
+        handle_init_role_admin(ctx)
     }
 
-    pub fn set_role(ctx: Context<SetRole>, role: Role, key: Pubkey) -> Result<()> {
-        handle_set_role(ctx, role, key)
+    pub fn set_role(ctx: Context<SetRole>, role: Role) -> Result<()> {
+        handle_set_role(ctx, role)
+    }
+
+    pub fn drop_role(ctx: Context<DropRole>, role: Role) -> Result<()> {
+        handle_drop_role(ctx, role)
     }
 
     pub fn deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
@@ -69,13 +73,4 @@ pub mod tokenized_vault {
     pub fn shutdown_vault(ctx: Context<ShutdownVault>) -> Result<()> {
         handle_shutdown_vault(ctx)
     }
-
-    pub fn whitelist(ctx: Context<WhitelistAccount>, account_to_add: Pubkey) -> Result<()> {
-        handle_whitelist(ctx, account_to_add)
-    }
-
-    pub fn remove_from_whitelist(ctx: Context<RemoveFromWhitelist>, account_to_remove: Pubkey) -> Result<()> {
-        handle_remove_from_whitelist(ctx, account_to_remove)
-    }
 }
-

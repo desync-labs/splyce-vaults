@@ -71,16 +71,10 @@ describe("tokenized_vault", () => {
       vaultProgram.programId,
     )[0];
     console.log("Vault token account:", vaultTokenAccount.toBase58());
-
-    rolesData = anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("roles")],
-      vaultProgram.programId,
-    )[0];
-    console.log("Roles data:", rolesData.toBase58());
   });
 
-  it("init roles account", async () => {
-    await vaultProgram.methods.initRoles()
+  it("init role admin", async () => {
+    await vaultProgram.methods.initRoleAdmin()
       .accounts({
         admin: admin.publicKey,
         systemProgram: anchor.web3.SystemProgram.programId,
@@ -88,17 +82,52 @@ describe("tokenized_vault", () => {
       .signers([admin])
       .rpc();
 
+
     // check protocol admin
-    const rolesAccount = await vaultProgram.account.roles.fetch(rolesData);
-    assert.strictEqual(rolesAccount.protocolAdmin.toString(), admin.publicKey.toString());
-    console.log("Protocol admin:", rolesAccount.protocolAdmin.toString());
+    const rolesAdmin = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("protocol_admin_role")],
+      vaultProgram.programId,
+    )[0];
+    const rolesAccount = await vaultProgram.account.rolesAdmin.fetch(rolesAdmin);
+    assert.strictEqual(rolesAccount.account.toString(), admin.publicKey.toString());
+    console.log("Protocol admin:", rolesAccount.account.toString());
+  });
+
+
+  it("set vault admin and reporting admin", async () => {
+    let vaultsAdmin = { vaultsAdmin: {} };
+    await vaultProgram.methods.setRole(vaultsAdmin)
+      .accounts({
+        user: admin.publicKey,
+        signer: admin.publicKey,
+      })
+      .signers([admin])
+      .rpc();
+
+    let reportingManager = { reportingManager: {} };
+    await vaultProgram.methods.setRole(reportingManager)
+      .accounts({
+        user: admin.publicKey,
+        signer: admin.publicKey,
+      })
+      .signers([admin])
+      .rpc();
+
+    const accountRoles = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("roles"), admin.publicKey.toBuffer()],
+      vaultProgram.programId,
+    )[0];
+    const rolesAccount = await vaultProgram.account.accountRoles.fetch(accountRoles);
+
+    assert.isTrue(rolesAccount.isVaultsAdmin);
+    assert.isTrue(rolesAccount.isReportingManager);
   });
 
   it("Initializes the vault", async () => {
     await vaultProgram.methods.initialize(new BN(1))
       .accounts({
         underlyingMint,
-        admin: admin.publicKey,
+        signer: admin.publicKey,
         systemProgram: anchor.web3.SystemProgram.programId,
         tokenProgram: token.TOKEN_PROGRAM_ID,
       })
@@ -134,7 +163,7 @@ describe("tokenized_vault", () => {
         strategy,
         underlyingMint,
         vault,
-        admin: admin.publicKey,
+        signer: admin.publicKey,
         tokenProgram: token.TOKEN_PROGRAM_ID,
         systemProgram: anchor.web3.SystemProgram.programId,
       })
@@ -199,37 +228,12 @@ describe("tokenized_vault", () => {
     assert.strictEqual(strategyAccount.feeData.feeManager.toString(), feeRecipient.publicKey.toString());
   });
 
-  it("set vault admin and reporting admin", async () => {
-    const key = admin.publicKey;
-
-    let vaultsAdmin = { vaultsAdmin: {} };
-    await vaultProgram.methods.setRole(vaultsAdmin, key)
-      .accounts({
-        admin: admin.publicKey,
-      })
-      .signers([admin])
-      .rpc();
-
-    let reportingManager = { reportingManager: {} };
-    await vaultProgram.methods.setRole(reportingManager, key)
-      .accounts({
-        admin: admin.publicKey,
-      })
-      .signers([admin])
-      .rpc();
-
-    // check protocol admin and reporting manager
-    const rolesAccount = await vaultProgram.account.roles.fetch(rolesData);
-    assert.strictEqual(rolesAccount.vaultsAdmin.toString(), admin.publicKey.toString());
-    assert.strictEqual(rolesAccount.reportingManager.toString(), admin.publicKey.toString());
-  });
-
   it("Adds a strategy to the vault", async () => {
     await vaultProgram.methods.addStrategy(new BN(1000000000))
       .accounts({
         vault,
         strategy,
-        admin: admin.publicKey,
+        signer: admin.publicKey,
       })
       .signers([admin])
       .rpc();
@@ -240,9 +244,10 @@ describe("tokenized_vault", () => {
   });
 
   it("Whitelist user", async () => {
-    await vaultProgram.methods.whitelist(user.publicKey)
+    let role = { whitelisted: {} };
+    await vaultProgram.methods.setRole(role)
       .accounts({
-        roles: rolesData,
+        user: user.publicKey,
         signer: admin.publicKey,
       })
       .signers([admin])
@@ -257,9 +262,10 @@ describe("tokenized_vault", () => {
     await provider.connection.confirmTransaction(airdropSignature);
 
     try {
-      await vaultProgram.methods.whitelist(newUser.publicKey)
+      let role = { whitelisted: {} };
+      await vaultProgram.methods.setRole(role)
         .accounts({
-          roles: rolesData,
+          user: newUser.publicKey,
           signer: newUser.publicKey,
         })
         .signers([newUser])
@@ -270,21 +276,6 @@ describe("tokenized_vault", () => {
     }
   });
 
-  it("Whitelist user - already whitelisted", async () => {
-    try {
-      await vaultProgram.methods.whitelist(user.publicKey)
-        .accounts({
-          roles: rolesData,
-          signer: admin.publicKey,
-        })
-        .signers([admin])
-        .rpc();
-      assert.fail("Expected error was not thrown");
-    } catch (err) {
-      expect(err.message).to.contain("already in use");
-    }
-  });
-
   it("Remove user from whitelist", async () => {
     const provider = anchor.AnchorProvider.env();
 
@@ -292,21 +283,33 @@ describe("tokenized_vault", () => {
     const airdropSignature = await provider.connection.requestAirdrop(newUser.publicKey, 10e9);
     await provider.connection.confirmTransaction(airdropSignature);
 
-    await vaultProgram.methods.whitelist(newUser.publicKey)
+    const accountRoles = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("roles"), newUser.publicKey.toBuffer()],
+      vaultProgram.programId,
+    )[0];
+
+    let role = { whitelisted: {} };
+    await vaultProgram.methods.setRole(role)
       .accounts({
-        roles: rolesData,
+        user: newUser.publicKey,
         signer: admin.publicKey,
       })
       .signers([admin])
       .rpc();
 
-    await vaultProgram.methods.removeFromWhitelist(newUser.publicKey)
+    let rolesAccount = await vaultProgram.account.accountRoles.fetch(accountRoles);
+    assert.isTrue(rolesAccount.isWhitelisted);
+
+    await vaultProgram.methods.dropRole(role)
       .accounts({
-        roles: rolesData,
+        user: newUser.publicKey,
         signer: admin.publicKey,
       })
       .signers([admin])
       .rpc();
+
+      rolesAccount = await vaultProgram.account.accountRoles.fetch(accountRoles);
+      assert.isFalse(rolesAccount.isWhitelisted);
   });
 
   it("Deposit as non-whitelisted user", async () => {
@@ -336,9 +339,58 @@ describe("tokenized_vault", () => {
         .rpc();
       assert.fail("Expected error was not thrown");
     } catch (err) {
-      expect(err.message).to.contain("AnchorError caused by account: whitelist. Error Code: AccountNotInitialized.");
+      expect(err.message).to.contain("AnchorError caused by account: roles. Error Code: AccountNotInitialized.");
     }
   });
+
+  it("Deposit as recall-whitelisted user", async () => {
+    const provider = anchor.AnchorProvider.env();
+
+    const newUser = anchor.web3.Keypair.generate();
+    const airdropSignature = await provider.connection.requestAirdrop(newUser.publicKey, 10e9);
+    await provider.connection.confirmTransaction(airdropSignature);
+
+    const newUserTokenAccount = await token.createAccount(provider.connection, newUser, underlyingMint, newUser.publicKey);
+    const newUserSharesAccount = await token.createAccount(provider.connection, newUser, sharesMint, newUser.publicKey);
+
+    await token.mintTo(provider.connection, admin, underlyingMint, newUserTokenAccount, admin.publicKey, 1000);
+
+    let role = { whitelisted: {} };
+    await vaultProgram.methods.setRole(role)
+    .accounts({
+      user: newUser.publicKey,
+      signer: admin.publicKey,
+    })
+    .signers([admin])
+    .rpc();
+
+  await vaultProgram.methods.dropRole(role)
+    .accounts({
+      user: newUser.publicKey,
+      signer: admin.publicKey,
+    })
+    .signers([admin])
+    .rpc();
+
+    try {
+      await vaultProgram.methods.deposit(new BN(100))
+        .accounts({
+          vault,
+          user: newUser.publicKey,
+          userTokenAccount: newUserTokenAccount,
+          vaultTokenAccount,
+          sharesMint,
+          userSharesAccount: newUserSharesAccount,
+          tokenProgram: token.TOKEN_PROGRAM_ID
+        })
+        .signers([newUser])
+        .rpc();
+      assert.fail("Expected error was not thrown");
+    } catch (err) {
+      expect(err.message).to.contain("AnchorError caused by account: user. Error Code: ConstraintRaw. Error Number: 2003. Error Message: A raw constraint was violated.");
+    }
+  });
+
 
   it("Deposits tokens into the vault", async () => {
     const provider = anchor.AnchorProvider.env();
@@ -390,7 +442,7 @@ describe("tokenized_vault", () => {
         vaultTokenAccount,
         strategy,
         strategyTokenAccount,
-        admin: admin.publicKey,
+        signer: admin.publicKey,
         tokenProgram: token.TOKEN_PROGRAM_ID,
         strategyProgram: strategyProgram.programId,
       })
@@ -426,7 +478,7 @@ describe("tokenized_vault", () => {
         vaultTokenAccount,
         strategy,
         strategyTokenAccount,
-        admin: admin.publicKey,
+        signer: admin.publicKey,
         tokenProgram: token.TOKEN_PROGRAM_ID,
         strategyProgram: strategyProgram.programId,
       })
@@ -624,7 +676,7 @@ describe("tokenized_vault", () => {
       .accounts({
         vault,
         strategy,
-        admin: admin.publicKey,
+        signer: admin.publicKey,
         feeSharesRecipient: feeRecipientSharesAccount,
         sharesMint,
         tokenProgram: token.TOKEN_PROGRAM_ID,
@@ -745,7 +797,7 @@ describe("tokenized_vault", () => {
     await vaultProgram.methods.setDepositLimit(newDepositLimit)
       .accounts({
         vault,
-        admin: admin.publicKey,
+        signer: admin.publicKey,
       })
       .signers([admin])
       .rpc();
@@ -765,13 +817,13 @@ describe("tokenized_vault", () => {
       await vaultProgram.methods.setDepositLimit(new BN(1))
         .accounts({
           vault,
-          admin: newUser.publicKey,
+          signer: newUser.publicKey,
         })
         .signers([newUser])
         .rpc();
       assert.fail("Expected error was not thrown");
     } catch (err) {
-      expect(err.message).to.contain("AnchorError caused by account: admin. Error Code: ConstraintAddress. Error Number: 2012. Error Message: An address constraint was violated.");
+      expect(err.message).to.contain("AnchorError caused by account: roles. Error Code: AccountNotInitialized");
     }
   });
 
@@ -781,7 +833,7 @@ describe("tokenized_vault", () => {
       await vaultProgram.methods.removeStrategy(strategy, false)
         .accounts({
           vault,
-          admin: admin.publicKey,
+          signer: admin.publicKey,
         })
         .signers([admin])
         .rpc();
@@ -795,7 +847,7 @@ describe("tokenized_vault", () => {
     await vaultProgram.methods.removeStrategy(strategy, true)
       .accounts({
         vault,
-        admin: admin.publicKey,
+        signer: admin.publicKey,
       })
       .signers([admin])
       .rpc();
@@ -810,7 +862,7 @@ describe("tokenized_vault", () => {
     .accounts({
       vault,
       strategy,
-      admin: admin.publicKey,
+      signer: admin.publicKey,
     })
     .signers([admin])
     .rpc();
@@ -822,7 +874,7 @@ describe("tokenized_vault", () => {
     await vaultProgram.methods.removeStrategy(strategy, false)
     .accounts({
       vault,
-      admin: admin.publicKey,
+      signer: admin.publicKey,
     })
     .signers([admin])
     .rpc();
