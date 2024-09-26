@@ -10,10 +10,10 @@ pub struct AddStrategy<'info> {
     /// CHECK: is this a right way to do it?
     #[account()]
     pub strategy: AccountInfo<'info>,
-    #[account(seeds = [ROLES_SEED.as_bytes()], bump)]
-    pub roles: Account<'info, Roles>,
-    #[account(mut, address = roles.vaults_admin)]
-    pub admin: Signer<'info>,
+    #[account(seeds = [ROLES_SEED.as_bytes(), signer.key().as_ref()], bump)]
+    pub roles: Account<'info, AccountRoles>,
+    #[account(mut, constraint = roles.is_vaults_admin)]
+    pub signer: Signer<'info>,
 }
 
 pub fn handle_add_strategy(ctx: Context<AddStrategy>, max_debt: u64) -> Result<()> {

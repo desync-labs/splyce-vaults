@@ -1,7 +1,8 @@
 pub mod add_strategy;
 pub mod deposit;
+pub mod drop_role;
 pub mod initialize;
-pub mod initialize_roles;
+pub mod init_role_admin;
 pub mod process_report;
 pub mod remove_strategy;
 pub mod setters;
@@ -12,8 +13,9 @@ pub mod withdraw;
 
 pub use add_strategy::*;
 pub use deposit::*;
+pub use drop_role::*;
 pub use initialize::*;
-pub use initialize_roles::*;
+pub use init_role_admin::*;
 pub use process_report::*;
 pub use remove_strategy::*;
 pub use setters::*;

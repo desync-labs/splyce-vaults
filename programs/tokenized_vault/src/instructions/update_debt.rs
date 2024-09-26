@@ -19,17 +19,23 @@ pub struct UpdateStrategyDebt<'info> {
         constraint = !vault.load()?.is_shutdown || new_debt == 0,
     )]
     pub vault: AccountLoader<'info, Vault>,
+
     #[account(mut)]
     pub vault_token_account: Account<'info, TokenAccount>,
+
     /// CHECK: Should this be mut?
     #[account(mut, constraint = vault.load()?.is_vault_strategy(strategy.key()))]
     pub strategy: AccountInfo<'info>,
+
     #[account(mut)]
     pub strategy_token_account: Account<'info, TokenAccount>,
-    #[account(seeds = [ROLES_SEED.as_bytes()], bump)]
-    pub roles: Account<'info, Roles>,
-    #[account(mut, address = roles.vaults_admin)]
-    pub admin: Signer<'info>,
+
+    #[account(seeds = [ROLES_SEED.as_bytes(), signer.key().as_ref()], bump)]
+    pub roles: Account<'info, AccountRoles>,
+
+    #[account(mut, constraint = roles.is_vaults_admin)]
+    pub signer: Signer<'info>,
+    
     pub token_program: Program<'info, Token>,
     pub strategy_program: Program<'info, StrategyProgram>
 }

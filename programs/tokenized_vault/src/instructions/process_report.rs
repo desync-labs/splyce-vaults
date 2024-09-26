@@ -13,10 +13,10 @@ pub struct ProcessReport<'info> {
     /// CHECK: is this a right way to do it?
     #[account()]
     pub strategy: AccountInfo<'info>,
-    #[account(seeds = [ROLES_SEED.as_bytes()], bump)]
-    pub roles: Account<'info, Roles>,
-    #[account(mut, address = roles.reporting_manager)]
-    pub admin: Signer<'info>,
+    #[account(seeds = [ROLES_SEED.as_bytes(), signer.key().as_ref()], bump)]
+    pub roles: Account<'info, AccountRoles>,
+    #[account(mut, constraint = roles.is_reporting_manager)]
+    pub signer: Signer<'info>,
     #[account(mut)]
     pub shares_mint: Account<'info, Mint>,
     #[account(mut)]
@@ -49,7 +49,7 @@ fn handle_internal(ctx: &Context<ProcessReport>) -> Result<u64> {
     let vault = &mut ctx.accounts.vault.load_mut()?;
     let strategy = &ctx.accounts.strategy;
     let strategy_data = vault.get_strategy_data_mut(strategy.key())?;
-    
+
     let mut fee_shares = 0;
     let mut gain: u64 = 0;
     let mut loss: u64 = 0;
