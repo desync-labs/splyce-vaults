@@ -66,6 +66,8 @@ impl Vault {
         bump: u8,
         underlying_mint: &InterfaceAccount<Mint>,
         underlying_token_acc: Pubkey,
+        share_mint: &InterfaceAccount<Mint>,
+        share_token_acc: Pubkey,
         deposit_limit: u64,
         min_user_deposit: u64,
         performance_fee: u64,
@@ -93,6 +95,9 @@ impl Vault {
             underlying_mint: self.underlying_mint,
             underlying_token_acc: self.underlying_token_acc,
             underlying_decimals: self.underlying_decimals,
+            share_mint: share_mint.key(),
+            share_token_acc: share_token_acc,
+            share_decimals: share_mint.decimals,
             deposit_limit: self.deposit_limit,
             min_user_deposit: self.min_user_deposit,
         });

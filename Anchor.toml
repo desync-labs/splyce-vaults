@@ -5,8 +5,8 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-strategy_program = "EDA9ee5UKzdqrHgSd5v64bNnbCae1t7NJfUpvS7DZod"
-tokenized_vault = "8eDcyX8Z8yZXBQsuatwxDC1qzGbuUbP7wGERDBQoPmBH"
+strategy_program = "ErJGueTn3xVKETP4dc8vrmS5Lu7iupJZ2pr7kYJkCtUE"
+tokenized_vault = "CNyqz3mqw6koNmAe7rn2xHGHAS9ftXUNQohwHSiXhJLQ"
 
 [registry]
 url = "https://api.apr.dev"

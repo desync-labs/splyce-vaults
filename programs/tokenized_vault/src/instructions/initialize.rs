@@ -70,6 +70,8 @@ pub fn handle_initialize(ctx: Context<Initialize>, index: u64) -> Result<()> {
         ctx.bumps.vault,
         ctx.accounts.underlying_mint.as_ref(),
         ctx.accounts.token_account.key(),
+        ctx.accounts.shares_mint.as_ref(),
+        ctx.accounts.shares_token_account.key(),
         1_000_000,
         0,
         1000,
