@@ -98,6 +98,7 @@ impl Vault {
             share_decimals: share_mint.decimals,
             deposit_limit: self.deposit_limit,
             min_user_deposit: self.min_user_deposit,
+            performance_fee: self.performance_fee,
         });
 
         Ok(())
