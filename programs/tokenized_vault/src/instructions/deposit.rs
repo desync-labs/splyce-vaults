@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Mint, MintTo, Token, TokenAccount};
 
-use crate::constants::ROLES_SEED;
+use crate::constants::{ROLES_SEED, SHARES_SEED, UNDERLYING_SEED};
 
 use crate::events::VaultDepositEvent;
 use crate::state::*;
@@ -12,18 +12,25 @@ use crate::utils::token::*;
 pub struct Deposit<'info> {
     #[account(mut)]
     pub vault: AccountLoader<'info, Vault>,
-    #[account(seeds = [ROLES_SEED.as_bytes(), user.key().as_ref()], bump)]
-    pub roles: Account<'info, AccountRoles>,
-    #[account(mut, constraint = roles.is_whitelisted)]
-    pub user: Signer<'info>,
+
     #[account(mut)]
     pub user_token_account: Account<'info, TokenAccount>,
-    #[account(mut)]
+
+    #[account(seeds = [ROLES_SEED.as_bytes(), user.key().as_ref()], bump)]
+    pub roles: Account<'info, AccountRoles>,
+
+    #[account(mut, seeds = [UNDERLYING_SEED.as_bytes(), vault.key().as_ref()], bump)]
     pub vault_token_account: Account<'info, TokenAccount>,
-    #[account(mut)]
+
+    #[account(mut, seeds = [SHARES_SEED.as_bytes(), vault.key().as_ref()], bump)]
     pub shares_mint: Account<'info, Mint>,
+
     #[account(mut)]
     pub user_shares_account: Account<'info, TokenAccount>,
+
+    #[account(mut, constraint = roles.is_whitelisted)]
+    pub user: Signer<'info>,
+
     pub token_program: Program<'info, Token>,
 }
 

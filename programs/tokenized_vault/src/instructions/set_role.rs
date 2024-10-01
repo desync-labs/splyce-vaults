@@ -2,14 +2,16 @@ use anchor_lang::prelude::*;
 
 use crate::constants::{ROLES_ADMIN_ROLE_SEED, ROLES_SEED};
 use crate::state::roles::*;
+use crate::state::roles_admin::*;
 
 #[derive(Accounts)]
+#[instruction(role: Role, user: Pubkey)]
 pub struct SetRole<'info> {
     #[account(
         init_if_needed, 
         seeds = [
             ROLES_SEED.as_bytes(),
-            user.key().as_ref()
+            user.as_ref()
         ], 
         bump,  
         payer = signer, 
@@ -23,16 +25,16 @@ pub struct SetRole<'info> {
     #[account(mut, address = roles_admin.account)]
     pub signer: Signer<'info>,
 
-    /// CHECK: This should be a user account, not a signer
-    #[account()]
-    pub user: AccountInfo<'info>,
+    // /// CHECK: 
+    // #[account()]
+    // pub user: UncheckedAccount<'info>,
 
     pub system_program: Program<'info, System>,
     pub rent: Sysvar<'info, Rent>,
 }
 
-pub fn handle_set_role(ctx: Context<SetRole>, role: Role) -> Result<()> {
+pub fn handle_set_role(ctx: Context<SetRole>, role: Role, user: Pubkey) -> Result<()> {
     let roles = &mut ctx.accounts.roles;
-    roles.account = ctx.accounts.user.key();
+    roles.account = user;
     roles.set_role(role)
 }
