@@ -11,7 +11,7 @@ pub struct Initialize<'info> {
         init, 
         seeds = [
             VAULT_SEED.as_bytes(), 
-            underlying_mint.key().as_ref(),
+            // underlying_mint.key().as_ref(),
             index.to_le_bytes().as_ref()
         ], 
         bump,  
@@ -63,19 +63,26 @@ pub struct Initialize<'info> {
     pub system_program: Program<'info, System>,
     pub rent: Sysvar<'info, Rent>,
 }
-pub fn handle_initialize(ctx: Context<Initialize>, index: u64) -> Result<()> {
+
+#[derive(AnchorSerialize, AnchorDeserialize, Default, Clone, Debug)]
+pub struct VaultConfig {
+    pub deposit_limit: u64,
+    pub min_user_deposit: u64,
+    pub performance_fee: u64,
+    pub profit_max_unlock_time: u64,
+}
+
+pub fn handle_init_vault(ctx: Context<Initialize>, index: u64, config: VaultConfig) -> Result<()> {
     let vault = &mut ctx.accounts.vault.load_init()?;
-    // TODO: pass config params
+    msg!("max deposit limit: {}", config.deposit_limit);
     vault.init(
         ctx.bumps.vault,
         ctx.accounts.underlying_mint.as_ref(),
         ctx.accounts.token_account.key(),
-        1_000_000,
-        0,
-        1000,
+        config.deposit_limit,
+        config.min_user_deposit,
+        config.performance_fee,
         index,
-        0,
+        config.profit_max_unlock_time,
     )
-
-    // Ok(())
 }

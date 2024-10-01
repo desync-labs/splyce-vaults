@@ -10,7 +10,6 @@ use anchor_lang::prelude::*;
 pub use constants::*;
 pub use state::*;
 pub use instructions::*;
-// pub use utils::*;
 
 declare_id!("8eDcyX8Z8yZXBQsuatwxDC1qzGbuUbP7wGERDBQoPmBH");
 
@@ -18,16 +17,16 @@ declare_id!("8eDcyX8Z8yZXBQsuatwxDC1qzGbuUbP7wGERDBQoPmBH");
 pub mod tokenized_vault {
     use super::*;
 
-    pub fn initialize(ctx: Context<Initialize>, index: u64) -> Result<()> {
-        handle_initialize(ctx, index)
+    pub fn init_vault(ctx: Context<Initialize>, index: u64, config: VaultConfig) -> Result<()> {
+        handle_init_vault(ctx, index, config)
     }
 
     pub fn init_role_admin(ctx: Context<InitializeRoleAdmin>) -> Result<()> {
         handle_init_role_admin(ctx)
     }
 
-    pub fn set_role(ctx: Context<SetRole>, role: Role) -> Result<()> {
-        handle_set_role(ctx, role)
+    pub fn set_role(ctx: Context<SetRole>, role: Role, user: Pubkey) -> Result<()> {
+        handle_set_role(ctx, role, user)
     }
 
     pub fn drop_role(ctx: Context<DropRole>, role: Role) -> Result<()> {

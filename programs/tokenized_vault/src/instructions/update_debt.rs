@@ -9,7 +9,7 @@ use crate::events::UpdatedCurrentDebtForStrategyEvent;
 use crate::state::*;
 use crate::error::ErrorCode;
 use crate::utils::strategy;
-use crate::constants::ROLES_SEED;
+use crate::constants::{ROLES_SEED, UNDERLYING_SEED};
 
 #[derive(Accounts)]
 #[instruction(new_debt: u64)]
@@ -20,7 +20,7 @@ pub struct UpdateStrategyDebt<'info> {
     )]
     pub vault: AccountLoader<'info, Vault>,
 
-    #[account(mut)]
+    #[account(mut, seeds = [UNDERLYING_SEED.as_bytes(), vault.key().as_ref()], bump)]
     pub vault_token_account: Account<'info, TokenAccount>,
 
     /// CHECK: Should this be mut?

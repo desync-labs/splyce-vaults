@@ -1,7 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface::Mint;
 
-use crate::constants::*;
 use crate::base_strategy::*;
 use crate::fee_data::*;
 use crate::error::ErrorCode;
@@ -15,6 +14,7 @@ use crate::utils::token;
 pub struct SimpleStrategy {
     /// Bump to identify PDA
     pub bump: [u8; 1],
+    pub index_bytes: [u8; 1],
 
     /// vault
     pub vault: Pubkey,
@@ -38,7 +38,7 @@ pub struct SimpleStrategyConfig {
 }
 
 impl SimpleStrategy {
-    pub const LEN: usize = 8 + 1 + 32 + 32 + 32 + 32 + 32 + 1 + 8 + 8 + 8 + 8;
+    pub const LEN: usize = 8 + 1 + 1 + 32 + 32 + 32 + 32 + 32 + 1 + 8 + 8 + 8 + 8;
 }
 
 impl StrategyManagement for SimpleStrategy {
@@ -138,6 +138,7 @@ impl StrategyInit for SimpleStrategy {
     fn init(
         &mut self,
         bump: u8,
+        index: u8,
         vault: Pubkey, 
         underlying_mint: &InterfaceAccount<Mint>, 
         underlying_token_acc: Pubkey, 
@@ -147,6 +148,7 @@ impl StrategyInit for SimpleStrategy {
         .map_err(|_| ErrorCode::InvalidStrategyConfig)?;
 
         self.bump = [bump]; 
+        self.index_bytes = index.to_le_bytes();
         self.vault = vault;
         self.underlying_mint = underlying_mint.key();
         self.undelying_decimals = underlying_mint.decimals;
@@ -185,8 +187,9 @@ impl StrategyDataAccount for SimpleStrategy {
     }
     fn seeds(&self) -> [&[u8]; 3] {
         [
-            &SIMPLE_STRATEGY_SEED.as_bytes(),
+            // &SIMPLE_STRATEGY_SEED.as_bytes(),
             self.vault.as_ref(),
+            self.index_bytes.as_ref(),
             self.bump.as_ref(),
         ]
     }

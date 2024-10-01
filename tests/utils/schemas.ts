@@ -1,39 +1,50 @@
 import { BN } from "@coral-xyz/anchor";
 import * as anchor from "@coral-xyz/anchor";
 
+export class VaultConfig {
+    index: BN;
+    deposit_limit: BN;
+    min_user_deposit: BN;
+    performance_fee: BN;
+    profit_max_unlock_time: BN;
+
+    constructor(fields: { index: BN, deposit_limit: BN, min_user_deposit: BN, performance_fee: BN, profit_max_unlock_time: BN }) {
+        this.index = fields.index;
+        this.deposit_limit = fields.deposit_limit;
+        this.min_user_deposit = fields.min_user_deposit;
+        this.performance_fee = fields.performance_fee;
+        this.profit_max_unlock_time = fields.profit_max_unlock_time;
+    }
+}
 
 // Define the SimpleStrategy class
 export class SimpleStrategy {
     depositLimit: BN;
     performanceFee: BN;
-    feeManager: anchor.web3.PublicKey;
+    feeManager: Buffer;
 
     constructor(fields: { depositLimit: BN, performanceFee: BN, feeManager: anchor.web3.PublicKey }) {
         this.depositLimit = fields.depositLimit;
         this.performanceFee = fields.performanceFee;
-        this.feeManager = fields.feeManager;
+        this.feeManager = fields.feeManager.toBuffer();
     }
 }
 
-export class AccountsIndexes {
-    strategy_acc: BN;
-    strategy_token_account: BN;
-    remaining_accounts_to_strategies: BN[];
-  
-    constructor(fields: { strategy_acc: BN, strategy_token_account: BN, remaining_accounts_to_strategies: BN[] }) {
-      this.strategy_acc = fields.strategy_acc;
-      this.strategy_token_account = fields.strategy_token_account;
-      this.remaining_accounts_to_strategies = fields.remaining_accounts_to_strategies;
-    }
-  }
-  
-  export class AccountsMap {
-    accounts_map: AccountsIndexes[];
-  
-    constructor(fields: { accounts_map: AccountsIndexes[] }) {
-      this.accounts_map = fields.accounts_map;
-    }
-  }
+export const VaultConfigSchema = new Map([
+    [
+        VaultConfig,
+        {
+            kind: 'struct',
+            fields: [
+                ['index', 'u64'],
+                ['deposit_limit', 'u64'],
+                ['min_user_deposit', 'u64'],
+                ['performance_fee', 'u64'],
+                ['profit_max_unlock_time', 'u64'],
+            ],
+        },
+    ],
+]);
 
 // Define the schema for SimpleStrategy
 export const SimpleStrategySchema = new Map([
@@ -49,36 +60,3 @@ export const SimpleStrategySchema = new Map([
         },
     ],
 ]);
-
-export const AccountsMapSchema = new Map([
-    [AccountsMap, {
-      kind: 'struct',
-      fields: [
-        ['accounts_map', [AccountsIndexes]],
-      ],
-    }],
-    [AccountsIndexes, {
-      kind: 'struct',
-      fields: [
-        ['strategy_acc', 'u64'],
-        ['strategy_token_account', 'u64'],
-        ['remaining_accounts_to_strategies', ['u64']],
-      ],
-    }],
-  ]);
-  
-
-/*
-#[derive(Default, Clone, AnchorSerialize, AnchorDeserialize)]
-pub struct AccountsIndexes {
-    pub strategy_acc: u8,
-    pub strategy_token_account: u8,
-    pub remaining_accounts_to_strategies: Vec<u8>,
-}
-
-#[derive(Default, Clone, AnchorSerialize, AnchorDeserialize)]
-pub struct AccountsMap {
-    pub accounts_map: Vec<AccountsIndexes>,
-}
-
-*/

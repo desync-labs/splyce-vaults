@@ -4,23 +4,29 @@ use anchor_spl::token::{self, Mint, MintTo, Token, TokenAccount};
 use crate::events::StrategyReportedEvent;
 use crate::state::*;
 use crate::utils::strategy;
-use crate::constants::{ FEE_BPS, ROLES_SEED };
+use crate::constants::{ FEE_BPS, ROLES_SEED, SHARES_SEED };
 
 #[derive(Accounts)]
 pub struct ProcessReport<'info> {
     #[account(mut)]
     pub vault: AccountLoader<'info, Vault>,
-    /// CHECK: is this a right way to do it?
+
+    /// CHECK: can by any strategy
     #[account()]
-    pub strategy: AccountInfo<'info>,
+    pub strategy: UncheckedAccount<'info>,
+
     #[account(seeds = [ROLES_SEED.as_bytes(), signer.key().as_ref()], bump)]
     pub roles: Account<'info, AccountRoles>,
-    #[account(mut, constraint = roles.is_reporting_manager)]
-    pub signer: Signer<'info>,
-    #[account(mut)]
+
+    #[account(mut, seeds = [SHARES_SEED.as_bytes(), vault.key().as_ref()], bump)]
     pub shares_mint: Account<'info, Mint>,
+
     #[account(mut)]
     pub fee_shares_recipient: Account<'info, TokenAccount>,
+
+    #[account(mut, constraint = roles.is_reporting_manager)]
+    pub signer: Signer<'info>,
+
     pub token_program: Program<'info, Token>,
 }
 

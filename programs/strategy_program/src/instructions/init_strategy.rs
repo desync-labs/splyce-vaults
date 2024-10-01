@@ -10,14 +10,15 @@ use crate::state::*;
 use crate::error::ErrorCode;
 
 #[derive(Accounts)]
-#[instruction(strategy_type: StrategyType)]
+#[instruction(index: u8, strategy_type: StrategyType)]
 pub struct Initialize<'info> {
     /// CHECK: We want to hadle all strategy types here
     #[account(
         init, 
         seeds = [
-            &strategy_type.to_seed(), 
-            vault.key().as_ref()
+            // strategy_type.to_seed().as_ref(), 
+            vault.key().as_ref(),
+            index.to_le_bytes().as_ref()
         ], 
         bump,  
         payer = signer, 
@@ -27,9 +28,9 @@ pub struct Initialize<'info> {
     #[account(
         init, 
         seeds = [
+            UNDERLYING_SEED.as_bytes(),
             strategy.key().as_ref(),
-            UNDERLYING_SEED.as_bytes()
-            ], 
+        ], 
         bump, 
         payer = signer, 
         token::mint = underlying_mint, 
@@ -48,13 +49,13 @@ pub struct Initialize<'info> {
     pub rent: Sysvar<'info, Rent>,
 }
 
-pub fn initialize(ctx: Context<Initialize>, strategy_type: StrategyType, config: Vec<u8>) -> Result<()> {
+pub fn handle_init_strategy(ctx: Context<Initialize>, index: u8, strategy_type: StrategyType, config: Vec<u8>) -> Result<()> {
     match strategy_type {
         StrategyType::Simple => {
-            return handle_initialize::<SimpleStrategy>(ctx, config)
+            return init_strategy_internal::<SimpleStrategy>(ctx, index, config)
         }
         StrategyType::TradeFintech => {
-            return handle_initialize::<TradeFintechStrategy>(ctx, config)
+            return init_strategy_internal::<TradeFintechStrategy>(ctx, index, config)
         }
         _ => {
             return Err(ErrorCode::InvalidStrategyData.into())
@@ -62,7 +63,7 @@ pub fn initialize(ctx: Context<Initialize>, strategy_type: StrategyType, config:
     }
 }
 
-fn handle_initialize<T>(ctx: Context<Initialize>, config: Vec<u8>) -> Result<()> 
+fn init_strategy_internal<T>(ctx: Context<Initialize>, index: u8, config: Vec<u8>) -> Result<()> 
 where 
     T: Strategy + AnchorDeserialize + AnchorSerialize + Discriminator + Default
 {
@@ -76,6 +77,7 @@ where
 
     strategy.init(
         ctx.bumps.strategy,
+        index,
         ctx.accounts.vault.key(),
         ctx.accounts.underlying_mint.as_ref(),
         ctx.accounts.token_account.key(),
