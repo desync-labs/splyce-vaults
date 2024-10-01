@@ -79,6 +79,8 @@ pub fn handle_init_vault(ctx: Context<Initialize>, index: u64, config: VaultConf
         ctx.bumps.vault,
         ctx.accounts.underlying_mint.as_ref(),
         ctx.accounts.token_account.key(),
+        ctx.accounts.shares_mint.as_ref(),
+        ctx.accounts.shares_token_account.key(),
         config.deposit_limit,
         config.min_user_deposit,
         config.performance_fee,

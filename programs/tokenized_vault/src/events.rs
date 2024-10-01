@@ -6,6 +6,9 @@ pub struct VaultInitEvent {
     pub underlying_mint: Pubkey,
     pub underlying_token_acc: Pubkey,
     pub underlying_decimals: u8,
+    pub share_mint: Pubkey,
+    pub share_token_acc: Pubkey,
+    pub share_decimals: u8,
     pub deposit_limit: u64,
     pub min_user_deposit: u64,
 }
