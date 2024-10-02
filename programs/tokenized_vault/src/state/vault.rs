@@ -51,10 +51,9 @@ pub struct StrategyData {
 
 impl Vault {
     pub const LEN : usize = 8 + 1 + 8 + 32 + 32 + 1 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 1 + 8 + 8 + 8 + 8 + (10 * (32 + 8 + 8 + 8 + 1));
-    pub fn seeds(&self) -> [&[u8]; 4] {
+    pub fn seeds(&self) -> [&[u8]; 3] {
     [
         &VAULT_SEED.as_bytes(),
-        self.underlying_mint.as_ref(),
         self.index_buffer.as_ref(),
         self.bump.as_ref(),
     ]}

@@ -33,35 +33,35 @@ pub mod strategy_program {
         Ok(())
     }
 
-    pub fn initialize(ctx: Context<Initialize>, strategy_type: StrategyType, config: Vec<u8>) -> Result<()> {
-        initialize::initialize(ctx, strategy_type, config)
+    pub fn init_strategy(ctx: Context<Initialize>, index: u8, strategy_type: StrategyType, config: Vec<u8>) -> Result<()> {
+        handle_init_strategy(ctx, index, strategy_type, config)
     }
 
     pub fn deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
-        deposit::handle_deposit(ctx, amount)
+        handle_deposit(ctx, amount)
     }
 
     pub fn withdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
-        withdraw::handle_withdraw(ctx, amount)
+        handle_withdraw(ctx, amount)
     }
 
     pub fn report(ctx: Context<Report>) -> Result<()> {
-        report::handle_report(ctx)
+        handle_report(ctx)
     }
 
     pub fn transfer_management(ctx: Context<TransferManagement>, new_admin: Pubkey) -> Result<()> {
-        transfer_management::handle_transfer_management(ctx, new_admin)
+        handle_transfer_management(ctx, new_admin)
     }
 
     pub fn set_performance_fee(ctx: Context<SetPerformanceFee>, fee: u64) -> Result<()> {
-        setters::handle_set_performance_fee(ctx, fee)
+        handle_set_performance_fee(ctx, fee)
     }
 
     pub fn set_fee_manager(ctx: Context<SetFeeManager>, recipient: Pubkey) -> Result<()> {
-        setters::handle_set_fee_manager(ctx, recipient)
+        handle_set_fee_manager(ctx, recipient)
     }
 
     pub fn withdraw_fee(ctx: Context<WithdrawFee>, amount: u64) -> Result<()> {
-        withdraw_fee::handle_withdraw_fee(ctx, amount)
+        handle_withdraw_fee(ctx, amount)
     }
 }

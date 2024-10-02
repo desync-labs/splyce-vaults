@@ -5,22 +5,32 @@ use strategy_program::program::StrategyProgram;
 use crate::events::VaultWithdrawlEvent;
 use crate::{state::*, utils::strategy};
 use crate::error::ErrorCode;
-use crate::constants;
+use crate::constants::{
+    UNDERLYING_SEED, 
+    SHARES_SEED,
+    MAX_BPS
+};
 
 #[derive(Accounts)]
 pub struct Withdraw<'info> {
     #[account(mut)]
     pub vault: AccountLoader<'info, Vault>,
-    #[account(mut)]
-    pub user: Signer<'info>,
+
     #[account(mut)]
     pub user_token_account: Account<'info, TokenAccount>,
-    #[account(mut)]
+
+    #[account(mut, seeds = [UNDERLYING_SEED.as_bytes(), vault.key().as_ref()], bump)]
     pub vault_token_account: Account<'info, TokenAccount>,
-    #[account(mut)]
+
+    #[account(mut, seeds = [SHARES_SEED.as_bytes(), vault.key().as_ref()], bump)]
     pub shares_mint: Account<'info, Mint>,
+
     #[account(mut)]
     pub user_shares_account: Account<'info, TokenAccount>,
+
+    #[account(mut)]
+    pub user: Signer<'info>,
+
     pub token_program: Program<'info, Token>,
     pub strategy_program: Program<'info, StrategyProgram>,
 }
@@ -100,8 +110,8 @@ fn handle_internal<'info>(
         strategy_remaining_accounts,
     )?;
 
-    if assets > assets_to_transfer && max_loss < constants::MAX_BPS {
-        if assets - assets_to_transfer > (assets * max_loss) / constants::MAX_BPS {
+    if assets > assets_to_transfer && max_loss < MAX_BPS {
+        if assets - assets_to_transfer > (assets * max_loss) / MAX_BPS {
             return Err(ErrorCode::TooMuchLoss.into());
         }
     }

@@ -4,6 +4,7 @@ use anchor_spl::token::{Token, TokenAccount};
 use crate::error::ErrorCode;
 use crate::utils::token::transfer_token_to;
 use crate::utils::strategy;
+use crate::constants::UNDERLYING_SEED;
 
 #[derive(Accounts)]
 pub struct Deposit<'info> {
@@ -12,7 +13,7 @@ pub struct Deposit<'info> {
     pub strategy: UncheckedAccount<'info>,
     #[account()]
     pub signer: Signer<'info>,
-    #[account(mut)]
+    #[account(mut, seeds = [UNDERLYING_SEED.as_bytes(), strategy.key().as_ref()], bump)]
     pub token_account: Account<'info, TokenAccount>,
     #[account(mut)]
     pub vault_token_account: Account<'info, TokenAccount>,

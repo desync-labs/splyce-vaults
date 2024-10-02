@@ -4,13 +4,14 @@ use anchor_spl::token::{Token, TokenAccount};
 use crate::error::ErrorCode;
 use crate::utils::strategy;
 use crate::utils::token;
+use crate::constants::UNDERLYING_SEED;
 
 #[derive(Accounts)]
 pub struct Withdraw<'info> {
     /// CHECK: can by any strategy
     #[account(mut)]
     pub strategy: UncheckedAccount<'info>,
-    #[account(mut)]
+    #[account(mut, seeds = [UNDERLYING_SEED.as_bytes(), strategy.key().as_ref()], bump)]
     pub token_account: Account<'info, TokenAccount>,
     #[account()]
     pub signer: Signer<'info>,

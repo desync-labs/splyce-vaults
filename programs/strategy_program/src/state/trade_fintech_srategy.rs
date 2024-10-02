@@ -4,7 +4,6 @@ use anchor_spl::token_interface::Mint;
 use crate::base_strategy::*;
 use crate::fee_data::*;
 use crate::error::ErrorCode;
-use crate::constants::TRADE_FINTECH_STRATEGY_SEED;
 use crate::events::{StrategyDepositEvent, StrategyInitEvent, StrategyWithdrawEvent};
 use crate::utils::token;
 
@@ -14,6 +13,7 @@ use crate::utils::token;
 pub struct TradeFintechStrategy {
     /// Bump to identify PDA
     pub bump: [u8; 1],
+    pub index_bytes: [u8; 1],
 
     /// vault
     pub vault: Pubkey,
@@ -50,7 +50,7 @@ pub enum TradeFintechErrorCode {
 }
 
 impl TradeFintechStrategy {
-    pub const LEN: usize = 8 + 1 + 32 + 32 + 32 + 32 + 32 + 1 + 8 + 8 + 8 + 8 + 8 + 8 + 8;
+    pub const LEN: usize = 8 + 1 + 1 + 32 + 32 + 32 + 32 + 32 + 1 + 8 + 8 + 8 + 8 + 8 + 8 + 8;
 }
 
 impl StrategyManagement for TradeFintechStrategy {
@@ -219,6 +219,7 @@ impl StrategyInit for TradeFintechStrategy {
     fn init(
         &mut self,
         bump: u8,
+        index: u8,
         vault: Pubkey, 
         underlying_mint: &InterfaceAccount<Mint>, 
         underlying_token_acc: Pubkey, 
@@ -228,6 +229,7 @@ impl StrategyInit for TradeFintechStrategy {
         .map_err(|_| ErrorCode::InvalidStrategyConfig)?;
 
         self.bump = [bump];
+        self.index_bytes = index.to_le_bytes();
         self.vault = vault;
         self.underlying_mint = underlying_mint.key();
         self.undelying_decimals = underlying_mint.decimals;
@@ -271,8 +273,9 @@ impl StrategyDataAccount for TradeFintechStrategy {
     
     fn seeds(&self) -> [&[u8]; 3] {
         [
-            TRADE_FINTECH_STRATEGY_SEED.as_bytes(),
+            // TRADE_FINTECH_STRATEGY_SEED.as_bytes(),
             self.vault.as_ref(),
+            self.index_bytes.as_ref(),
             self.bump.as_ref(),
         ]
     }

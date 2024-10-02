@@ -18,6 +18,7 @@ pub trait StrategyInit {
     fn init(
         &mut self, 
         bump: u8,
+        index: u8,
         vault: Pubkey, 
         underlying_mint: &InterfaceAccount<Mint>, 
         underlying_token_acc: Pubkey, 
