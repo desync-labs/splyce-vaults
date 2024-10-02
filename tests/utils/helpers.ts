@@ -74,11 +74,15 @@ export const initializeSimpleStrategy = async ({
   vault,
   underlyingMint,
   signer,
+  depositLimit,
+  performanceFee,
 }: {
   strategyProgram: anchor.Program<StrategyProgram>;
   vault: anchor.web3.PublicKey;
   underlyingMint: anchor.web3.PublicKey;
   signer: anchor.web3.Keypair;
+  depositLimit: number;
+  performanceFee: number;
 }) => {
   const strategy = anchor.web3.PublicKey.findProgramAddressSync(
     [Buffer.from("simple"), vault.toBuffer()],
@@ -93,8 +97,8 @@ export const initializeSimpleStrategy = async ({
   const strategyType = { simple: {} };
 
   const config = new SimpleStrategy({
-    depositLimit: new BN(1000),
-    performanceFee: new BN(1),
+    depositLimit: new BN(depositLimit),
+    performanceFee: new BN(performanceFee),
     // @ts-ignore
     feeManager: signer.publicKey.toBuffer(),
   });

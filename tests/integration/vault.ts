@@ -53,7 +53,7 @@ describe("tokenized_vault", () => {
       [
         Buffer.from("vault"),
         underlyingMint.toBuffer(),
-        Buffer.from(new Uint8Array(new BigUint64Array([BigInt(1)]).buffer))
+        Buffer.from(new Uint8Array(new BigUint64Array([BigInt(2)]).buffer))
       ],
       vaultProgram.programId
     )[0];
@@ -124,7 +124,7 @@ describe("tokenized_vault", () => {
   });
 
   it("Initializes the vault", async () => {
-    await vaultProgram.methods.initialize(new BN(1))
+    await vaultProgram.methods.initialize(new BN(2))
       .accounts({
         underlyingMint,
         signer: admin.publicKey,
