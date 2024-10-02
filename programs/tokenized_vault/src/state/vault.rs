@@ -9,7 +9,7 @@ use crate::events::{VaultAddStrategyEvent, VaultInitEvent};
 
 #[account(zero_copy(unsafe))]
 #[repr(packed)]
-#[derive(Default, Debug)]
+#[derive(Default, Debug, InitSpace)]
 pub struct Vault {
     pub bump: [u8; 1],
     pub index_buffer: [u8; 8],
@@ -40,7 +40,7 @@ pub struct Vault {
 
 #[zero_copy(unsafe)]
 #[repr(packed)]
-#[derive(Default, Debug, PartialEq, Eq)]
+#[derive(Default, Debug, PartialEq, Eq, InitSpace)]
 pub struct StrategyData {
     pub key: Pubkey,
     pub current_debt: u64,
@@ -50,7 +50,6 @@ pub struct StrategyData {
 }
 
 impl Vault {
-    pub const LEN : usize = 8 + 1 + 8 + 32 + 32 + 1 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 1 + 8 + 8 + 8 + 8 + (10 * (32 + 8 + 8 + 8 + 1));
     pub fn seeds(&self) -> [&[u8]; 3] {
     [
         &VAULT_SEED.as_bytes(),

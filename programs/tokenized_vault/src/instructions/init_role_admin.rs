@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-use crate::constants::ROLES_ADMIN_ROLE_SEED;
+use crate::constants::{ROLES_ADMIN_ROLE_SEED, DISCRIMINATOR_LEN};
 use crate::state::roles_admin::*;
 
 #[derive(Accounts)]
@@ -11,7 +11,7 @@ pub struct InitializeRoleAdmin<'info> {
         seeds = [ROLES_ADMIN_ROLE_SEED.as_bytes()], 
         bump,  
         payer = admin, 
-        space = RolesAdmin::LEN,
+        space = DISCRIMINATOR_LEN + RolesAdmin::INIT_SPACE,
     )]
     pub roles_admin: Account<'info, RolesAdmin>,
     #[account(mut)]

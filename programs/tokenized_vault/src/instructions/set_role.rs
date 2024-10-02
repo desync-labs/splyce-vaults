@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-use crate::constants::{ROLES_ADMIN_ROLE_SEED, ROLES_SEED};
+use crate::constants::{ROLES_ADMIN_ROLE_SEED, ROLES_SEED, DISCRIMINATOR_LEN};
 use crate::state::roles::*;
 use crate::state::roles_admin::*;
 
@@ -15,7 +15,7 @@ pub struct SetRole<'info> {
         ], 
         bump,  
         payer = signer, 
-        space = AccountRoles::LEN,
+        space = DISCRIMINATOR_LEN + AccountRoles::INIT_SPACE,
     )]
     pub roles: Account<'info, AccountRoles>,
 

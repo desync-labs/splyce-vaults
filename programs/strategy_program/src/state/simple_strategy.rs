@@ -10,7 +10,7 @@ use crate::events::StrategyWithdrawEvent;
 use crate::utils::token;
 
 #[account()]
-#[derive(Default, Debug)]
+#[derive(Default, Debug, InitSpace)]
 pub struct SimpleStrategy {
     /// Bump to identify PDA
     pub bump: [u8; 1],
@@ -35,10 +35,6 @@ pub struct SimpleStrategyConfig {
     pub deposit_limit: u64,
     pub performance_fee: u64,
     pub fee_manager: Pubkey,
-}
-
-impl SimpleStrategy {
-    pub const LEN: usize = 8 + 1 + 1 + 32 + 32 + 32 + 32 + 32 + 1 + 8 + 8 + 8 + 8;
 }
 
 impl StrategyManagement for SimpleStrategy {
