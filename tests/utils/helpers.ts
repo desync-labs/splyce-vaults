@@ -29,16 +29,17 @@ export const initializeVault = async ({
   underlyingMint,
   vaultIndex,
   signer,
+  config,
 }: {
   vaultProgram: anchor.Program<TokenizedVault>;
   underlyingMint: anchor.web3.PublicKey;
   vaultIndex: number;
   signer: anchor.web3.Keypair;
+  config: any;
 }) => {
   const vault = anchor.web3.PublicKey.findProgramAddressSync(
     [
       Buffer.from("vault"),
-      underlyingMint.toBuffer(),
       Buffer.from(
         new Uint8Array(new BigUint64Array([BigInt(vaultIndex)]).buffer)
       ),
@@ -57,7 +58,7 @@ export const initializeVault = async ({
   )[0];
 
   await vaultProgram.methods
-    .initialize(new BN(vaultIndex))
+    .initVault(new BN(vaultIndex), config)
     .accounts({
       underlyingMint,
       signer: signer.publicKey,
@@ -74,47 +75,40 @@ export const initializeSimpleStrategy = async ({
   vault,
   underlyingMint,
   signer,
-  depositLimit,
-  performanceFee,
+  index,
+  config,
 }: {
   strategyProgram: anchor.Program<StrategyProgram>;
   vault: anchor.web3.PublicKey;
   underlyingMint: anchor.web3.PublicKey;
   signer: anchor.web3.Keypair;
-  depositLimit: number;
-  performanceFee: number;
+  index: number;
+  config: any;
 }) => {
   const strategy = anchor.web3.PublicKey.findProgramAddressSync(
-    [Buffer.from("simple"), vault.toBuffer()],
+    [vault.toBuffer(), Buffer.from(new Uint8Array([index]))],
     strategyProgram.programId
   )[0];
 
   const strategyTokenAccount = anchor.web3.PublicKey.findProgramAddressSync(
-    [strategy.toBuffer(), Buffer.from("underlying")],
+    [Buffer.from("underlying"), strategy.toBuffer()],
     strategyProgram.programId
   )[0];
 
   const strategyType = { simple: {} };
 
-  const config = new SimpleStrategy({
-    depositLimit: new BN(depositLimit),
-    performanceFee: new BN(performanceFee),
-    // @ts-ignore
-    feeManager: signer.publicKey.toBuffer(),
-  });
   const configBytes = Buffer.from(
     borsh.serialize(SimpleStrategySchema, config)
   );
+
   await strategyProgram.methods
-    .initialize(strategyType, configBytes)
+    .initStrategy(index, strategyType, configBytes)
     .accounts({
-      // @ts-ignore
-      strategy,
-      underlyingMint,
       vault,
       signer: signer.publicKey,
+      underlyingMint,
+      // @ts-ignore
       tokenProgram: token.TOKEN_PROGRAM_ID,
-      systemProgram: anchor.web3.SystemProgram.programId,
     })
     .signers([signer])
     .rpc();
