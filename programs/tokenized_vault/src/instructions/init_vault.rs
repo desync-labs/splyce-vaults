@@ -31,7 +31,7 @@ pub struct Initialize<'info> {
         seeds = [SHARES_SEED.as_bytes(), vault.key().as_ref()], 
         bump, 
         payer = signer, 
-        mint::decimals = 18, 
+        mint::decimals = 9, 
         mint::authority = vault,
     )]
     pub shares_mint: Box<InterfaceAccount<'info, Mint>>,
