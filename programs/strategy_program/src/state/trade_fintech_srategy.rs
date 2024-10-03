@@ -8,8 +8,7 @@ use crate::events::{StrategyDepositEvent, StrategyInitEvent, StrategyWithdrawEve
 use crate::utils::token;
 
 #[account]
-// #[repr(packed)]
-#[derive(Default, Debug)]
+#[derive(Default, Debug, InitSpace)]
 pub struct TradeFintechStrategy {
     /// Bump to identify PDA
     pub bump: [u8; 1],
@@ -47,10 +46,6 @@ pub enum TradeFintechErrorCode {
     DepositPeriodNotEnded,
     #[msg("Lock period has not ended")]
     LockPeriodNotEnded,
-}
-
-impl TradeFintechStrategy {
-    pub const LEN: usize = 8 + 1 + 1 + 32 + 32 + 32 + 32 + 32 + 1 + 8 + 8 + 8 + 8 + 8 + 8 + 8;
 }
 
 impl StrategyManagement for TradeFintechStrategy {

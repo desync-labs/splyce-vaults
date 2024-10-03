@@ -3,7 +3,7 @@ use anchor_lang::Discriminator;
 use anchor_spl::token_interface::Mint;
 
 use crate::state::*;
-use crate::constants::*;
+use crate::constants::{SIMPLE_STRATEGY_SEED, TRADE_FINTECH_STRATEGY_SEED, DISCRIMINATOR_LEN};
 
 pub trait StrategyDataAccount {
     fn save_changes(&self, writer: &mut dyn std::io::Write) -> Result<()>;
@@ -87,8 +87,8 @@ impl StrategyType {
 
     pub fn space(&self) -> usize {
         match self {
-            StrategyType::Simple => SimpleStrategy::LEN,
-            StrategyType::TradeFintech => TradeFintechStrategy::LEN,
+            StrategyType::Simple => DISCRIMINATOR_LEN + SimpleStrategy::INIT_SPACE,
+            StrategyType::TradeFintech => DISCRIMINATOR_LEN + TradeFintechStrategy::INIT_SPACE,
             StrategyType::RWA => 0,
             StrategyType::Lending => 0,
             StrategyType::Liquidation => 0,

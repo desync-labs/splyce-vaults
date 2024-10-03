@@ -44,7 +44,7 @@ describe("tokenized_vault", () => {
 
     console.log("Airdropped 1 SOL to user:", user.publicKey.toBase58());
 
-    underlyingMint = await token.createMint(provider.connection, admin, admin.publicKey, null, 18);
+    underlyingMint = await token.createMint(provider.connection, admin, admin.publicKey, null, 9);
     console.log("Token mint public key:", underlyingMint.toBase58());
 
     vault = anchor.web3.PublicKey.findProgramAddressSync(

@@ -1,7 +1,14 @@
 use anchor_lang::prelude::*;
 
 use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
-use crate::constants::*;
+use crate::constants::{
+    VAULT_SEED, 
+    SHARES_SEED, 
+    SHARES_ACCOUNT_SEED, 
+    UNDERLYING_SEED, 
+    ROLES_SEED,
+    DISCRIMINATOR_LEN,
+};
 use crate::state::*;
 
 #[derive(Accounts)]
@@ -11,12 +18,11 @@ pub struct Initialize<'info> {
         init, 
         seeds = [
             VAULT_SEED.as_bytes(), 
-            // underlying_mint.key().as_ref(),
             index.to_le_bytes().as_ref()
         ], 
         bump,  
         payer = signer, 
-        space = Vault::LEN,
+        space = DISCRIMINATOR_LEN + Vault::INIT_SPACE,
     )]
     pub vault: AccountLoader<'info, Vault>,
     
@@ -25,7 +31,7 @@ pub struct Initialize<'info> {
         seeds = [SHARES_SEED.as_bytes(), vault.key().as_ref()], 
         bump, 
         payer = signer, 
-        mint::decimals = 18, 
+        mint::decimals = 9, 
         mint::authority = vault,
     )]
     pub shares_mint: Box<InterfaceAccount<'info, Mint>>,
