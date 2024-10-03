@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_lang::{AnchorDeserialize, AnchorSerialize};
 
 #[account]
-#[derive(Default, Debug)]
+#[derive(Default, Debug, InitSpace)]
 pub struct AccountRoles {
     pub account: Pubkey,
     pub is_vaults_admin: bool,
@@ -18,9 +18,6 @@ pub enum Role {
 }
 
 impl AccountRoles {
-    pub const LEN: usize = 8 + 32 + 1 + 1 + 1;
-
-
     pub fn set_role(&mut self, role: Role) -> Result<()> {
         match role {
             Role::Whitelisted => {

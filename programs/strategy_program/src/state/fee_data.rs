@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-#[derive(AnchorDeserialize, AnchorSerialize, Default, Debug, Clone)]
+#[derive(AnchorDeserialize, AnchorSerialize, Default, Debug, Clone, InitSpace)]
 pub struct FeeData {
     pub fee_manager: Pubkey,  
     pub performance_fee: u64,

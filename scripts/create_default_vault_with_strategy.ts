@@ -23,7 +23,7 @@ async function main() {
         const vaultProgram = anchor.workspace.TokenizedVault as Program<TokenizedVault>;
         const strategyProgram = anchor.workspace.StrategyProgram as Program<StrategyProgram>;
 
-        const underlyingMint = await token.createMint(provider.connection, admin, admin.publicKey, null, 18);
+        const underlyingMint = await token.createMint(provider.connection, admin, admin.publicKey, null, 9);
         console.log("Underlying token mint public key:", underlyingMint.toBase58());
 
         const vault = anchor.web3.PublicKey.findProgramAddressSync(
