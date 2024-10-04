@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Mint, MintTo, Token, TokenAccount};
 
-use crate::constants::{ROLES_SEED, SHARES_SEED, UNDERLYING_SEED};
+use crate::constants::{SHARES_SEED, UNDERLYING_SEED};
 
 use crate::events::VaultDepositEvent;
 use crate::state::*;

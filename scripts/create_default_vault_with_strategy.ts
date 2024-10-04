@@ -46,7 +46,7 @@ async function main() {
       name: "Share Splyce USD",
       symbol: "spvUSD",
       uri: "https://gist.githubusercontent.com/vito-kovalione/a3fcf481b0cced2615ae626ebdd04288/raw/f6a648dfebce511448c81ea5b4672bdd9f14c2e2/gistfile1.txt",
-      depositLimit: new BN(1000000000),
+      depositLimit: new BN(1_000_000_000).mul(new BN(10).pow(new BN(9))),
       minUserDeposit: new BN(0),
       performanceFee: new BN(1000),
       profitMaxUnlockTime: new BN(0),
