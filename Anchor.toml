@@ -20,3 +20,7 @@ test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/integration/**/*.t
 set_roles = "yarn run set_roles"
 init_vault = "yarn run init_vault"
 whitelist = "yarn run whitelist"
+
+[[test.genesis]] 
+address = "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s" 
+program = "mpl_token_metadata.so"

@@ -16,7 +16,6 @@ pub struct Initialize<'info> {
     #[account(
         init, 
         seeds = [
-            // strategy_type.to_seed().as_ref(), 
             vault.key().as_ref(),
             index.to_le_bytes().as_ref()
         ], 

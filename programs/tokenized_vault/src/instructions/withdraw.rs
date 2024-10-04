@@ -48,26 +48,6 @@ pub struct AccountsMap {
 }
 
 pub fn handle_withdraw<'info>(
-    ctx: Context<'_, '_, '_, 'info, Withdraw<'info>>, 
-    amount: u64, 
-    max_loss: u64,
-    remaining_accounts_map: AccountsMap
-) -> Result<()> {
-    let shares = ctx.accounts.vault.load()?.convert_to_shares(amount);
-    handle_internal(ctx, amount, shares, max_loss, remaining_accounts_map)
-}
-
-pub fn handle_redeem<'info>(
-    ctx: Context<'_, '_, '_, 'info, Withdraw<'info>>, 
-    shares: u64, 
-    max_loss: u64,
-    remaining_accounts_map: AccountsMap
-) -> Result<()> {
-    let amount = ctx.accounts.vault.load()?.convert_to_underlying(shares);
-    handle_internal(ctx, amount, shares, max_loss, remaining_accounts_map)
-}
-
-fn handle_internal<'info>(
     ctx: Context<'_, '_, '_, 'info, Withdraw<'info>>,
     assets: u64,
     shares_to_burn: u64,
@@ -206,12 +186,11 @@ fn withdraw_assets<'info>(
 ) -> Result<u64> {
     let vault = vault_acc.load()?.clone();
     let mut requested_assets = assets;
-    let mut assets_needed = 0;
     let mut total_idle = vault.total_idle;
     let mut total_debt = vault.total_debt;
 
     if requested_assets > total_idle {
-        assets_needed = requested_assets - total_idle;
+        let mut assets_needed = requested_assets - total_idle;
 
         for i in 0..strategies.len() {
             let strategy_acc = &strategies[i];

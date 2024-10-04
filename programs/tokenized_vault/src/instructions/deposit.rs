@@ -51,9 +51,9 @@ pub fn handle_deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
             MintTo {
                 mint: ctx.accounts.shares_mint.to_account_info(),
                 to: ctx.accounts.user_shares_account.to_account_info(),
-                authority: ctx.accounts.vault.to_account_info(),
+                authority: ctx.accounts.shares_mint.to_account_info(),
             }, 
-            &[&ctx.accounts.vault.load()?.seeds()]
+            &[&ctx.accounts.vault.load()?.seeds_shares()]
         ), 
         shares
     )?;
