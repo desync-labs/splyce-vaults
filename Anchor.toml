@@ -16,7 +16,7 @@ cluster = "Localnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
-test = "yarn run ts-mocha -p ./tsconfig.json -t 2000000 --recursive 'tests/integration/**/*.test.ts'"
+test = "yarn run ts-mocha -p ./tsconfig.json -t 2000000 --require './tests/integration/setups/globalSetup.ts' --recursive 'tests/integration/**/*.test.ts'"
 set_roles = "yarn run set_roles"
 init_vault = "yarn run init_vault"
 whitelist = "yarn run whitelist"

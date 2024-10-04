@@ -1,7 +1,4 @@
 import * as anchor from "@coral-xyz/anchor";
-import { Program } from "@coral-xyz/anchor";
-import { StrategyProgram } from "../../target/types/strategy_program";
-import { TokenizedVault } from "../../target/types/tokenized_vault";
 import { BN } from "@coral-xyz/anchor";
 import * as token from "@solana/spl-token";
 import { assert, expect } from "chai";
@@ -11,19 +8,14 @@ import {
   initializeSimpleStrategy,
   initializeVault,
 } from "../utils/helpers";
+import {
+  vaultProgram,
+  strategyProgram,
+  rolesAdmin,
+  connection,
+} from "./setups/globalSetup";
 
 describe("Roles & Permissions Tests", () => {
-  anchor.setProvider(anchor.AnchorProvider.env());
-  const provider = anchor.AnchorProvider.env();
-  const connection = provider.connection;
-
-  const vaultProgram = anchor.workspace
-    .TokenizedVault as Program<TokenizedVault>;
-  const strategyProgram = anchor.workspace
-    .StrategyProgram as Program<StrategyProgram>;
-
-  // Global
-  let rolesAdmin: anchor.web3.Keypair;
   let vaultsAdmin: anchor.web3.Keypair;
   let reportingManager: anchor.web3.Keypair;
   let whitelistedUser: anchor.web3.Keypair;
@@ -71,7 +63,6 @@ describe("Roles & Permissions Tests", () => {
 
   before(async () => {
     console.log("-------Before Step Started-------");
-    rolesAdmin = anchor.web3.Keypair.generate();
     vaultsAdmin = anchor.web3.Keypair.generate();
     reportingManager = anchor.web3.Keypair.generate();
     whitelistedUser = anchor.web3.Keypair.generate();
@@ -79,7 +70,6 @@ describe("Roles & Permissions Tests", () => {
 
     console.log("Vault Program ID:", vaultProgram.programId.toBase58());
     console.log("Strategy Program ID:", strategyProgram.programId.toBase58());
-    console.log("Roles public key:", rolesAdmin.publicKey.toBase58());
     console.log(
       "Underlying Mint Token Owner key: ",
       underlyingMintOwner.publicKey.toBase58()
@@ -96,7 +86,6 @@ describe("Roles & Permissions Tests", () => {
 
     // Airdrop to all accounts
     const publicKeysList = [
-      rolesAdmin.publicKey,
       vaultsAdmin.publicKey,
       reportingManager.publicKey,
       whitelistedUser.publicKey,
@@ -108,17 +97,6 @@ describe("Roles & Permissions Tests", () => {
         amount: 100e9,
       });
     }
-
-    // Init Roles Admin
-    await vaultProgram.methods
-      .initRoleAdmin()
-      .accounts({
-        admin: rolesAdmin.publicKey,
-      })
-      .signers([rolesAdmin])
-      .rpc();
-
-    console.log("Init role admin completed successfully");
 
     // Set Roles for the common accounts
     await vaultProgram.methods
