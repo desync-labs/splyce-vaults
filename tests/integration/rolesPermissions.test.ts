@@ -275,935 +275,956 @@ describe("Roles & Permissions Tests", () => {
     console.log("-------Before Step Finished-------");
   });
 
-  it("Roles Admin - Setting Vaults Admin role is successful", async () => {
-    const vaultsAdminUserInner = anchor.web3.Keypair.generate();
-    await vaultProgram.methods
-      .setRole(vaultsAdminObj, vaultsAdminUserInner.publicKey)
-      .accounts({
-        signer: rolesAdmin.publicKey,
-      })
-      .signers([rolesAdmin])
-      .rpc();
-    const accountRoles = anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("roles"), vaultsAdminUserInner.publicKey.toBuffer()],
-      vaultProgram.programId
-    )[0];
-    const vaultAdminAccount = await vaultProgram.account.accountRoles.fetch(
-      accountRoles
-    );
-    assert.isTrue(vaultAdminAccount.isVaultsAdmin);
-    assert.isTrue(!vaultAdminAccount.isReportingManager);
-    assert.isTrue(!vaultAdminAccount.isWhitelisted);
-  });
+  describe("Roles Admin Role Tests", () => {
+    it("Roles Admin - Setting Vaults Admin role is successful", async () => {
+      const vaultsAdminUserInner = anchor.web3.Keypair.generate();
+      await vaultProgram.methods
+        .setRole(vaultsAdminObj, vaultsAdminUserInner.publicKey)
+        .accounts({
+          signer: rolesAdmin.publicKey,
+        })
+        .signers([rolesAdmin])
+        .rpc();
+      const accountRoles = anchor.web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("roles"), vaultsAdminUserInner.publicKey.toBuffer()],
+        vaultProgram.programId
+      )[0];
+      const vaultAdminAccount = await vaultProgram.account.accountRoles.fetch(
+        accountRoles
+      );
+      assert.isTrue(vaultAdminAccount.isVaultsAdmin);
+      assert.isTrue(!vaultAdminAccount.isReportingManager);
+      assert.isTrue(!vaultAdminAccount.isWhitelisted);
+    });
 
-  it("Roles Admin - Setting Reporting Manager role is successful", async () => {
-    const reportingManagerUserInner = anchor.web3.Keypair.generate();
-    await vaultProgram.methods
-      .setRole(reportingManagerObj, reportingManagerUserInner.publicKey)
-      .accounts({
-        signer: rolesAdmin.publicKey,
-      })
-      .signers([rolesAdmin])
-      .rpc();
-    const accountRoles = anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("roles"), reportingManagerUserInner.publicKey.toBuffer()],
-      vaultProgram.programId
-    )[0];
-    const reportingManagerAccount =
-      await vaultProgram.account.accountRoles.fetch(accountRoles);
-    assert.isTrue(reportingManagerAccount.isReportingManager);
-    assert.isTrue(!reportingManagerAccount.isVaultsAdmin);
-    assert.isTrue(!reportingManagerAccount.isWhitelisted);
-  });
+    it("Roles Admin - Setting Reporting Manager role is successful", async () => {
+      const reportingManagerUserInner = anchor.web3.Keypair.generate();
+      await vaultProgram.methods
+        .setRole(reportingManagerObj, reportingManagerUserInner.publicKey)
+        .accounts({
+          signer: rolesAdmin.publicKey,
+        })
+        .signers([rolesAdmin])
+        .rpc();
+      const accountRoles = anchor.web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("roles"), reportingManagerUserInner.publicKey.toBuffer()],
+        vaultProgram.programId
+      )[0];
+      const reportingManagerAccount =
+        await vaultProgram.account.accountRoles.fetch(accountRoles);
+      assert.isTrue(reportingManagerAccount.isReportingManager);
+      assert.isTrue(!reportingManagerAccount.isVaultsAdmin);
+      assert.isTrue(!reportingManagerAccount.isWhitelisted);
+    });
 
-  it("Roles Admin - Setting Whitelisted role is successful", async () => {
-    const whitelistedUserInner = anchor.web3.Keypair.generate();
-    await vaultProgram.methods
-      .setRole(whitelistedObj, whitelistedUserInner.publicKey)
-      .accounts({
-        signer: rolesAdmin.publicKey,
-      })
-      .signers([rolesAdmin])
-      .rpc();
-    const accountRoles = anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("roles"), whitelistedUserInner.publicKey.toBuffer()],
-      vaultProgram.programId
-    )[0];
-    const whitelistedAccount = await vaultProgram.account.accountRoles.fetch(
-      accountRoles
-    );
-    assert.isTrue(whitelistedAccount.isWhitelisted);
-    assert.isTrue(!whitelistedAccount.isVaultsAdmin);
-    assert.isTrue(!whitelistedAccount.isReportingManager);
-  });
+    it("Roles Admin - Setting Whitelisted role is successful", async () => {
+      const whitelistedUserInner = anchor.web3.Keypair.generate();
+      await vaultProgram.methods
+        .setRole(whitelistedObj, whitelistedUserInner.publicKey)
+        .accounts({
+          signer: rolesAdmin.publicKey,
+        })
+        .signers([rolesAdmin])
+        .rpc();
+      const accountRoles = anchor.web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("roles"), whitelistedUserInner.publicKey.toBuffer()],
+        vaultProgram.programId
+      )[0];
+      const whitelistedAccount = await vaultProgram.account.accountRoles.fetch(
+        accountRoles
+      );
+      assert.isTrue(whitelistedAccount.isWhitelisted);
+      assert.isTrue(!whitelistedAccount.isVaultsAdmin);
+      assert.isTrue(!whitelistedAccount.isReportingManager);
+    });
 
-  it("Roles Admin - Setting all 3 roles to the same user is successful", async () => {
-    const allRolesUser = anchor.web3.Keypair.generate();
-    await vaultProgram.methods
-      .setRole(vaultsAdminObj, allRolesUser.publicKey)
-      .accounts({
-        signer: rolesAdmin.publicKey,
-      })
-      .signers([rolesAdmin])
-      .rpc();
-    await vaultProgram.methods
-      .setRole(reportingManagerObj, allRolesUser.publicKey)
-      .accounts({
-        signer: rolesAdmin.publicKey,
-      })
-      .signers([rolesAdmin])
-      .rpc();
-    await vaultProgram.methods
-      .setRole(whitelistedObj, allRolesUser.publicKey)
-      .accounts({
-        signer: rolesAdmin.publicKey,
-      })
-      .signers([rolesAdmin])
-      .rpc();
-    const accountRoles = anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("roles"), allRolesUser.publicKey.toBuffer()],
-      vaultProgram.programId
-    )[0];
-    const allRolesAccount = await vaultProgram.account.accountRoles.fetch(
-      accountRoles
-    );
-    assert.isTrue(allRolesAccount.isWhitelisted);
-    assert.isTrue(allRolesAccount.isVaultsAdmin);
-    assert.isTrue(allRolesAccount.isReportingManager);
-  });
+    it("Roles Admin - Setting all 3 roles to the same user is successful", async () => {
+      const allRolesUser = anchor.web3.Keypair.generate();
+      await vaultProgram.methods
+        .setRole(vaultsAdminObj, allRolesUser.publicKey)
+        .accounts({
+          signer: rolesAdmin.publicKey,
+        })
+        .signers([rolesAdmin])
+        .rpc();
+      await vaultProgram.methods
+        .setRole(reportingManagerObj, allRolesUser.publicKey)
+        .accounts({
+          signer: rolesAdmin.publicKey,
+        })
+        .signers([rolesAdmin])
+        .rpc();
+      await vaultProgram.methods
+        .setRole(whitelistedObj, allRolesUser.publicKey)
+        .accounts({
+          signer: rolesAdmin.publicKey,
+        })
+        .signers([rolesAdmin])
+        .rpc();
+      const accountRoles = anchor.web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("roles"), allRolesUser.publicKey.toBuffer()],
+        vaultProgram.programId
+      )[0];
+      const allRolesAccount = await vaultProgram.account.accountRoles.fetch(
+        accountRoles
+      );
+      assert.isTrue(allRolesAccount.isWhitelisted);
+      assert.isTrue(allRolesAccount.isVaultsAdmin);
+      assert.isTrue(allRolesAccount.isReportingManager);
+    });
 
-  // Drop role not working currently
-  it.skip("Roles Admin - Can successfully drop a role", async () => {
-    const allRolesUser = anchor.web3.Keypair.generate();
-    await vaultProgram.methods
-      .setRole(vaultsAdminObj, allRolesUser.publicKey)
-      .accounts({
-        signer: rolesAdmin.publicKey,
-      })
-      .signers([rolesAdmin])
-      .rpc();
-    await vaultProgram.methods
-      .setRole(reportingManagerObj, allRolesUser.publicKey)
-      .accounts({
-        signer: rolesAdmin.publicKey,
-      })
-      .signers([rolesAdmin])
-      .rpc();
-    await vaultProgram.methods
-      .setRole(whitelistedObj, allRolesUser.publicKey)
-      .accounts({
-        signer: rolesAdmin.publicKey,
-      })
-      .signers([rolesAdmin])
-      .rpc();
-    const accountRoles = anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("roles"), allRolesUser.publicKey.toBuffer()],
-      vaultProgram.programId
-    )[0];
-    const allRolesAccount = await vaultProgram.account.accountRoles.fetch(
-      accountRoles
-    );
-    assert.isTrue(allRolesAccount.isWhitelisted);
-    assert.isTrue(allRolesAccount.isVaultsAdmin);
-    assert.isTrue(allRolesAccount.isReportingManager);
-    await vaultProgram.methods
-      .dropRole(reportingManagerObj)
-      .accounts({
-        user: allRolesUser.publicKey,
-        signer: rolesAdmin.publicKey,
-      })
-      .signers([rolesAdmin])
-      .rpc();
-    await vaultProgram.methods
-      .dropRole(whitelistedObj)
-      .accounts({
-        user: allRolesUser.publicKey,
-        signer: rolesAdmin.publicKey,
-      })
-      .signers([rolesAdmin])
-      .rpc();
-    assert.isTrue(allRolesAccount.isVaultsAdmin);
-    assert.isTrue(!allRolesAccount.isWhitelisted);
-    assert.isTrue(!allRolesAccount.isReportingManager);
-  });
+    // Drop role not working currently
+    it.skip("Roles Admin - Can successfully drop a role", async () => {
+      const allRolesUser = anchor.web3.Keypair.generate();
+      await vaultProgram.methods
+        .setRole(vaultsAdminObj, allRolesUser.publicKey)
+        .accounts({
+          signer: rolesAdmin.publicKey,
+        })
+        .signers([rolesAdmin])
+        .rpc();
+      await vaultProgram.methods
+        .setRole(reportingManagerObj, allRolesUser.publicKey)
+        .accounts({
+          signer: rolesAdmin.publicKey,
+        })
+        .signers([rolesAdmin])
+        .rpc();
+      await vaultProgram.methods
+        .setRole(whitelistedObj, allRolesUser.publicKey)
+        .accounts({
+          signer: rolesAdmin.publicKey,
+        })
+        .signers([rolesAdmin])
+        .rpc();
+      const accountRoles = anchor.web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("roles"), allRolesUser.publicKey.toBuffer()],
+        vaultProgram.programId
+      )[0];
+      const allRolesAccount = await vaultProgram.account.accountRoles.fetch(
+        accountRoles
+      );
+      assert.isTrue(allRolesAccount.isWhitelisted);
+      assert.isTrue(allRolesAccount.isVaultsAdmin);
+      assert.isTrue(allRolesAccount.isReportingManager);
+      await vaultProgram.methods
+        .dropRole(reportingManagerObj)
+        .accounts({
+          user: allRolesUser.publicKey,
+          signer: rolesAdmin.publicKey,
+        })
+        .signers([rolesAdmin])
+        .rpc();
+      await vaultProgram.methods
+        .dropRole(whitelistedObj)
+        .accounts({
+          user: allRolesUser.publicKey,
+          signer: rolesAdmin.publicKey,
+        })
+        .signers([rolesAdmin])
+        .rpc();
+      assert.isTrue(allRolesAccount.isVaultsAdmin);
+      assert.isTrue(!allRolesAccount.isWhitelisted);
+      assert.isTrue(!allRolesAccount.isReportingManager);
+    });
 
-  it("Roles Admin - Initializing vault should revert", async () => {
-    try {
-      await initializeVault({
-        vaultProgram,
-        underlyingMint,
-        vaultIndex: 5,
-        signer: rolesAdmin,
-        config: vaultConfig,
-      });
-      assert.fail("Error was not thrown");
-    } catch (err) {
-      expect(err.message).contains(anchorError3012);
-    }
-  });
+    it("Roles Admin - Initializing vault should revert", async () => {
+      try {
+        await initializeVault({
+          vaultProgram,
+          underlyingMint,
+          vaultIndex: 5,
+          signer: rolesAdmin,
+          config: vaultConfig,
+        });
+        assert.fail("Error was not thrown");
+      } catch (err) {
+        expect(err.message).contains(anchorError3012);
+      }
+    });
 
-  it("Roles Admin - Adding a strategy to the vault should revert", async () => {
-    try {
+    it("Roles Admin - Adding a strategy to the vault should revert", async () => {
+      try {
+        await vaultProgram.methods
+          .addStrategy(new BN(1000000000))
+          .accounts({
+            vault: vaultOne,
+            strategy: strategyOne,
+            signer: rolesAdmin.publicKey,
+          })
+          .signers([rolesAdmin])
+          .rpc();
+        assert.fail("Error was not thrown");
+      } catch (err) {
+        expect(err.message).contains(anchorError3012);
+      }
+    });
+
+    it("Roles Admin - Removing a strategy from the vault should revert", async () => {
       await vaultProgram.methods
         .addStrategy(new BN(1000000000))
         .accounts({
           vault: vaultOne,
           strategy: strategyOne,
-          signer: rolesAdmin.publicKey,
+          signer: vaultsAdmin.publicKey,
         })
-        .signers([rolesAdmin])
+        .signers([vaultsAdmin])
         .rpc();
-      assert.fail("Error was not thrown");
-    } catch (err) {
-      expect(err.message).contains(anchorError3012);
-    }
+      try {
+        await vaultProgram.methods
+          .removeStrategy(strategyOne, false)
+          .accounts({
+            vault: vaultOne,
+            signer: rolesAdmin.publicKey,
+          })
+          .signers([rolesAdmin])
+          .rpc();
+        assert.fail("Error was not thrown");
+      } catch (err) {
+        expect(err.message).contains(anchorError3012);
+      }
+    });
+
+    it("Roles Admin - Shutting down the vault should revert", async () => {
+      try {
+        await vaultProgram.methods
+          .shutdownVault()
+          .accounts({
+            vault: vaultOne,
+            signer: rolesAdmin.publicKey,
+          })
+          .signers([rolesAdmin])
+          .rpc();
+        assert.fail("Error was not thrown");
+      } catch (err) {
+        expect(err.message).contains(anchorError3012);
+      }
+    });
+
+    it("Roles Admin - Update debt for the vault should revert", async () => {
+      try {
+        await vaultProgram.methods
+          .updateDebt(new BN(100))
+          .accounts({
+            vault: vaultOne,
+            strategy: strategyOne,
+            strategyTokenAccount: strategyTokenAccountOne,
+            signer: rolesAdmin.publicKey,
+            // @ts-ignore
+            tokenProgram: token.TOKEN_PROGRAM_ID,
+            strategyProgram: strategyProgram.programId,
+          })
+          .signers([rolesAdmin])
+          .rpc();
+        assert.fail("Error was not thrown");
+      } catch (err) {
+        expect(err.message).contains(anchorError3012);
+      }
+    });
+
+    it("Roles Admin - Set deposit limit for the vault should revert", async () => {
+      try {
+        await vaultProgram.methods
+          .setDepositLimit(new BN(2000))
+          .accounts({
+            vault: vaultOne,
+            signer: rolesAdmin.publicKey,
+          })
+          .signers([rolesAdmin])
+          .rpc();
+        assert.fail("Error was not thrown");
+      } catch (err) {
+        expect(err.message).contains(anchorError3012);
+      }
+    });
+
+    it("Roles Admin - Process report for the vault should revert", async () => {
+      const feeRecipient = anchor.web3.Keypair.generate();
+      await airdrop({
+        connection,
+        publicKey: feeRecipient.publicKey,
+        amount: 10e9,
+      });
+      const feeRecipientSharesAccount = await token.createAccount(
+        provider.connection,
+        feeRecipient,
+        sharesMintOne,
+        feeRecipient.publicKey
+      );
+
+      try {
+        await vaultProgram.methods
+          .processReport()
+          .accounts({
+            vault: vaultOne,
+            strategy: strategyOne,
+            signer: rolesAdmin.publicKey,
+            feeSharesRecipient: feeRecipientSharesAccount,
+          })
+          .signers([rolesAdmin])
+          .rpc();
+        assert.fail("Error was not thrown");
+      } catch (err) {
+        expect(err.message).contains(anchorError3012);
+      }
+    });
+
+    it("Roles Admin - Depositing into the vault should revert", async () => {
+      const rolesAdminTokenAccount = await token.createAccount(
+        provider.connection,
+        rolesAdmin,
+        underlyingMint,
+        rolesAdmin.publicKey
+      );
+      const rolesAdminSharesAccount = await token.createAccount(
+        provider.connection,
+        rolesAdmin,
+        sharesMintOne,
+        rolesAdmin.publicKey
+      );
+      await token.mintTo(
+        connection,
+        underlyingMintOwner,
+        underlyingMint,
+        rolesAdminTokenAccount,
+        underlyingMintOwner.publicKey,
+        1000
+      );
+
+      try {
+        await vaultProgram.methods
+          .deposit(new BN(100))
+          .accounts({
+            vault: vaultOne,
+            user: rolesAdmin.publicKey,
+            userTokenAccount: rolesAdminTokenAccount,
+            userSharesAccount: rolesAdminSharesAccount,
+          })
+          .signers([rolesAdmin])
+          .rpc();
+        assert.fail("Error was not thrown");
+      } catch (err) {
+        expect(err.message).contains(anchorError3012);
+      }
+    });
   });
 
-  it("Roles Admin - Removing a strategy from the vault should revert", async () => {
-    await vaultProgram.methods
-      .addStrategy(new BN(1000000000))
-      .accounts({
-        vault: vaultOne,
-        strategy: strategyOne,
-        signer: vaultsAdmin.publicKey,
-      })
-      .signers([vaultsAdmin])
-      .rpc();
-    try {
-      await vaultProgram.methods
-        .removeStrategy(strategyOne, false)
-        .accounts({
-          vault: vaultOne,
-          signer: rolesAdmin.publicKey,
-        })
-        .signers([rolesAdmin])
-        .rpc();
-      assert.fail("Error was not thrown");
-    } catch (err) {
-      expect(err.message).contains(anchorError3012);
-    }
-  });
+  describe("Vaults Admin Role Tests", () => {
+    it("Vaults Admin - Setting Vaults Admin role should revert", async () => {
+      const vaultsAdminUserInner = anchor.web3.Keypair.generate();
+      try {
+        await vaultProgram.methods
+          .setRole(vaultsAdminObj, vaultsAdminUserInner.publicKey)
+          .accounts({
+            signer: vaultsAdmin.publicKey,
+          })
+          .signers([vaultsAdmin])
+          .rpc();
+        assert.fail("Error was not thrown");
+      } catch (err) {
+        expect(err.message).contain(anchorError2012);
+        expect(err.message).contains(rolesAdmin.publicKey);
+        expect(err.message).contains(vaultsAdmin.publicKey);
+      }
+    });
 
-  it("Roles Admin - Shutting down the vault should revert", async () => {
-    try {
-      await vaultProgram.methods
-        .shutdownVault()
-        .accounts({
-          vault: vaultOne,
-          signer: rolesAdmin.publicKey,
-        })
-        .signers([rolesAdmin])
-        .rpc();
-      assert.fail("Error was not thrown");
-    } catch (err) {
-      expect(err.message).contains(anchorError3012);
-    }
-  });
+    it("Vaults Admin - Setting Reporting Manager role should revert", async () => {
+      const reportingManagerUserInner = anchor.web3.Keypair.generate();
+      try {
+        await vaultProgram.methods
+          .setRole(vaultsAdminObj, reportingManagerUserInner.publicKey)
+          .accounts({
+            signer: vaultsAdmin.publicKey,
+          })
+          .signers([vaultsAdmin])
+          .rpc();
+        assert.fail("Error was not thrown");
+      } catch (err) {
+        expect(err.message).contain(anchorError2012);
+        expect(err.message).contains(rolesAdmin.publicKey);
+        expect(err.message).contains(vaultsAdmin.publicKey);
+      }
+    });
 
-  it("Roles Admin - Update debt for the vault should revert", async () => {
-    try {
+    it("Vaults Admin - Setting Whitelisted User role should revert", async () => {
+      const whiteListedUserInner = anchor.web3.Keypair.generate();
+      try {
+        await vaultProgram.methods
+          .setRole(vaultsAdminObj, whiteListedUserInner.publicKey)
+          .accounts({
+            signer: vaultsAdmin.publicKey,
+          })
+          .signers([vaultsAdmin])
+          .rpc();
+        assert.fail("Error was not thrown");
+      } catch (err) {
+        expect(err.message).contain(anchorError2012);
+        expect(err.message).contains(rolesAdmin.publicKey);
+        expect(err.message).contains(vaultsAdmin.publicKey);
+      }
+    });
+
+    it("Vaults Admin - Process report for the vault should revert", async () => {
+      const feeRecipient = anchor.web3.Keypair.generate();
+      await airdrop({
+        connection,
+        publicKey: feeRecipient.publicKey,
+        amount: 10e9,
+      });
+      const feeRecipientSharesAccount = await token.createAccount(
+        provider.connection,
+        feeRecipient,
+        sharesMintTwo,
+        feeRecipient.publicKey
+      );
+
+      try {
+        await vaultProgram.methods
+          .processReport()
+          .accounts({
+            vault: vaultTwo,
+            strategy: strategyTwo,
+            signer: vaultsAdmin.publicKey,
+            feeSharesRecipient: feeRecipientSharesAccount,
+          })
+          .signers([vaultsAdmin])
+          .rpc();
+        assert.fail("Error was not thrown");
+      } catch (err) {
+        expect(err.message).contains(anchorError2003);
+      }
+    });
+
+    it("Vaults Admin - Initializing vault is successful", async () => {
+      const [vaultInner, sharesMintInner, vaultTokenAccountInner] =
+        await initializeVault({
+          vaultProgram,
+          underlyingMint,
+          vaultIndex: 6,
+          signer: vaultsAdmin,
+          config: vaultConfig,
+        });
+      const vaultAccountInner = await vaultProgram.account.vault.fetch(
+        vaultInner
+      );
+      expect(vaultAccountInner.underlyingTokenAcc.toBase58()).to.equal(
+        vaultTokenAccountInner.toBase58()
+      );
+      expect(vaultAccountInner.isShutdown).to.equal(false);
+    });
+
+    it("Vaults Admin - Adding a strategy to the vault is successful", async () => {
       await vaultProgram.methods
-        .updateDebt(new BN(100))
+        .addStrategy(new BN(1000000000))
         .accounts({
-          vault: vaultOne,
-          strategy: strategyOne,
-          strategyTokenAccount: strategyTokenAccountOne,
-          signer: rolesAdmin.publicKey,
+          vault: vaultTwo,
+          strategy: strategyTwo,
+          signer: vaultsAdmin.publicKey,
+        })
+        .signers([vaultsAdmin])
+        .rpc();
+      const vaultAccount = await vaultProgram.account.vault.fetch(vaultTwo);
+      assert.ok(vaultAccount.strategies[0].key.equals(strategyTwo));
+    });
+
+    // TODO, need to validate assertions
+    it("Vaults Admin - Update debt for the vault is successful", async () => {
+      const depositAmount = 100;
+      const allocationAmount = 90;
+      const whitelistedUserSharesTokenAccount = await token.createAccount(
+        connection,
+        whitelistedUser,
+        sharesMintTwo,
+        whitelistedUser.publicKey
+      );
+
+      await vaultProgram.methods
+        .deposit(new BN(depositAmount))
+        .accounts({
+          vault: vaultTwo,
+          user: whitelistedUser.publicKey,
+          userTokenAccount: whitelistedUserTokenAccount,
+          userSharesAccount: whitelistedUserSharesTokenAccount,
+        })
+        .signers([whitelistedUser])
+        .rpc();
+
+      await vaultProgram.methods
+        .updateDebt(new BN(allocationAmount))
+        .accounts({
+          vault: vaultTwo,
+          strategy: strategyTwo,
+          strategyTokenAccount: strategyTokenAccountTwo,
+          signer: vaultsAdmin.publicKey,
           // @ts-ignore
           tokenProgram: token.TOKEN_PROGRAM_ID,
           strategyProgram: strategyProgram.programId,
         })
-        .signers([rolesAdmin])
+        .signers([vaultsAdmin])
         .rpc();
-      assert.fail("Error was not thrown");
-    } catch (err) {
-      expect(err.message).contains(anchorError3012);
-    }
-  });
+      const vaultAccount = await vaultProgram.account.vault.fetch(vaultTwo);
+      expect(Number(vaultAccount.strategies[0].currentDebt)).to.eql(
+        allocationAmount
+      );
+      expect(Number(vaultAccount.totalDebt)).to.eql(allocationAmount);
+      expect(Number(vaultAccount.totalIdle)).to.eql(
+        depositAmount - allocationAmount
+      );
 
-  it("Roles Admin - Set deposit limit for the vault should revert", async () => {
-    try {
-      await vaultProgram.methods
-        .setDepositLimit(new BN(2000))
-        .accounts({
-          vault: vaultOne,
-          signer: rolesAdmin.publicKey,
-        })
-        .signers([rolesAdmin])
-        .rpc();
-      assert.fail("Error was not thrown");
-    } catch (err) {
-      expect(err.message).contains(anchorError3012);
-    }
-  });
+      // Fetch the vault token account balance to verify the allocation
+      const vaultTokenAccountInfo = await token.getAccount(
+        provider.connection,
+        vaultTokenAccountTwo
+      );
+      assert.strictEqual(
+        Number(vaultTokenAccountInfo.amount),
+        depositAmount - allocationAmount
+      );
 
-  it("Roles Admin - Process report for the vault should revert", async () => {
-    const feeRecipient = anchor.web3.Keypair.generate();
-    await airdrop({
-      connection,
-      publicKey: feeRecipient.publicKey,
-      amount: 10e9,
+      // Fetch the strategy token account balance to verify the allocation
+      const strategyTokenAccountInfo = await token.getAccount(
+        provider.connection,
+        strategyTokenAccountTwo
+      );
+      assert.strictEqual(
+        Number(strategyTokenAccountInfo.amount),
+        allocationAmount
+      );
+
+      // Fetch the strategy account to verify the state change
+      const strategyAccount =
+        await strategyProgram.account.simpleStrategy.fetch(strategyTwo);
+      assert.strictEqual(Number(strategyAccount.totalAssets), allocationAmount);
     });
-    const feeRecipientSharesAccount = await token.createAccount(
-      provider.connection,
-      feeRecipient,
-      sharesMintOne,
-      feeRecipient.publicKey
-    );
 
-    try {
+    it("Vaults Admin - Set deposit limit for the vault is successful", async () => {
+      const depositLimit = new BN(2000);
       await vaultProgram.methods
-        .processReport()
-        .accounts({
-          vault: vaultOne,
-          strategy: strategyOne,
-          signer: rolesAdmin.publicKey,
-          feeSharesRecipient: feeRecipientSharesAccount,
-        })
-        .signers([rolesAdmin])
-        .rpc();
-      assert.fail("Error was not thrown");
-    } catch (err) {
-      expect(err.message).contains(anchorError3012);
-    }
-  });
-
-  it("Roles Admin - Depositing into the vault should revert", async () => {
-    const rolesAdminTokenAccount = await token.createAccount(
-      provider.connection,
-      rolesAdmin,
-      underlyingMint,
-      rolesAdmin.publicKey
-    );
-    const rolesAdminSharesAccount = await token.createAccount(
-      provider.connection,
-      rolesAdmin,
-      sharesMintOne,
-      rolesAdmin.publicKey
-    );
-    await token.mintTo(
-      connection,
-      underlyingMintOwner,
-      underlyingMint,
-      rolesAdminTokenAccount,
-      underlyingMintOwner.publicKey,
-      1000
-    );
-
-    try {
-      await vaultProgram.methods
-        .deposit(new BN(100))
-        .accounts({
-          vault: vaultOne,
-          user: rolesAdmin.publicKey,
-          userTokenAccount: rolesAdminTokenAccount,
-          userSharesAccount: rolesAdminSharesAccount,
-        })
-        .signers([rolesAdmin])
-        .rpc();
-      assert.fail("Error was not thrown");
-    } catch (err) {
-      expect(err.message).contains(anchorError3012);
-    }
-  });
-
-  it("Vaults Admin - Setting Vaults Admin role should revert", async () => {
-    const vaultsAdminUserInner = anchor.web3.Keypair.generate();
-    try {
-      await vaultProgram.methods
-        .setRole(vaultsAdminObj, vaultsAdminUserInner.publicKey)
-        .accounts({
-          signer: vaultsAdmin.publicKey,
-        })
-        .signers([vaultsAdmin])
-        .rpc();
-      assert.fail("Error was not thrown");
-    } catch (err) {
-      expect(err.message).contain(anchorError2012);
-      expect(err.message).contains(rolesAdmin.publicKey);
-      expect(err.message).contains(vaultsAdmin.publicKey);
-    }
-  });
-
-  it("Vaults Admin - Setting Reporting Manager role should revert", async () => {
-    const reportingManagerUserInner = anchor.web3.Keypair.generate();
-    try {
-      await vaultProgram.methods
-        .setRole(vaultsAdminObj, reportingManagerUserInner.publicKey)
-        .accounts({
-          signer: vaultsAdmin.publicKey,
-        })
-        .signers([vaultsAdmin])
-        .rpc();
-      assert.fail("Error was not thrown");
-    } catch (err) {
-      expect(err.message).contain(anchorError2012);
-      expect(err.message).contains(rolesAdmin.publicKey);
-      expect(err.message).contains(vaultsAdmin.publicKey);
-    }
-  });
-
-  it("Vaults Admin - Setting Whitelisted User role should revert", async () => {
-    const whiteListedUserInner = anchor.web3.Keypair.generate();
-    try {
-      await vaultProgram.methods
-        .setRole(vaultsAdminObj, whiteListedUserInner.publicKey)
-        .accounts({
-          signer: vaultsAdmin.publicKey,
-        })
-        .signers([vaultsAdmin])
-        .rpc();
-      assert.fail("Error was not thrown");
-    } catch (err) {
-      expect(err.message).contain(anchorError2012);
-      expect(err.message).contains(rolesAdmin.publicKey);
-      expect(err.message).contains(vaultsAdmin.publicKey);
-    }
-  });
-
-  it("Vaults Admin - Process report for the vault should revert", async () => {
-    const feeRecipient = anchor.web3.Keypair.generate();
-    await airdrop({
-      connection,
-      publicKey: feeRecipient.publicKey,
-      amount: 10e9,
-    });
-    const feeRecipientSharesAccount = await token.createAccount(
-      provider.connection,
-      feeRecipient,
-      sharesMintTwo,
-      feeRecipient.publicKey
-    );
-
-    try {
-      await vaultProgram.methods
-        .processReport()
+        .setDepositLimit(depositLimit)
         .accounts({
           vault: vaultTwo,
-          strategy: strategyTwo,
           signer: vaultsAdmin.publicKey,
-          feeSharesRecipient: feeRecipientSharesAccount,
         })
         .signers([vaultsAdmin])
         .rpc();
-      assert.fail("Error was not thrown");
-    } catch (err) {
-      expect(err.message).contains(anchorError2003);
-    }
-  });
+      const vaultAccount = await vaultProgram.account.vault.fetch(vaultTwo);
+      expect(Number(vaultAccount.depositLimit)).equals(Number(depositLimit));
+    });
 
-  it("Vaults Admin - Initializing vault is successful", async () => {
-    const [vaultInner, sharesMintInner, vaultTokenAccountInner] =
-      await initializeVault({
-        vaultProgram,
-        underlyingMint,
-        vaultIndex: 6,
-        signer: vaultsAdmin,
-        config: vaultConfig,
+    it("Vaults Admin - Process report for the vault should revert", async () => {
+      const feeRecipient = anchor.web3.Keypair.generate();
+      await airdrop({
+        connection,
+        publicKey: feeRecipient.publicKey,
+        amount: 10e9,
       });
-    const vaultAccountInner = await vaultProgram.account.vault.fetch(
-      vaultInner
-    );
-    expect(vaultAccountInner.underlyingTokenAcc.toBase58()).to.equal(
-      vaultTokenAccountInner.toBase58()
-    );
-    expect(vaultAccountInner.isShutdown).to.equal(false);
-  });
+      const feeRecipientSharesAccount = await token.createAccount(
+        provider.connection,
+        feeRecipient,
+        sharesMintTwo,
+        feeRecipient.publicKey
+      );
 
-  it("Vaults Admin - Adding a strategy to the vault is successful", async () => {
-    await vaultProgram.methods
-      .addStrategy(new BN(1000000000))
-      .accounts({
-        vault: vaultTwo,
-        strategy: strategyTwo,
-        signer: vaultsAdmin.publicKey,
-      })
-      .signers([vaultsAdmin])
-      .rpc();
-    const vaultAccount = await vaultProgram.account.vault.fetch(vaultTwo);
-    assert.ok(vaultAccount.strategies[0].key.equals(strategyTwo));
-  });
-
-
-  // TODO, need to validate assertions
-  it("Vaults Admin - Update debt for the vault is successful", async () => {
-    const depositAmount = 100;
-    const allocationAmount = 90;
-    const whitelistedUserSharesTokenAccount = await token.createAccount(
-      connection,
-      whitelistedUser,
-      sharesMintTwo,
-      whitelistedUser.publicKey
-    );
-
-    await vaultProgram.methods
-      .deposit(new BN(depositAmount))
-      .accounts({
-        vault: vaultTwo,
-        user: whitelistedUser.publicKey,
-        userTokenAccount: whitelistedUserTokenAccount,
-        userSharesAccount: whitelistedUserSharesTokenAccount,
-      })
-      .signers([whitelistedUser])
-      .rpc();
-
-    await vaultProgram.methods
-      .updateDebt(new BN(allocationAmount))
-      .accounts({
-        vault: vaultTwo,
-        strategy: strategyTwo,
-        strategyTokenAccount: strategyTokenAccountTwo,
-        signer: vaultsAdmin.publicKey,
-        // @ts-ignore
-        tokenProgram: token.TOKEN_PROGRAM_ID,
-        strategyProgram: strategyProgram.programId,
-      })
-      .signers([vaultsAdmin])
-      .rpc();
-    const vaultAccount = await vaultProgram.account.vault.fetch(vaultTwo);
-    expect(Number(vaultAccount.strategies[0].currentDebt)).to.eql(allocationAmount);
-    expect(Number(vaultAccount.totalDebt)).to.eql(allocationAmount);
-    expect(Number(vaultAccount.totalIdle)).to.eql(depositAmount - allocationAmount);
-
-    // Fetch the vault token account balance to verify the allocation
-    const vaultTokenAccountInfo = await token.getAccount(provider.connection, vaultTokenAccountTwo);
-    assert.strictEqual(Number(vaultTokenAccountInfo.amount), depositAmount-allocationAmount);
-
-    // Fetch the strategy token account balance to verify the allocation
-    const strategyTokenAccountInfo = await token.getAccount(provider.connection, strategyTokenAccountTwo);
-    assert.strictEqual(Number(strategyTokenAccountInfo.amount), allocationAmount);
-
-    // Fetch the strategy account to verify the state change
-    const strategyAccount = await strategyProgram.account.simpleStrategy.fetch(strategyTwo);
-    assert.strictEqual(Number(strategyAccount.totalAssets), allocationAmount);
-  });
-
-  it("Vaults Admin - Set deposit limit for the vault is successful", async () => {
-    const depositLimit = new BN(2000);
-    await vaultProgram.methods
-      .setDepositLimit(depositLimit)
-      .accounts({
-        vault: vaultTwo,
-        signer: vaultsAdmin.publicKey,
-      })
-      .signers([vaultsAdmin])
-      .rpc();
-    const vaultAccount = await vaultProgram.account.vault.fetch(vaultTwo);
-    expect(Number(vaultAccount.depositLimit)).equals(Number(depositLimit));
-  });
-
-  it("Vaults Admin - Process report for the vault should revert", async () => {
-    const feeRecipient = anchor.web3.Keypair.generate();
-    await airdrop({
-      connection,
-      publicKey: feeRecipient.publicKey,
-      amount: 10e9,
+      try {
+        await vaultProgram.methods
+          .processReport()
+          .accounts({
+            vault: vaultTwo,
+            strategy: strategyTwo,
+            signer: vaultsAdmin.publicKey,
+            feeSharesRecipient: feeRecipientSharesAccount,
+          })
+          .signers([vaultsAdmin])
+          .rpc();
+        assert.fail("Error was not thrown");
+      } catch (err) {
+        expect(err.message).contains(anchorError2003);
+      }
     });
-    const feeRecipientSharesAccount = await token.createAccount(
-      provider.connection,
-      feeRecipient,
-      sharesMintTwo,
-      feeRecipient.publicKey
-    );
 
-    try {
-      await vaultProgram.methods
-        .processReport()
-        .accounts({
-          vault: vaultTwo,
-          strategy: strategyTwo,
-          signer: vaultsAdmin.publicKey,
-          feeSharesRecipient: feeRecipientSharesAccount,
-        })
-        .signers([vaultsAdmin])
-        .rpc();
-      assert.fail("Error was not thrown");
-    } catch (err) {
-      expect(err.message).contains(anchorError2003);
-    }
-  });
-
-  it("Vaults Admin - Depositing into the vault should revert", async () => {
-    const vaultsAdminTokenAccount = await token.createAccount(
-      provider.connection,
-      vaultsAdmin,
-      underlyingMint,
-      vaultsAdmin.publicKey
-    );
-    const vaultsAdminSharesAccount = await token.createAccount(
-      provider.connection,
-      vaultsAdmin,
-      sharesMintTwo,
-      vaultsAdmin.publicKey
-    );
-    await token.mintTo(
-      connection,
-      underlyingMintOwner,
-      underlyingMint,
-      vaultsAdminTokenAccount,
-      underlyingMintOwner.publicKey,
-      1000
-    );
-
-    try {
-      await vaultProgram.methods
-        .deposit(new BN(100))
-        .accounts({
-          vault: vaultTwo,
-          user: vaultsAdmin.publicKey,
-          userTokenAccount: vaultsAdminTokenAccount,
-          userSharesAccount: vaultsAdminSharesAccount,
-        })
-        .signers([vaultsAdmin])
-        .rpc();
-      assert.fail("Error was not thrown");
-    } catch (err) {
-      expect(err.message).contains(anchorError2003);
-    }
-  });
-
-  it("Vaults Admin - Removing a strategy from the vault is successful", async () => {
-    await vaultProgram.methods
-      .removeStrategy(strategyTwo, true)
-      .accounts({
-        vault: vaultTwo,
-        signer: vaultsAdmin.publicKey,
-      })
-      .signers([vaultsAdmin])
-      .rpc();
-    const vaultAccount = await vaultProgram.account.vault.fetch(vaultTwo);
-    assert.strictEqual(
-      vaultAccount.strategies[0].key.toString(),
-      "11111111111111111111111111111111"
-    );
-  });
-
-  it("Vaults Admin - Shutting down the vault is successful", async () => {
-    await vaultProgram.methods
-      .shutdownVault()
-      .accounts({
-        vault: vaultTwo,
-        signer: vaultsAdmin.publicKey,
-      })
-      .signers([vaultsAdmin])
-      .rpc();
-    const vaultAccountTwo = await vaultProgram.account.vault.fetch(vaultTwo);
-    expect(vaultAccountTwo.isShutdown).to.equal(true);
-  });
-
-  it("Reporting Manager - Setting Vaults Admin role should revert", async () => {
-    const vaultsAdminUserInner = anchor.web3.Keypair.generate();
-    try {
-      await vaultProgram.methods
-        .setRole(vaultsAdminObj, vaultsAdminUserInner.publicKey)
-        .accounts({
-          signer: reportingManager.publicKey,
-        })
-        .signers([reportingManager])
-        .rpc();
-      assert.fail("Error was not thrown");
-    } catch (err) {
-      expect(err.message).contain(anchorError2012);
-      expect(err.message).contains(rolesAdmin.publicKey);
-      expect(err.message).contains(reportingManager.publicKey);
-    }
-  });
-
-  it("Reporting Manager - Setting Reporting Manager role should revert", async () => {
-    const reportingManagerUserInner = anchor.web3.Keypair.generate();
-    try {
-      await vaultProgram.methods
-        .setRole(vaultsAdminObj, reportingManagerUserInner.publicKey)
-        .accounts({
-          signer: reportingManager.publicKey,
-        })
-        .signers([reportingManager])
-        .rpc();
-      assert.fail("Error was not thrown");
-    } catch (err) {
-      expect(err.message).contain(anchorError2012);
-      expect(err.message).contains(rolesAdmin.publicKey);
-      expect(err.message).contains(reportingManager.publicKey);
-    }
-  });
-
-  it("Reporting Manager - Setting Whitelisted role should revert", async () => {
-    const whiteListedUserInner = anchor.web3.Keypair.generate();
-    try {
-      await vaultProgram.methods
-        .setRole(vaultsAdminObj, whiteListedUserInner.publicKey)
-        .accounts({
-          signer: reportingManager.publicKey,
-        })
-        .signers([reportingManager])
-        .rpc();
-      assert.fail("Error was not thrown");
-    } catch (err) {
-      expect(err.message).contain(anchorError2012);
-      expect(err.message).contains(rolesAdmin.publicKey);
-      expect(err.message).contains(reportingManager.publicKey);
-    }
-  });
-
-  it("Reporting Manager - Initializing vault should revert", async () => {
-    try {
-      await initializeVault({
-        vaultProgram,
+    it("Vaults Admin - Depositing into the vault should revert", async () => {
+      const vaultsAdminTokenAccount = await token.createAccount(
+        provider.connection,
+        vaultsAdmin,
         underlyingMint,
-        vaultIndex: 7,
-        signer: reportingManager,
-        config: vaultConfig,
-      });
-      assert.fail("Error was not thrown");
-    } catch (err) {
-      expect(err.message).contains(anchorError2003);
-    }
+        vaultsAdmin.publicKey
+      );
+      const vaultsAdminSharesAccount = await token.createAccount(
+        provider.connection,
+        vaultsAdmin,
+        sharesMintTwo,
+        vaultsAdmin.publicKey
+      );
+      await token.mintTo(
+        connection,
+        underlyingMintOwner,
+        underlyingMint,
+        vaultsAdminTokenAccount,
+        underlyingMintOwner.publicKey,
+        1000
+      );
+
+      try {
+        await vaultProgram.methods
+          .deposit(new BN(100))
+          .accounts({
+            vault: vaultTwo,
+            user: vaultsAdmin.publicKey,
+            userTokenAccount: vaultsAdminTokenAccount,
+            userSharesAccount: vaultsAdminSharesAccount,
+          })
+          .signers([vaultsAdmin])
+          .rpc();
+        assert.fail("Error was not thrown");
+      } catch (err) {
+        expect(err.message).contains(anchorError2003);
+      }
+    });
+
+    it("Vaults Admin - Removing a strategy from the vault is successful", async () => {
+      await vaultProgram.methods
+        .removeStrategy(strategyTwo, true)
+        .accounts({
+          vault: vaultTwo,
+          signer: vaultsAdmin.publicKey,
+        })
+        .signers([vaultsAdmin])
+        .rpc();
+      const vaultAccount = await vaultProgram.account.vault.fetch(vaultTwo);
+      assert.strictEqual(
+        vaultAccount.strategies[0].key.toString(),
+        "11111111111111111111111111111111"
+      );
+    });
+
+    it("Vaults Admin - Shutting down the vault is successful", async () => {
+      await vaultProgram.methods
+        .shutdownVault()
+        .accounts({
+          vault: vaultTwo,
+          signer: vaultsAdmin.publicKey,
+        })
+        .signers([vaultsAdmin])
+        .rpc();
+      const vaultAccountTwo = await vaultProgram.account.vault.fetch(vaultTwo);
+      expect(vaultAccountTwo.isShutdown).to.equal(true);
+    });
   });
 
-  it("Reporting Manager - Adding a strategy to the vault should revert", async () => {
-    try {
+  describe("Reporting Manager Role Tests", () => {
+    it("Reporting Manager - Setting Vaults Admin role should revert", async () => {
+      const vaultsAdminUserInner = anchor.web3.Keypair.generate();
+      try {
+        await vaultProgram.methods
+          .setRole(vaultsAdminObj, vaultsAdminUserInner.publicKey)
+          .accounts({
+            signer: reportingManager.publicKey,
+          })
+          .signers([reportingManager])
+          .rpc();
+        assert.fail("Error was not thrown");
+      } catch (err) {
+        expect(err.message).contain(anchorError2012);
+        expect(err.message).contains(rolesAdmin.publicKey);
+        expect(err.message).contains(reportingManager.publicKey);
+      }
+    });
+
+    it("Reporting Manager - Setting Reporting Manager role should revert", async () => {
+      const reportingManagerUserInner = anchor.web3.Keypair.generate();
+      try {
+        await vaultProgram.methods
+          .setRole(vaultsAdminObj, reportingManagerUserInner.publicKey)
+          .accounts({
+            signer: reportingManager.publicKey,
+          })
+          .signers([reportingManager])
+          .rpc();
+        assert.fail("Error was not thrown");
+      } catch (err) {
+        expect(err.message).contain(anchorError2012);
+        expect(err.message).contains(rolesAdmin.publicKey);
+        expect(err.message).contains(reportingManager.publicKey);
+      }
+    });
+
+    it("Reporting Manager - Setting Whitelisted role should revert", async () => {
+      const whiteListedUserInner = anchor.web3.Keypair.generate();
+      try {
+        await vaultProgram.methods
+          .setRole(vaultsAdminObj, whiteListedUserInner.publicKey)
+          .accounts({
+            signer: reportingManager.publicKey,
+          })
+          .signers([reportingManager])
+          .rpc();
+        assert.fail("Error was not thrown");
+      } catch (err) {
+        expect(err.message).contain(anchorError2012);
+        expect(err.message).contains(rolesAdmin.publicKey);
+        expect(err.message).contains(reportingManager.publicKey);
+      }
+    });
+
+    it("Reporting Manager - Initializing vault should revert", async () => {
+      try {
+        await initializeVault({
+          vaultProgram,
+          underlyingMint,
+          vaultIndex: 7,
+          signer: reportingManager,
+          config: vaultConfig,
+        });
+        assert.fail("Error was not thrown");
+      } catch (err) {
+        expect(err.message).contains(anchorError2003);
+      }
+    });
+
+    it("Reporting Manager - Adding a strategy to the vault should revert", async () => {
+      try {
+        await vaultProgram.methods
+          .addStrategy(new BN(1000000000))
+          .accounts({
+            vault: vaultThree,
+            strategy: strategyThree,
+            signer: reportingManager.publicKey,
+          })
+          .signers([reportingManager])
+          .rpc();
+        assert.fail("Error was not thrown");
+      } catch (err) {
+        expect(err.message).contains(anchorError2003);
+      }
+    });
+
+    it("Reporting Manager - Removing a strategy from the vault should revert", async () => {
       await vaultProgram.methods
         .addStrategy(new BN(1000000000))
         .accounts({
           vault: vaultThree,
           strategy: strategyThree,
-          signer: reportingManager.publicKey,
+          signer: vaultsAdmin.publicKey,
         })
-        .signers([reportingManager])
+        .signers([vaultsAdmin])
         .rpc();
-      assert.fail("Error was not thrown");
-    } catch (err) {
-      expect(err.message).contains(anchorError2003);
-    }
-  });
+      try {
+        await vaultProgram.methods
+          .removeStrategy(strategyThree, false)
+          .accounts({
+            vault: vaultThree,
+            signer: reportingManager.publicKey,
+          })
+          .signers([reportingManager])
+          .rpc();
+        assert.fail("Error was not thrown");
+      } catch (err) {
+        expect(err.message).contains(anchorError2003);
+      }
+    });
 
-  it("Reporting Manager - Removing a strategy from the vault should revert", async () => {
-    await vaultProgram.methods
-      .addStrategy(new BN(1000000000))
-      .accounts({
-        vault: vaultThree,
-        strategy: strategyThree,
-        signer: vaultsAdmin.publicKey,
-      })
-      .signers([vaultsAdmin])
-      .rpc();
-    try {
+    it("Reporting Manager - Shutting down the vault should revert", async () => {
+      try {
+        await vaultProgram.methods
+          .shutdownVault()
+          .accounts({
+            vault: vaultThree,
+            signer: reportingManager.publicKey,
+          })
+          .signers([reportingManager])
+          .rpc();
+        assert.fail("Error was not thrown");
+      } catch (err) {
+        expect(err.message).contains(anchorError2003);
+      }
+    });
+
+    it("Reporting Manager - Update debt for the vault should revert", async () => {
+      try {
+        await vaultProgram.methods
+          .updateDebt(new BN(100))
+          .accounts({
+            vault: vaultThree,
+            strategy: strategyThree,
+            strategyTokenAccount: strategyTokenAccountThree,
+            signer: reportingManager.publicKey,
+            // @ts-ignore
+            tokenProgram: token.TOKEN_PROGRAM_ID,
+            strategyProgram: strategyProgram.programId,
+          })
+          .signers([reportingManager])
+          .rpc();
+        assert.fail("Error was not thrown");
+      } catch (err) {
+        expect(err.message).contains(anchorError2003);
+      }
+    });
+
+    it("Reporting Manager - Set deposit limit for the vault should revert", async () => {
+      try {
+        await vaultProgram.methods
+          .setDepositLimit(new BN(2000))
+          .accounts({
+            vault: vaultOne,
+            signer: reportingManager.publicKey,
+          })
+          .signers([reportingManager])
+          .rpc();
+        assert.fail("Error was not thrown");
+      } catch (err) {
+        expect(err.message).contains(anchorError2003);
+      }
+    });
+
+    it("Reporting Manager - Process report is successful", async () => {
+      const whitelistedUserSharesTokenAccount = await token.createAccount(
+        connection,
+        whitelistedUser,
+        sharesMintThree,
+        whitelistedUser.publicKey
+      );
+
+      // Deposit
       await vaultProgram.methods
-        .removeStrategy(strategyThree, false)
+        .deposit(new BN(100))
         .accounts({
           vault: vaultThree,
-          signer: reportingManager.publicKey,
+          user: whitelistedUser.publicKey,
+          userTokenAccount: whitelistedUserTokenAccount,
+          userSharesAccount: whitelistedUserSharesTokenAccount,
         })
-        .signers([reportingManager])
+        .signers([whitelistedUser])
         .rpc();
-      assert.fail("Error was not thrown");
-    } catch (err) {
-      expect(err.message).contains(anchorError2003);
-    }
-  });
 
-  it("Reporting Manager - Shutting down the vault should revert", async () => {
-    try {
-      await vaultProgram.methods
-        .shutdownVault()
-        .accounts({
-          vault: vaultThree,
-          signer: reportingManager.publicKey,
-        })
-        .signers([reportingManager])
-        .rpc();
-      assert.fail("Error was not thrown");
-    } catch (err) {
-      expect(err.message).contains(anchorError2003);
-    }
-  });
-
-  it("Reporting Manager - Update debt for the vault should revert", async () => {
-    try {
+      // Allocate
       await vaultProgram.methods
         .updateDebt(new BN(100))
         .accounts({
           vault: vaultThree,
           strategy: strategyThree,
           strategyTokenAccount: strategyTokenAccountThree,
-          signer: reportingManager.publicKey,
+          signer: vaultsAdmin.publicKey,
           // @ts-ignore
           tokenProgram: token.TOKEN_PROGRAM_ID,
           strategyProgram: strategyProgram.programId,
         })
-        .signers([reportingManager])
+        .signers([vaultsAdmin])
         .rpc();
-      assert.fail("Error was not thrown");
-    } catch (err) {
-      expect(err.message).contains(anchorError2003);
-    }
-  });
 
-  it("Reporting Manager - Set deposit limit for the vault should revert", async () => {
-    try {
-      await vaultProgram.methods
-        .setDepositLimit(new BN(2000))
+      // Simulate profit
+      await token.mintTo(
+        connection,
+        underlyingMintOwner,
+        underlyingMint,
+        strategyTokenAccountThree,
+        underlyingMintOwner.publicKey,
+        50
+      );
+
+      const feeRecipient = anchor.web3.Keypair.generate();
+      await airdrop({
+        connection,
+        publicKey: feeRecipient.publicKey,
+        amount: 10e9,
+      });
+      const feeRecipientSharesAccount = await token.createAccount(
+        provider.connection,
+        feeRecipient,
+        sharesMintThree,
+        feeRecipient.publicKey
+      );
+
+      await strategyProgram.methods
+        .report()
         .accounts({
-          vault: vaultOne,
-          signer: reportingManager.publicKey,
+          strategy: strategyThree,
+          tokenAccount: strategyTokenAccountThree,
+          signer: vaultsAdmin.publicKey,
+          // @ts-ignore
+          tokenProgram: token.TOKEN_PROGRAM_ID,
         })
-        .signers([reportingManager])
+        .remainingAccounts([
+          {
+            pubkey: strategyTokenAccountThree,
+            isWritable: true,
+            isSigner: false,
+          },
+        ])
+        .signers([vaultsAdmin])
         .rpc();
-      assert.fail("Error was not thrown");
-    } catch (err) {
-      expect(err.message).contains(anchorError2003);
-    }
-  });
 
-  it("Reporting Manager - Process report is successful", async () => {
-    const whitelistedUserSharesTokenAccount = await token.createAccount(
-      connection,
-      whitelistedUser,
-      sharesMintThree,
-      whitelistedUser.publicKey
-    );
-
-    // Deposit
-    await vaultProgram.methods
-      .deposit(new BN(100))
-      .accounts({
-        vault: vaultThree,
-        user: whitelistedUser.publicKey,
-        userTokenAccount: whitelistedUserTokenAccount,
-        userSharesAccount: whitelistedUserSharesTokenAccount,
-      })
-      .signers([whitelistedUser])
-      .rpc();
-
-    // Allocate
-    await vaultProgram.methods
-      .updateDebt(new BN(100))
-      .accounts({
-        vault: vaultThree,
-        strategy: strategyThree,
-        strategyTokenAccount: strategyTokenAccountThree,
-        signer: vaultsAdmin.publicKey,
-        // @ts-ignore
-        tokenProgram: token.TOKEN_PROGRAM_ID,
-        strategyProgram: strategyProgram.programId,
-      })
-      .signers([vaultsAdmin])
-      .rpc();
-
-    // Simulate profit
-    await token.mintTo(
-      connection,
-      underlyingMintOwner,
-      underlyingMint,
-      strategyTokenAccountThree,
-      underlyingMintOwner.publicKey,
-      50
-    );
-
-    const feeRecipient = anchor.web3.Keypair.generate();
-    await airdrop({
-      connection,
-      publicKey: feeRecipient.publicKey,
-      amount: 10e9,
-    });
-    const feeRecipientSharesAccount = await token.createAccount(
-      provider.connection,
-      feeRecipient,
-      sharesMintThree,
-      feeRecipient.publicKey
-    );
-
-    await strategyProgram.methods
-      .report()
-      .accounts({
-        strategy: strategyThree,
-        tokenAccount: strategyTokenAccountThree,
-        signer: vaultsAdmin.publicKey,
-        // @ts-ignore
-        tokenProgram: token.TOKEN_PROGRAM_ID,
-      })
-      .remainingAccounts([
-        {
-          pubkey: strategyTokenAccountThree,
-          isWritable: true,
-          isSigner: false,
-        },
-      ])
-      .signers([vaultsAdmin])
-      .rpc();
-
-    await vaultProgram.methods
-      .processReport()
-      .accounts({
-        vault: vaultThree,
-        strategy: strategyThree,
-        signer: reportingManager.publicKey,
-        feeSharesRecipient: feeRecipientSharesAccount,
-      })
-      .signers([reportingManager])
-      .rpc();
-
-    // Assertions
-    const vaultAccount = await vaultProgram.account.vault.fetch(vaultThree);
-    assert.strictEqual(vaultAccount.totalShares.toString(), "103");
-
-    // check fee balance
-    const strategyAccount = await strategyProgram.account.simpleStrategy.fetch(
-      strategyThree
-    );
-    assert.strictEqual(strategyAccount.feeData.feeBalance.toString(), "0");
-
-    // check the strategy token account balance
-    const strategyTokenAccountInfo = await token.getAccount(
-      provider.connection,
-      strategyTokenAccountThree
-    );
-    assert.strictEqual(strategyTokenAccountInfo.amount.toString(), "150");
-
-    // check the vault token account balance
-    const vaultTokenAccountInfo = await token.getAccount(
-      provider.connection,
-      vaultTokenAccountThree
-    );
-    assert.strictEqual(vaultTokenAccountInfo.amount.toString(), "0");
-  });
-
-  it("Reporting Manager - Depositing into the vault should revert", async () => {
-    const reportingManagerTokenAccount = await token.createAccount(
-      connection,
-      reportingManager,
-      underlyingMint,
-      reportingManager.publicKey
-    );
-    const reportingManagerSharesAccount = await token.createAccount(
-      connection,
-      reportingManager,
-      sharesMintThree,
-      reportingManager.publicKey
-    );
-    await token.mintTo(
-      connection,
-      underlyingMintOwner,
-      underlyingMint,
-      reportingManagerTokenAccount,
-      underlyingMintOwner.publicKey,
-      1000
-    );
-
-    try {
       await vaultProgram.methods
-        .deposit(new BN(100))
+        .processReport()
         .accounts({
           vault: vaultThree,
-          user: reportingManager.publicKey,
-          userTokenAccount: reportingManagerTokenAccount,
-          userSharesAccount: reportingManagerSharesAccount,
+          strategy: strategyThree,
+          signer: reportingManager.publicKey,
+          feeSharesRecipient: feeRecipientSharesAccount,
         })
         .signers([reportingManager])
         .rpc();
-      assert.fail("Error was not thrown");
-    } catch (err) {
-      expect(err.message).contains(anchorError2003);
-    }
+
+      // Assertions
+      const vaultAccount = await vaultProgram.account.vault.fetch(vaultThree);
+      assert.strictEqual(vaultAccount.totalShares.toString(), "103");
+
+      // check fee balance
+      const strategyAccount =
+        await strategyProgram.account.simpleStrategy.fetch(strategyThree);
+      assert.strictEqual(strategyAccount.feeData.feeBalance.toString(), "0");
+
+      // check the strategy token account balance
+      const strategyTokenAccountInfo = await token.getAccount(
+        provider.connection,
+        strategyTokenAccountThree
+      );
+      assert.strictEqual(strategyTokenAccountInfo.amount.toString(), "150");
+
+      // check the vault token account balance
+      const vaultTokenAccountInfo = await token.getAccount(
+        provider.connection,
+        vaultTokenAccountThree
+      );
+      assert.strictEqual(vaultTokenAccountInfo.amount.toString(), "0");
+    });
+
+    it("Reporting Manager - Depositing into the vault should revert", async () => {
+      const reportingManagerTokenAccount = await token.createAccount(
+        connection,
+        reportingManager,
+        underlyingMint,
+        reportingManager.publicKey
+      );
+      const reportingManagerSharesAccount = await token.createAccount(
+        connection,
+        reportingManager,
+        sharesMintThree,
+        reportingManager.publicKey
+      );
+      await token.mintTo(
+        connection,
+        underlyingMintOwner,
+        underlyingMint,
+        reportingManagerTokenAccount,
+        underlyingMintOwner.publicKey,
+        1000
+      );
+
+      try {
+        await vaultProgram.methods
+          .deposit(new BN(100))
+          .accounts({
+            vault: vaultThree,
+            user: reportingManager.publicKey,
+            userTokenAccount: reportingManagerTokenAccount,
+            userSharesAccount: reportingManagerSharesAccount,
+          })
+          .signers([reportingManager])
+          .rpc();
+        assert.fail("Error was not thrown");
+      } catch (err) {
+        expect(err.message).contains(anchorError2003);
+      }
+    });
   });
 });
