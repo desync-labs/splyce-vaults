@@ -4,9 +4,8 @@ import { StrategyProgram } from "../../target/types/strategy_program";
 import { TokenizedVault } from "../../target/types/tokenized_vault";
 import { BN } from "@coral-xyz/anchor";
 import * as token from "@solana/spl-token";
-import * as borsh from "borsh";
 import { assert, expect } from "chai";
-import { SimpleStrategy, SimpleStrategySchema } from "../utils/schemas";
+import { SimpleStrategy } from "../utils/schemas";
 import {
   airdrop,
   initializeSimpleStrategy,
@@ -29,14 +28,12 @@ describe("Roles & Permissions Tests", () => {
   let reportingManager: anchor.web3.Keypair;
   let whitelistedUser: anchor.web3.Keypair;
   let whitelistedUserTokenAccount: anchor.web3.PublicKey;
-  let user: anchor.web3.Keypair;
   let underlyingMint: anchor.web3.PublicKey;
   let underlyingMintOwner: anchor.web3.Keypair;
 
   // First - For Role Admin
   let vaultOne: anchor.web3.PublicKey;
   let sharesMintOne: anchor.web3.PublicKey;
-  let vaultTokenAccountOne: anchor.web3.PublicKey;
   let strategyOne: anchor.web3.PublicKey;
   let strategyTokenAccountOne: anchor.web3.PublicKey;
   // Second - For Vault Admin
@@ -78,7 +75,6 @@ describe("Roles & Permissions Tests", () => {
     vaultsAdmin = anchor.web3.Keypair.generate();
     reportingManager = anchor.web3.Keypair.generate();
     whitelistedUser = anchor.web3.Keypair.generate();
-    user = anchor.web3.Keypair.generate();
     underlyingMintOwner = rolesAdmin;
 
     console.log("Vault Program ID:", vaultProgram.programId.toBase58());
@@ -97,7 +93,6 @@ describe("Roles & Permissions Tests", () => {
       "Whitelisted User public key:",
       whitelistedUser.publicKey.toBase58()
     );
-    console.log("User public key:", user.publicKey.toBase58());
 
     // Airdrop to all accounts
     const publicKeysList = [
@@ -105,7 +100,6 @@ describe("Roles & Permissions Tests", () => {
       vaultsAdmin.publicKey,
       reportingManager.publicKey,
       whitelistedUser.publicKey,
-      user.publicKey,
     ];
     for (const publicKey of publicKeysList) {
       await airdrop({
@@ -134,7 +128,6 @@ describe("Roles & Permissions Tests", () => {
       })
       .signers([rolesAdmin])
       .rpc();
-    console.log("First set role completed successfully");
 
     await vaultProgram.methods
       .setRole(reportingManagerObj, reportingManager.publicKey)
@@ -151,6 +144,8 @@ describe("Roles & Permissions Tests", () => {
       })
       .signers([rolesAdmin])
       .rpc();
+
+    console.log("All roles set successfully");
 
     // Create common underlying mint account
     underlyingMint = await token.createMint(
@@ -178,15 +173,13 @@ describe("Roles & Permissions Tests", () => {
       feeManager: vaultsAdmin.publicKey,
     });
 
-    [vaultOne, sharesMintOne, vaultTokenAccountOne] = await initializeVault({
+    [vaultOne, sharesMintOne] = await initializeVault({
       vaultProgram,
       underlyingMint,
       vaultIndex: 1,
       signer: vaultsAdmin,
       config: vaultConfig,
     });
-
-    console.log("First Vault initialized successfully");
 
     [vaultTwo, sharesMintTwo, vaultTokenAccountTwo] = await initializeVault({
       vaultProgram,
@@ -213,6 +206,8 @@ describe("Roles & Permissions Tests", () => {
       config: vaultConfig,
     });
 
+    console.log("All Vaults initialized successfully");
+
     [strategyOne, strategyTokenAccountOne] = await initializeSimpleStrategy({
       strategyProgram,
       vault: vaultOne,
@@ -221,8 +216,6 @@ describe("Roles & Permissions Tests", () => {
       index: 1,
       config: strategyConfig,
     });
-
-    console.log("First Strategy initialized successfully");
 
     [strategyTwo, strategyTokenAccountTwo] = await initializeSimpleStrategy({
       strategyProgram,
@@ -253,16 +246,18 @@ describe("Roles & Permissions Tests", () => {
       config: strategyConfig,
     });
 
+    console.log("All Strategies initialized successfully");
+
     // Create whitelisted user token and shares accounts and mint underlying tokens
     whitelistedUserTokenAccount = await token.createAccount(
-      provider.connection,
+      connection,
       whitelistedUser,
       underlyingMint,
       whitelistedUser.publicKey
     );
     console.log("Whitelisted user token account created successfully");
     await token.mintTo(
-      provider.connection,
+      connection,
       underlyingMintOwner,
       underlyingMint,
       whitelistedUserTokenAccount,
@@ -546,7 +541,7 @@ describe("Roles & Permissions Tests", () => {
         amount: 10e9,
       });
       const feeRecipientSharesAccount = await token.createAccount(
-        provider.connection,
+        connection,
         feeRecipient,
         sharesMintOne,
         feeRecipient.publicKey
@@ -571,13 +566,13 @@ describe("Roles & Permissions Tests", () => {
 
     it("Roles Admin - Depositing into the vault should revert", async () => {
       const rolesAdminTokenAccount = await token.createAccount(
-        provider.connection,
+        connection,
         rolesAdmin,
         underlyingMint,
         rolesAdmin.publicKey
       );
       const rolesAdminSharesAccount = await token.createAccount(
-        provider.connection,
+        connection,
         rolesAdmin,
         sharesMintOne,
         rolesAdmin.publicKey
@@ -672,7 +667,7 @@ describe("Roles & Permissions Tests", () => {
         amount: 10e9,
       });
       const feeRecipientSharesAccount = await token.createAccount(
-        provider.connection,
+        connection,
         feeRecipient,
         sharesMintTwo,
         feeRecipient.publicKey
@@ -727,7 +722,6 @@ describe("Roles & Permissions Tests", () => {
       assert.ok(vaultAccount.strategies[0].key.equals(strategyTwo));
     });
 
-    // TODO, need to validate assertions
     it("Vaults Admin - Update debt for the vault is successful", async () => {
       const depositAmount = 100;
       const allocationAmount = 90;
@@ -773,7 +767,7 @@ describe("Roles & Permissions Tests", () => {
 
       // Fetch the vault token account balance to verify the allocation
       const vaultTokenAccountInfo = await token.getAccount(
-        provider.connection,
+        connection,
         vaultTokenAccountTwo
       );
       assert.strictEqual(
@@ -783,7 +777,7 @@ describe("Roles & Permissions Tests", () => {
 
       // Fetch the strategy token account balance to verify the allocation
       const strategyTokenAccountInfo = await token.getAccount(
-        provider.connection,
+        connection,
         strategyTokenAccountTwo
       );
       assert.strictEqual(
@@ -819,7 +813,7 @@ describe("Roles & Permissions Tests", () => {
         amount: 10e9,
       });
       const feeRecipientSharesAccount = await token.createAccount(
-        provider.connection,
+        connection,
         feeRecipient,
         sharesMintTwo,
         feeRecipient.publicKey
@@ -844,13 +838,13 @@ describe("Roles & Permissions Tests", () => {
 
     it("Vaults Admin - Depositing into the vault should revert", async () => {
       const vaultsAdminTokenAccount = await token.createAccount(
-        provider.connection,
+        connection,
         vaultsAdmin,
         underlyingMint,
         vaultsAdmin.publicKey
       );
       const vaultsAdminSharesAccount = await token.createAccount(
-        provider.connection,
+        connection,
         vaultsAdmin,
         sharesMintTwo,
         vaultsAdmin.publicKey
@@ -1065,7 +1059,7 @@ describe("Roles & Permissions Tests", () => {
         await vaultProgram.methods
           .setDepositLimit(new BN(2000))
           .accounts({
-            vault: vaultOne,
+            vault: vaultThree,
             signer: reportingManager.publicKey,
           })
           .signers([reportingManager])
@@ -1076,6 +1070,7 @@ describe("Roles & Permissions Tests", () => {
       }
     });
 
+    // TO DO, need to validate assertions
     it("Reporting Manager - Process report is successful", async () => {
       const whitelistedUserSharesTokenAccount = await token.createAccount(
         connection,
@@ -1128,7 +1123,7 @@ describe("Roles & Permissions Tests", () => {
         amount: 10e9,
       });
       const feeRecipientSharesAccount = await token.createAccount(
-        provider.connection,
+        connection,
         feeRecipient,
         sharesMintThree,
         feeRecipient.publicKey
@@ -1175,14 +1170,14 @@ describe("Roles & Permissions Tests", () => {
 
       // check the strategy token account balance
       const strategyTokenAccountInfo = await token.getAccount(
-        provider.connection,
+        connection,
         strategyTokenAccountThree
       );
       assert.strictEqual(strategyTokenAccountInfo.amount.toString(), "150");
 
       // check the vault token account balance
       const vaultTokenAccountInfo = await token.getAccount(
-        provider.connection,
+        connection,
         vaultTokenAccountThree
       );
       assert.strictEqual(vaultTokenAccountInfo.amount.toString(), "0");
@@ -1401,7 +1396,7 @@ describe("Roles & Permissions Tests", () => {
         amount: 10e9,
       });
       const feeRecipientSharesAccount = await token.createAccount(
-        provider.connection,
+        connection,
         feeRecipient,
         sharesMintFour,
         feeRecipient.publicKey
@@ -1444,14 +1439,20 @@ describe("Roles & Permissions Tests", () => {
         })
         .signers([whitelistedUser])
         .rpc();
-      
-        // Fetch the vault token account balance to verify the deposit
-        const vaultTokenAccountInfo = await token.getAccount(provider.connection, vaultTokenAccountFour);
-        assert.strictEqual(vaultTokenAccountInfo.amount.toString(), '100');
-    
-        // check the user shares account balance
-        const userSharesAccountInfo = await token.getAccount(provider.connection, whitelistedUserSharesAccount);
-        assert.strictEqual(userSharesAccountInfo.amount.toString(), '100');
+
+      // Fetch the vault token account balance to verify the deposit
+      const vaultTokenAccountInfo = await token.getAccount(
+        connection,
+        vaultTokenAccountFour
+      );
+      assert.strictEqual(vaultTokenAccountInfo.amount.toString(), "100");
+
+      // check the user shares account balance
+      const userSharesAccountInfo = await token.getAccount(
+        connection,
+        whitelistedUserSharesAccount
+      );
+      assert.strictEqual(userSharesAccountInfo.amount.toString(), "100");
     });
   });
 });
