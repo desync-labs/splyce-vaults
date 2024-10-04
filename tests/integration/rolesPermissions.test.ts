@@ -1227,4 +1227,231 @@ describe("Roles & Permissions Tests", () => {
       }
     });
   });
+
+  describe("Whitelisted User Tests", () => {
+    it("Whitelisted User - Setting Vaults Admin role should revert", async () => {
+      const vaultsAdminUserInner = anchor.web3.Keypair.generate();
+      try {
+        await vaultProgram.methods
+          .setRole(vaultsAdminObj, vaultsAdminUserInner.publicKey)
+          .accounts({
+            signer: whitelistedUser.publicKey,
+          })
+          .signers([whitelistedUser])
+          .rpc();
+        assert.fail("Error was not thrown");
+      } catch (err) {
+        expect(err.message).contain(anchorError2012);
+        expect(err.message).contains(rolesAdmin.publicKey);
+        expect(err.message).contains(whitelistedUser.publicKey);
+      }
+    });
+
+    it("Whitelisted User - Setting Reporting Manager role should revert", async () => {
+      const reportingManagerUserInner = anchor.web3.Keypair.generate();
+      try {
+        await vaultProgram.methods
+          .setRole(vaultsAdminObj, reportingManagerUserInner.publicKey)
+          .accounts({
+            signer: whitelistedUser.publicKey,
+          })
+          .signers([whitelistedUser])
+          .rpc();
+        assert.fail("Error was not thrown");
+      } catch (err) {
+        expect(err.message).contain(anchorError2012);
+        expect(err.message).contains(rolesAdmin.publicKey);
+        expect(err.message).contains(whitelistedUser.publicKey);
+      }
+    });
+
+    it("Whitelisted User - Setting Whitelisted role should revert", async () => {
+      const whiteListedUserInner = anchor.web3.Keypair.generate();
+      try {
+        await vaultProgram.methods
+          .setRole(vaultsAdminObj, whiteListedUserInner.publicKey)
+          .accounts({
+            signer: whitelistedUser.publicKey,
+          })
+          .signers([whitelistedUser])
+          .rpc();
+        assert.fail("Error was not thrown");
+      } catch (err) {
+        expect(err.message).contain(anchorError2012);
+        expect(err.message).contains(rolesAdmin.publicKey);
+        expect(err.message).contains(whitelistedUser.publicKey);
+      }
+    });
+
+    it("Whitelisted User - Initializing vault should revert", async () => {
+      try {
+        await initializeVault({
+          vaultProgram,
+          underlyingMint,
+          vaultIndex: 8,
+          signer: whitelistedUser,
+          config: vaultConfig,
+        });
+        assert.fail("Error was not thrown");
+      } catch (err) {
+        expect(err.message).contains(anchorError2003);
+      }
+    });
+
+    it("Whitelisted User - Adding a strategy to the vault should revert", async () => {
+      try {
+        await vaultProgram.methods
+          .addStrategy(new BN(1000000000))
+          .accounts({
+            vault: vaultFour,
+            strategy: strategyFour,
+            signer: whitelistedUser.publicKey,
+          })
+          .signers([whitelistedUser])
+          .rpc();
+        assert.fail("Error was not thrown");
+      } catch (err) {
+        expect(err.message).contains(anchorError2003);
+      }
+    });
+
+    it("Whitelisted User - Removing a strategy from the vault should revert", async () => {
+      await vaultProgram.methods
+        .addStrategy(new BN(1000000000))
+        .accounts({
+          vault: vaultFour,
+          strategy: strategyFour,
+          signer: vaultsAdmin.publicKey,
+        })
+        .signers([vaultsAdmin])
+        .rpc();
+      try {
+        await vaultProgram.methods
+          .removeStrategy(strategyFour, false)
+          .accounts({
+            vault: vaultFour,
+            signer: whitelistedUser.publicKey,
+          })
+          .signers([whitelistedUser])
+          .rpc();
+        assert.fail("Error was not thrown");
+      } catch (err) {
+        expect(err.message).contains(anchorError2003);
+      }
+    });
+
+    it("Whitelisted User - Shutting down the vault should revert", async () => {
+      try {
+        await vaultProgram.methods
+          .shutdownVault()
+          .accounts({
+            vault: vaultFour,
+            signer: whitelistedUser.publicKey,
+          })
+          .signers([whitelistedUser])
+          .rpc();
+        assert.fail("Error was not thrown");
+      } catch (err) {
+        expect(err.message).contains(anchorError2003);
+      }
+    });
+
+    it("Whitelisted User - Update debt for the vault should revert", async () => {
+      try {
+        await vaultProgram.methods
+          .updateDebt(new BN(100))
+          .accounts({
+            vault: vaultFour,
+            strategy: strategyFour,
+            strategyTokenAccount: strategyTokenAccountFour,
+            signer: whitelistedUser.publicKey,
+            // @ts-ignore
+            tokenProgram: token.TOKEN_PROGRAM_ID,
+            strategyProgram: strategyProgram.programId,
+          })
+          .signers([whitelistedUser])
+          .rpc();
+        assert.fail("Error was not thrown");
+      } catch (err) {
+        expect(err.message).contains(anchorError2003);
+      }
+    });
+
+    it("Whitelisted User - Set deposit limit for the vault should revert", async () => {
+      try {
+        await vaultProgram.methods
+          .setDepositLimit(new BN(2000))
+          .accounts({
+            vault: vaultFour,
+            signer: whitelistedUser.publicKey,
+          })
+          .signers([whitelistedUser])
+          .rpc();
+        assert.fail("Error was not thrown");
+      } catch (err) {
+        expect(err.message).contains(anchorError2003);
+      }
+    });
+
+    it("Whitelisted User - Process report for vault should revert", async () => {
+      const feeRecipient = anchor.web3.Keypair.generate();
+      await airdrop({
+        connection,
+        publicKey: feeRecipient.publicKey,
+        amount: 10e9,
+      });
+      const feeRecipientSharesAccount = await token.createAccount(
+        provider.connection,
+        feeRecipient,
+        sharesMintFour,
+        feeRecipient.publicKey
+      );
+
+      try {
+        await vaultProgram.methods
+          .processReport()
+          .accounts({
+            vault: vaultFour,
+            strategy: strategyFour,
+            signer: whitelistedUser.publicKey,
+            feeSharesRecipient: feeRecipientSharesAccount,
+          })
+          .signers([whitelistedUser])
+          .rpc();
+        assert.fail("Error was not thrown");
+      } catch (err) {
+        expect(err.message).contains(anchorError2003);
+      }
+    });
+
+    it("Whitelisted User - Depositing into the vault is successful", async () => {
+      const depositAmount = 100;
+
+      const whitelistedUserSharesAccount = await token.createAccount(
+        connection,
+        whitelistedUser,
+        sharesMintFour,
+        whitelistedUser.publicKey
+      );
+
+      await vaultProgram.methods
+        .deposit(new BN(depositAmount))
+        .accounts({
+          vault: vaultFour,
+          user: whitelistedUser.publicKey,
+          userTokenAccount: whitelistedUserTokenAccount,
+          userSharesAccount: whitelistedUserSharesAccount,
+        })
+        .signers([whitelistedUser])
+        .rpc();
+      
+        // Fetch the vault token account balance to verify the deposit
+        const vaultTokenAccountInfo = await token.getAccount(provider.connection, vaultTokenAccountFour);
+        assert.strictEqual(vaultTokenAccountInfo.amount.toString(), '100');
+    
+        // check the user shares account balance
+        const userSharesAccountInfo = await token.getAccount(provider.connection, whitelistedUserSharesAccount);
+        assert.strictEqual(userSharesAccountInfo.amount.toString(), '100');
+    });
+  });
 });
