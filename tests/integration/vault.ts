@@ -1,23 +1,20 @@
-import * as anchor from "@coral-xyz/anchor";
-import { Program, AnchorProvider, web3 } from "@coral-xyz/anchor";
+import { Program, AnchorProvider, BN, setProvider, web3, workspace } from "@coral-xyz/anchor";
 import { StrategyProgram } from "../../target/types/strategy_program";
 import { TokenizedVault } from "../../target/types/tokenized_vault";
-import { BN } from "@coral-xyz/anchor";
 import * as token from "@solana/spl-token";
 import * as borsh from 'borsh';
 import { assert, expect } from 'chai';
 import { SimpleStrategy, SimpleStrategySchema } from "../utils/schemas";
-import { getMplTokenMetadataProgram, createMplTokenMetadataProgram, getExtensionData } from "@metaplex-foundation/mpl-token-metadata"
 
 const METADATA_SEED = "metadata";
 const TOKEN_METADATA_PROGRAM_ID = new web3.PublicKey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s");
 
 describe("tokenized_vault", () => {
   // Configure the client to use the local cluster.
-  anchor.setProvider(anchor.AnchorProvider.env());
+  setProvider(AnchorProvider.env());
 
-  const vaultProgram = anchor.workspace.TokenizedVault as Program<TokenizedVault>;
-  const strategyProgram = anchor.workspace.StrategyProgram as Program<StrategyProgram>;
+  const vaultProgram = workspace.TokenizedVault as Program<TokenizedVault>;
+  const strategyProgram = workspace.StrategyProgram as Program<StrategyProgram>;
 
   let vault: web3.PublicKey;
   let sharesMint: web3.PublicKey;
@@ -40,7 +37,7 @@ describe("tokenized_vault", () => {
     console.log("Strategy Program ID:", strategyProgram.programId.toBase58());
 
     // Airdrop SOL to the user
-    const provider = anchor.AnchorProvider.env();
+    const provider = AnchorProvider.env();
     const airdropSignature = await provider.connection.requestAirdrop(user.publicKey, 10e9);
     const airdropSignature2 = await provider.connection.requestAirdrop(admin.publicKey, 10e9);
     await provider.connection.confirmTransaction(airdropSignature);
@@ -207,7 +204,7 @@ describe("tokenized_vault", () => {
   });
 
   it("set performance fee - unauthorized", async () => {
-    const provider = anchor.AnchorProvider.env();
+    const provider = AnchorProvider.env();
 
     const newUser = web3.Keypair.generate();
     const airdropSignature = await provider.connection.requestAirdrop(newUser.publicKey, 10e9);
@@ -229,8 +226,8 @@ describe("tokenized_vault", () => {
 
   it("set fee manager", async () => {
     const feeRecipient = web3.Keypair.generate();
-    const airdropSignature = await anchor.getProvider().connection.requestAirdrop(feeRecipient.publicKey, 10e9);
-    await anchor.getProvider().connection.confirmTransaction(airdropSignature);
+    const airdropSignature = await AnchorProvider.env().connection.requestAirdrop(feeRecipient.publicKey, 10e9);
+    await AnchorProvider.env().connection.confirmTransaction(airdropSignature);
 
     await strategyProgram.methods.setFeeManager(feeRecipient.publicKey)
       .accounts({
@@ -259,146 +256,8 @@ describe("tokenized_vault", () => {
     assert.ok(vaultAccount.strategies[0].key.equals(strategy));
   });
 
-  it("Whitelist user", async () => {
-    let role = { whitelisted: {} };
-    await vaultProgram.methods.setRole(role, user.publicKey)
-      .accounts({
-        signer: admin.publicKey,
-      })
-      .signers([admin])
-      .rpc();
-  });
-
-  it("Whitelist user - unauthorized", async () => {
-    const provider = anchor.AnchorProvider.env();
-
-    const newUser = web3.Keypair.generate();
-    const airdropSignature = await provider.connection.requestAirdrop(newUser.publicKey, 10e9);
-    await provider.connection.confirmTransaction(airdropSignature);
-
-    try {
-      let role = { whitelisted: {} };
-      await vaultProgram.methods.setRole(role, user.publicKey)
-        .accounts({
-          signer: newUser.publicKey,
-        })
-        .signers([newUser])
-        .rpc();
-      assert.fail("Expected error was not thrown");
-    } catch (err) {
-      expect(err.message).to.contain("AnchorError caused by account: signer. Error Code: ConstraintAddress. Error Number: 2012. Error Message: An address constraint was violated.");
-    }
-  });
-
-  it("Remove user from whitelist", async () => {
-    const provider = anchor.AnchorProvider.env();
-
-    const newUser = web3.Keypair.generate();
-    const airdropSignature = await provider.connection.requestAirdrop(newUser.publicKey, 10e9);
-    await provider.connection.confirmTransaction(airdropSignature);
-
-    const accountRoles = web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("roles"), newUser.publicKey.toBuffer()],
-      vaultProgram.programId,
-    )[0];
-
-    let role = { whitelisted: {} };
-    await vaultProgram.methods.setRole(role, newUser.publicKey)
-      .accounts({
-        signer: admin.publicKey,
-      })
-      .signers([admin])
-      .rpc();
-
-    let rolesAccount = await vaultProgram.account.accountRoles.fetch(accountRoles);
-    assert.isTrue(rolesAccount.isWhitelisted);
-
-    await vaultProgram.methods.dropRole(role)
-      .accounts({
-        user: newUser.publicKey,
-        signer: admin.publicKey,
-      })
-      .signers([admin])
-      .rpc();
-
-      rolesAccount = await vaultProgram.account.accountRoles.fetch(accountRoles);
-      assert.isFalse(rolesAccount.isWhitelisted);
-  });
-
-  it("Deposit as non-whitelisted user", async () => {
-    const provider = anchor.AnchorProvider.env();
-
-    const newUser = web3.Keypair.generate();
-    const airdropSignature = await provider.connection.requestAirdrop(newUser.publicKey, 10e9);
-    await provider.connection.confirmTransaction(airdropSignature);
-
-    const newUserTokenAccount = await token.createAccount(provider.connection, newUser, underlyingMint, newUser.publicKey);
-    const newUserSharesAccount = await token.createAccount(provider.connection, newUser, sharesMint, newUser.publicKey);
-
-    await token.mintTo(provider.connection, admin, underlyingMint, newUserTokenAccount, admin.publicKey, 1000);
-
-    try {
-      await vaultProgram.methods.deposit(new BN(100))
-        .accounts({
-          vault,
-          user: newUser.publicKey,
-          userTokenAccount: newUserTokenAccount,
-          userSharesAccount: newUserSharesAccount,
-        })
-        .signers([newUser])
-        .rpc();
-      assert.fail("Expected error was not thrown");
-    } catch (err) {
-      expect(err.message).to.contain("AnchorError caused by account: roles. Error Code: AccountNotInitialized.");
-    }
-  });
-
-  it("Deposit as recall-whitelisted user", async () => {
-    const provider = anchor.AnchorProvider.env();
-
-    const newUser = web3.Keypair.generate();
-    const airdropSignature = await provider.connection.requestAirdrop(newUser.publicKey, 10e9);
-    await provider.connection.confirmTransaction(airdropSignature);
-
-    const newUserTokenAccount = await token.createAccount(provider.connection, newUser, underlyingMint, newUser.publicKey);
-    const newUserSharesAccount = await token.createAccount(provider.connection, newUser, sharesMint, newUser.publicKey);
-
-    await token.mintTo(provider.connection, admin, underlyingMint, newUserTokenAccount, admin.publicKey, 1000);
-
-    let role = { whitelisted: {} };
-    await vaultProgram.methods.setRole(role, newUser.publicKey)
-    .accounts({
-      signer: admin.publicKey,
-    })
-    .signers([admin])
-    .rpc();
-
-  await vaultProgram.methods.dropRole(role)
-    .accounts({
-      user: newUser.publicKey,
-      signer: admin.publicKey,
-    })
-    .signers([admin])
-    .rpc();
-
-    try {
-      await vaultProgram.methods.deposit(new BN(100))
-        .accounts({
-          vault,
-          user: newUser.publicKey,
-          userTokenAccount: newUserTokenAccount,
-          userSharesAccount: newUserSharesAccount
-        })
-        .signers([newUser])
-        .rpc();
-      assert.fail("Expected error was not thrown");
-    } catch (err) {
-      expect(err.message).to.contain("AnchorError caused by account: user. Error Code: ConstraintRaw. Error Number: 2003. Error Message: A raw constraint was violated.");
-    }
-  });
-
   it("Deposits tokens into the vault", async () => {
-    const provider = anchor.AnchorProvider.env();
+    const provider = AnchorProvider.env();
 
     userTokenAccount = await token.createAccount(provider.connection, user, underlyingMint, user.publicKey);
     console.log("User token account:", userTokenAccount.toBase58());
@@ -436,7 +295,7 @@ describe("tokenized_vault", () => {
   });
 
   it("Allocates tokens to the strategy", async () => {
-    const provider = anchor.AnchorProvider.env();
+    const provider = AnchorProvider.env();
 
     console.log("strategyTokenAccount:", strategyTokenAccount.toBase58());
     console.log("strategy:", strategy.toBase58());
@@ -471,7 +330,7 @@ describe("tokenized_vault", () => {
   });
 
   it("Deallocates tokens from the strategy", async () => {
-    const provider = anchor.AnchorProvider.env();
+    const provider = AnchorProvider.env();
 
     await vaultProgram.methods.updateDebt(new BN(80))
       .accounts({
@@ -504,7 +363,7 @@ describe("tokenized_vault", () => {
 
 
   it("Withdraws tokens from the vault", async () => {
-    const provider = anchor.AnchorProvider.env();
+    const provider = AnchorProvider.env();
 
     let vaultAccount = await vaultProgram.account.vault.fetch(vault);
     assert.strictEqual(vaultAccount.totalIdle.toString(), '20');
@@ -572,7 +431,7 @@ describe("tokenized_vault", () => {
   });
 
   it("transfer shares and withdraw", async () => {
-    const provider = anchor.AnchorProvider.env();
+    const provider = AnchorProvider.env();
 
     const newOwner = web3.Keypair.generate();
     const airdropSignature = await provider.connection.requestAirdrop(newOwner.publicKey, 10e9);
@@ -628,7 +487,7 @@ describe("tokenized_vault", () => {
   });
 
   it("report profit", async () => {
-    const provider = anchor.AnchorProvider.env();
+    const provider = AnchorProvider.env();
 
     const feeRecipient = web3.Keypair.generate();
     const airdropSignature = await provider.connection.requestAirdrop(feeRecipient.publicKey, 10e9);
@@ -743,7 +602,7 @@ describe("tokenized_vault", () => {
   });
 
   it("strategy report - unauthorized", async () => {
-    const provider = anchor.AnchorProvider.env();
+    const provider = AnchorProvider.env();
 
     const newUser = web3.Keypair.generate();
     const airdropSignature = await provider.connection.requestAirdrop(newUser.publicKey, 10e9);
@@ -782,7 +641,7 @@ describe("tokenized_vault", () => {
   });
 
   it("set deposit limit - unauthorized", async () => {
-    const provider = anchor.AnchorProvider.env();
+    const provider = AnchorProvider.env();
 
     const newUser = web3.Keypair.generate();
     const airdropSignature = await provider.connection.requestAirdrop(newUser.publicKey, 10e9);

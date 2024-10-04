@@ -1,5 +1,4 @@
 use anchor_lang::prelude::*;
-use anchor_lang::solana_program::pubkey;
 use anchor_spl::token_interface::Mint;
 
 use crate::constants::{VAULT_SEED, MAX_BPS, SHARES_SEED};
