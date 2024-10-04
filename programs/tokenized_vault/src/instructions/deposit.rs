@@ -16,9 +16,6 @@ pub struct Deposit<'info> {
     #[account(mut)]
     pub user_token_account: Account<'info, TokenAccount>,
 
-    #[account(seeds = [ROLES_SEED.as_bytes(), user.key().as_ref()], bump)]
-    pub roles: Account<'info, AccountRoles>,
-
     #[account(mut, seeds = [UNDERLYING_SEED.as_bytes(), vault.key().as_ref()], bump)]
     pub vault_token_account: Account<'info, TokenAccount>,
 
@@ -28,7 +25,7 @@ pub struct Deposit<'info> {
     #[account(mut)]
     pub user_shares_account: Account<'info, TokenAccount>,
 
-    #[account(mut, constraint = roles.is_whitelisted)]
+    #[account(mut)]
     pub user: Signer<'info>,
 
     pub token_program: Program<'info, Token>,
