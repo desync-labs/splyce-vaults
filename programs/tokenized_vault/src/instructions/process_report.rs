@@ -40,9 +40,9 @@ pub fn handle_process_report(ctx: Context<ProcessReport>) -> Result<()> {
             MintTo {
                 mint: ctx.accounts.shares_mint.to_account_info(),
                 to: ctx.accounts.fee_shares_recipient.to_account_info(),
-                authority: ctx.accounts.vault.to_account_info(),
+                authority: ctx.accounts.shares_mint.to_account_info(),
             }, 
-            &[&ctx.accounts.vault.load()?.seeds()]
+            &[&ctx.accounts.vault.load()?.seeds_shares()]
         ), 
         fee_shares_to_mint
     )?;

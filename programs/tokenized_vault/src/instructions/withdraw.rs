@@ -206,12 +206,11 @@ fn withdraw_assets<'info>(
 ) -> Result<u64> {
     let vault = vault_acc.load()?.clone();
     let mut requested_assets = assets;
-    let mut assets_needed = 0;
     let mut total_idle = vault.total_idle;
     let mut total_debt = vault.total_debt;
 
     if requested_assets > total_idle {
-        assets_needed = requested_assets - total_idle;
+        let mut assets_needed = requested_assets - total_idle;
 
         for i in 0..strategies.len() {
             let strategy_acc = &strategies[i];

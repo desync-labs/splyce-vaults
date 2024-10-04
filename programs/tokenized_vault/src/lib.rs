@@ -17,7 +17,7 @@ declare_id!("8eDcyX8Z8yZXBQsuatwxDC1qzGbuUbP7wGERDBQoPmBH");
 pub mod tokenized_vault {
     use super::*;
 
-    pub fn init_vault(ctx: Context<Initialize>, index: u64, config: VaultConfig) -> Result<()> {
+    pub fn init_vault(ctx: Context<Initialize>, index: u64, config: Box<VaultConfig>) -> Result<()> {
         handle_init_vault(ctx, index, config)
     }
 
