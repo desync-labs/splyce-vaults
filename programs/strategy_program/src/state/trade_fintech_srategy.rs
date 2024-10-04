@@ -137,7 +137,6 @@ impl Strategy for TradeFintechStrategy {
 
         self.total_invested = 0;
 
-        // }
         Ok(())
     }
 
