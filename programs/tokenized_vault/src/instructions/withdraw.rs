@@ -48,26 +48,6 @@ pub struct AccountsMap {
 }
 
 pub fn handle_withdraw<'info>(
-    ctx: Context<'_, '_, '_, 'info, Withdraw<'info>>, 
-    amount: u64, 
-    max_loss: u64,
-    remaining_accounts_map: AccountsMap
-) -> Result<()> {
-    let shares = ctx.accounts.vault.load()?.convert_to_shares(amount);
-    handle_internal(ctx, amount, shares, max_loss, remaining_accounts_map)
-}
-
-pub fn handle_redeem<'info>(
-    ctx: Context<'_, '_, '_, 'info, Withdraw<'info>>, 
-    shares: u64, 
-    max_loss: u64,
-    remaining_accounts_map: AccountsMap
-) -> Result<()> {
-    let amount = ctx.accounts.vault.load()?.convert_to_underlying(shares);
-    handle_internal(ctx, amount, shares, max_loss, remaining_accounts_map)
-}
-
-fn handle_internal<'info>(
     ctx: Context<'_, '_, '_, 'info, Withdraw<'info>>,
     assets: u64,
     shares_to_burn: u64,

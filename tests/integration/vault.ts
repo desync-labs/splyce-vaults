@@ -521,7 +521,7 @@ describe("tokenized_vault", () => {
         }]
     };
 
-    await vaultProgram.methods.withdraw(new BN(30), new BN(10000), remainingAccountsMap)
+    await vaultProgram.methods.redeem(new BN(30), new BN(10000), remainingAccountsMap)
       .accounts({
         vault,
         user: user.publicKey,
@@ -604,7 +604,7 @@ describe("tokenized_vault", () => {
         }]
     };
 
-    await vaultProgram.methods.withdraw(shares, new BN(0), remainingAccountsMap)
+    await vaultProgram.methods.redeem(shares, new BN(0), remainingAccountsMap)
       .accounts({
         vault,
         user: newOwner.publicKey,
@@ -693,7 +693,7 @@ describe("tokenized_vault", () => {
         }]
     };
 
-    await vaultProgram.methods.withdraw(new BN(10), new BN(0), remainingAccountsMap)
+    await vaultProgram.methods.redeem(new BN(10), new BN(0), remainingAccountsMap)
       .accounts({
         vault,
         user: user.publicKey,
@@ -719,7 +719,7 @@ describe("tokenized_vault", () => {
     assert.strictEqual(feeRecipientSharesAccountInfo.amount.toString(), '2');
 
     // withdraw fee
-    await vaultProgram.methods.withdraw(new BN(2), new BN(0), remainingAccountsMap)
+    await vaultProgram.methods.redeem(new BN(2), new BN(0), remainingAccountsMap)
       .accounts({
         vault,
         user: feeRecipient.publicKey,

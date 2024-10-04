@@ -2,7 +2,6 @@ use anchor_lang::prelude::*;
 use strategy_program::state::*;
 use anchor_spl::token::TokenAccount;
  
-use crate::state::*;
 use strategy_program::{self};
 use strategy_program::cpi::accounts::{
     Deposit,
@@ -10,7 +9,6 @@ use strategy_program::cpi::accounts::{
 };
 
 use crate::error::ErrorCode::*;
-// use crate::vault;
 
 pub fn deposit<'a>(
     strategy: AccountInfo<'a>,
