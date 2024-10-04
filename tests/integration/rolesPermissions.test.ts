@@ -29,7 +29,6 @@ describe("Roles & Permissions Tests", () => {
   let reportingManager: anchor.web3.Keypair;
   let whitelistedUser: anchor.web3.Keypair;
   let whitelistedUserTokenAccount: anchor.web3.PublicKey;
-  let whitelistedUserSharesTokenAccount: anchor.web3.PublicKey;
   let user: anchor.web3.Keypair;
   let underlyingMint: anchor.web3.PublicKey;
   let underlyingMintOwner: anchor.web3.Keypair;
@@ -138,7 +137,7 @@ describe("Roles & Permissions Tests", () => {
     console.log("First set role completed successfully");
 
     await vaultProgram.methods
-      .setRole(reportingManagerObj, rolesAdmin.publicKey)
+      .setRole(reportingManagerObj, reportingManager.publicKey)
       .accounts({
         signer: rolesAdmin.publicKey,
       })
@@ -262,13 +261,6 @@ describe("Roles & Permissions Tests", () => {
       whitelistedUser.publicKey
     );
     console.log("Whitelisted user token account created successfully");
-    whitelistedUserSharesTokenAccount = await token.createAccount(
-      provider.connection,
-      whitelistedUser,
-      sharesMintTwo,
-      whitelistedUser.publicKey
-    );
-    console.log("Whitelisted shares token account created successfully");
     await token.mintTo(
       provider.connection,
       underlyingMintOwner,
@@ -276,6 +268,9 @@ describe("Roles & Permissions Tests", () => {
       whitelistedUserTokenAccount,
       underlyingMintOwner.publicKey,
       1000
+    );
+    console.log(
+      "Minted 1000 underlying tokens to Whitelisted user successfully"
     );
     console.log("-------Before Step Finished-------");
   });
@@ -443,7 +438,7 @@ describe("Roles & Permissions Tests", () => {
       });
       assert.fail("Error was not thrown");
     } catch (err) {
-      expect(err.message).contains(anchorError2003);
+      expect(err.message).contains(anchorError3012);
     }
   });
 
@@ -460,7 +455,7 @@ describe("Roles & Permissions Tests", () => {
         .rpc();
       assert.fail("Error was not thrown");
     } catch (err) {
-      expect(err.message).contains(anchorError2003);
+      expect(err.message).contains(anchorError3012);
     }
   });
 
@@ -485,7 +480,7 @@ describe("Roles & Permissions Tests", () => {
         .rpc();
       assert.fail("Error was not thrown");
     } catch (err) {
-      expect(err.message).contains(anchorError2003);
+      expect(err.message).contains(anchorError3012);
     }
   });
 
@@ -501,7 +496,7 @@ describe("Roles & Permissions Tests", () => {
         .rpc();
       assert.fail("Error was not thrown");
     } catch (err) {
-      expect(err.message).contains(anchorError2003);
+      expect(err.message).contains(anchorError3012);
     }
   });
 
@@ -522,7 +517,7 @@ describe("Roles & Permissions Tests", () => {
         .rpc();
       assert.fail("Error was not thrown");
     } catch (err) {
-      expect(err.message).contains(anchorError2003);
+      expect(err.message).contains(anchorError3012);
     }
   });
 
@@ -538,12 +533,11 @@ describe("Roles & Permissions Tests", () => {
         .rpc();
       assert.fail("Error was not thrown");
     } catch (err) {
-      expect(err.message).contains(anchorError2003);
+      expect(err.message).contains(anchorError3012);
     }
   });
 
-  // Test is failing, need to investigate
-  it.skip("Roles Admin - Process report for the vault should revert", async () => {
+  it("Roles Admin - Process report for the vault should revert", async () => {
     const feeRecipient = anchor.web3.Keypair.generate();
     await airdrop({
       connection,
@@ -570,8 +564,7 @@ describe("Roles & Permissions Tests", () => {
         .rpc();
       assert.fail("Error was not thrown");
     } catch (err) {
-      console.log(err.message);
-      expect(err.message).contains(anchorError2003);
+      expect(err.message).contains(anchorError3012);
     }
   });
 
@@ -610,7 +603,7 @@ describe("Roles & Permissions Tests", () => {
         .rpc();
       assert.fail("Error was not thrown");
     } catch (err) {
-      expect(err.message).contains(anchorError2003);
+      expect(err.message).contains(anchorError3012);
     }
   });
 
@@ -731,9 +724,20 @@ describe("Roles & Permissions Tests", () => {
     assert.ok(vaultAccount.strategies[0].key.equals(strategyTwo));
   });
 
+
+  // TODO, need to validate assertions
   it("Vaults Admin - Update debt for the vault is successful", async () => {
+    const depositAmount = 100;
+    const allocationAmount = 90;
+    const whitelistedUserSharesTokenAccount = await token.createAccount(
+      connection,
+      whitelistedUser,
+      sharesMintTwo,
+      whitelistedUser.publicKey
+    );
+
     await vaultProgram.methods
-      .deposit(new BN(100))
+      .deposit(new BN(depositAmount))
       .accounts({
         vault: vaultTwo,
         user: whitelistedUser.publicKey,
@@ -743,9 +747,8 @@ describe("Roles & Permissions Tests", () => {
       .signers([whitelistedUser])
       .rpc();
 
-    const debt = new BN(100);
     await vaultProgram.methods
-      .updateDebt(debt)
+      .updateDebt(new BN(allocationAmount))
       .accounts({
         vault: vaultTwo,
         strategy: strategyTwo,
@@ -758,7 +761,21 @@ describe("Roles & Permissions Tests", () => {
       .signers([vaultsAdmin])
       .rpc();
     const vaultAccount = await vaultProgram.account.vault.fetch(vaultTwo);
-    expect(Number(vaultAccount.totalDebt)).to.eql(Number(debt));
+    expect(Number(vaultAccount.strategies[0].currentDebt)).to.eql(allocationAmount);
+    expect(Number(vaultAccount.totalDebt)).to.eql(allocationAmount);
+    expect(Number(vaultAccount.totalIdle)).to.eql(depositAmount - allocationAmount);
+
+    // Fetch the vault token account balance to verify the allocation
+    const vaultTokenAccountInfo = await token.getAccount(provider.connection, vaultTokenAccountTwo);
+    assert.strictEqual(Number(vaultTokenAccountInfo.amount), depositAmount-allocationAmount);
+
+    // Fetch the strategy token account balance to verify the allocation
+    const strategyTokenAccountInfo = await token.getAccount(provider.connection, strategyTokenAccountTwo);
+    assert.strictEqual(Number(strategyTokenAccountInfo.amount), allocationAmount);
+
+    // Fetch the strategy account to verify the state change
+    const strategyAccount = await strategyProgram.account.simpleStrategy.fetch(strategyTwo);
+    assert.strictEqual(Number(strategyAccount.totalAssets), allocationAmount);
   });
 
   it("Vaults Admin - Set deposit limit for the vault is successful", async () => {
@@ -872,5 +889,321 @@ describe("Roles & Permissions Tests", () => {
       .rpc();
     const vaultAccountTwo = await vaultProgram.account.vault.fetch(vaultTwo);
     expect(vaultAccountTwo.isShutdown).to.equal(true);
+  });
+
+  it("Reporting Manager - Setting Vaults Admin role should revert", async () => {
+    const vaultsAdminUserInner = anchor.web3.Keypair.generate();
+    try {
+      await vaultProgram.methods
+        .setRole(vaultsAdminObj, vaultsAdminUserInner.publicKey)
+        .accounts({
+          signer: reportingManager.publicKey,
+        })
+        .signers([reportingManager])
+        .rpc();
+      assert.fail("Error was not thrown");
+    } catch (err) {
+      expect(err.message).contain(anchorError2012);
+      expect(err.message).contains(rolesAdmin.publicKey);
+      expect(err.message).contains(reportingManager.publicKey);
+    }
+  });
+
+  it("Reporting Manager - Setting Reporting Manager role should revert", async () => {
+    const reportingManagerUserInner = anchor.web3.Keypair.generate();
+    try {
+      await vaultProgram.methods
+        .setRole(vaultsAdminObj, reportingManagerUserInner.publicKey)
+        .accounts({
+          signer: reportingManager.publicKey,
+        })
+        .signers([reportingManager])
+        .rpc();
+      assert.fail("Error was not thrown");
+    } catch (err) {
+      expect(err.message).contain(anchorError2012);
+      expect(err.message).contains(rolesAdmin.publicKey);
+      expect(err.message).contains(reportingManager.publicKey);
+    }
+  });
+
+  it("Reporting Manager - Setting Whitelisted role should revert", async () => {
+    const whiteListedUserInner = anchor.web3.Keypair.generate();
+    try {
+      await vaultProgram.methods
+        .setRole(vaultsAdminObj, whiteListedUserInner.publicKey)
+        .accounts({
+          signer: reportingManager.publicKey,
+        })
+        .signers([reportingManager])
+        .rpc();
+      assert.fail("Error was not thrown");
+    } catch (err) {
+      expect(err.message).contain(anchorError2012);
+      expect(err.message).contains(rolesAdmin.publicKey);
+      expect(err.message).contains(reportingManager.publicKey);
+    }
+  });
+
+  it("Reporting Manager - Initializing vault should revert", async () => {
+    try {
+      await initializeVault({
+        vaultProgram,
+        underlyingMint,
+        vaultIndex: 7,
+        signer: reportingManager,
+        config: vaultConfig,
+      });
+      assert.fail("Error was not thrown");
+    } catch (err) {
+      expect(err.message).contains(anchorError2003);
+    }
+  });
+
+  it("Reporting Manager - Adding a strategy to the vault should revert", async () => {
+    try {
+      await vaultProgram.methods
+        .addStrategy(new BN(1000000000))
+        .accounts({
+          vault: vaultThree,
+          strategy: strategyThree,
+          signer: reportingManager.publicKey,
+        })
+        .signers([reportingManager])
+        .rpc();
+      assert.fail("Error was not thrown");
+    } catch (err) {
+      expect(err.message).contains(anchorError2003);
+    }
+  });
+
+  it("Reporting Manager - Removing a strategy from the vault should revert", async () => {
+    await vaultProgram.methods
+      .addStrategy(new BN(1000000000))
+      .accounts({
+        vault: vaultThree,
+        strategy: strategyThree,
+        signer: vaultsAdmin.publicKey,
+      })
+      .signers([vaultsAdmin])
+      .rpc();
+    try {
+      await vaultProgram.methods
+        .removeStrategy(strategyThree, false)
+        .accounts({
+          vault: vaultThree,
+          signer: reportingManager.publicKey,
+        })
+        .signers([reportingManager])
+        .rpc();
+      assert.fail("Error was not thrown");
+    } catch (err) {
+      expect(err.message).contains(anchorError2003);
+    }
+  });
+
+  it("Reporting Manager - Shutting down the vault should revert", async () => {
+    try {
+      await vaultProgram.methods
+        .shutdownVault()
+        .accounts({
+          vault: vaultThree,
+          signer: reportingManager.publicKey,
+        })
+        .signers([reportingManager])
+        .rpc();
+      assert.fail("Error was not thrown");
+    } catch (err) {
+      expect(err.message).contains(anchorError2003);
+    }
+  });
+
+  it("Reporting Manager - Update debt for the vault should revert", async () => {
+    try {
+      await vaultProgram.methods
+        .updateDebt(new BN(100))
+        .accounts({
+          vault: vaultThree,
+          strategy: strategyThree,
+          strategyTokenAccount: strategyTokenAccountThree,
+          signer: reportingManager.publicKey,
+          // @ts-ignore
+          tokenProgram: token.TOKEN_PROGRAM_ID,
+          strategyProgram: strategyProgram.programId,
+        })
+        .signers([reportingManager])
+        .rpc();
+      assert.fail("Error was not thrown");
+    } catch (err) {
+      expect(err.message).contains(anchorError2003);
+    }
+  });
+
+  it("Reporting Manager - Set deposit limit for the vault should revert", async () => {
+    try {
+      await vaultProgram.methods
+        .setDepositLimit(new BN(2000))
+        .accounts({
+          vault: vaultOne,
+          signer: reportingManager.publicKey,
+        })
+        .signers([reportingManager])
+        .rpc();
+      assert.fail("Error was not thrown");
+    } catch (err) {
+      expect(err.message).contains(anchorError2003);
+    }
+  });
+
+  it("Reporting Manager - Process report is successful", async () => {
+    const whitelistedUserSharesTokenAccount = await token.createAccount(
+      connection,
+      whitelistedUser,
+      sharesMintThree,
+      whitelistedUser.publicKey
+    );
+
+    // Deposit
+    await vaultProgram.methods
+      .deposit(new BN(100))
+      .accounts({
+        vault: vaultThree,
+        user: whitelistedUser.publicKey,
+        userTokenAccount: whitelistedUserTokenAccount,
+        userSharesAccount: whitelistedUserSharesTokenAccount,
+      })
+      .signers([whitelistedUser])
+      .rpc();
+
+    // Allocate
+    await vaultProgram.methods
+      .updateDebt(new BN(100))
+      .accounts({
+        vault: vaultThree,
+        strategy: strategyThree,
+        strategyTokenAccount: strategyTokenAccountThree,
+        signer: vaultsAdmin.publicKey,
+        // @ts-ignore
+        tokenProgram: token.TOKEN_PROGRAM_ID,
+        strategyProgram: strategyProgram.programId,
+      })
+      .signers([vaultsAdmin])
+      .rpc();
+
+    // Simulate profit
+    await token.mintTo(
+      connection,
+      underlyingMintOwner,
+      underlyingMint,
+      strategyTokenAccountThree,
+      underlyingMintOwner.publicKey,
+      50
+    );
+
+    const feeRecipient = anchor.web3.Keypair.generate();
+    await airdrop({
+      connection,
+      publicKey: feeRecipient.publicKey,
+      amount: 10e9,
+    });
+    const feeRecipientSharesAccount = await token.createAccount(
+      provider.connection,
+      feeRecipient,
+      sharesMintThree,
+      feeRecipient.publicKey
+    );
+
+    await strategyProgram.methods
+      .report()
+      .accounts({
+        strategy: strategyThree,
+        tokenAccount: strategyTokenAccountThree,
+        signer: vaultsAdmin.publicKey,
+        // @ts-ignore
+        tokenProgram: token.TOKEN_PROGRAM_ID,
+      })
+      .remainingAccounts([
+        {
+          pubkey: strategyTokenAccountThree,
+          isWritable: true,
+          isSigner: false,
+        },
+      ])
+      .signers([vaultsAdmin])
+      .rpc();
+
+    await vaultProgram.methods
+      .processReport()
+      .accounts({
+        vault: vaultThree,
+        strategy: strategyThree,
+        signer: reportingManager.publicKey,
+        feeSharesRecipient: feeRecipientSharesAccount,
+      })
+      .signers([reportingManager])
+      .rpc();
+
+    // Assertions
+    const vaultAccount = await vaultProgram.account.vault.fetch(vaultThree);
+    assert.strictEqual(vaultAccount.totalShares.toString(), "103");
+
+    // check fee balance
+    const strategyAccount = await strategyProgram.account.simpleStrategy.fetch(
+      strategyThree
+    );
+    assert.strictEqual(strategyAccount.feeData.feeBalance.toString(), "0");
+
+    // check the strategy token account balance
+    const strategyTokenAccountInfo = await token.getAccount(
+      provider.connection,
+      strategyTokenAccountThree
+    );
+    assert.strictEqual(strategyTokenAccountInfo.amount.toString(), "150");
+
+    // check the vault token account balance
+    const vaultTokenAccountInfo = await token.getAccount(
+      provider.connection,
+      vaultTokenAccountThree
+    );
+    assert.strictEqual(vaultTokenAccountInfo.amount.toString(), "0");
+  });
+
+  it("Reporting Manager - Depositing into the vault should revert", async () => {
+    const reportingManagerTokenAccount = await token.createAccount(
+      connection,
+      reportingManager,
+      underlyingMint,
+      reportingManager.publicKey
+    );
+    const reportingManagerSharesAccount = await token.createAccount(
+      connection,
+      reportingManager,
+      sharesMintThree,
+      reportingManager.publicKey
+    );
+    await token.mintTo(
+      connection,
+      underlyingMintOwner,
+      underlyingMint,
+      reportingManagerTokenAccount,
+      underlyingMintOwner.publicKey,
+      1000
+    );
+
+    try {
+      await vaultProgram.methods
+        .deposit(new BN(100))
+        .accounts({
+          vault: vaultThree,
+          user: reportingManager.publicKey,
+          userTokenAccount: reportingManagerTokenAccount,
+          userSharesAccount: reportingManagerSharesAccount,
+        })
+        .signers([reportingManager])
+        .rpc();
+      assert.fail("Error was not thrown");
+    } catch (err) {
+      expect(err.message).contains(anchorError2003);
+    }
   });
 });
