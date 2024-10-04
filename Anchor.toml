@@ -5,14 +5,14 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-strategy_program = "EDA9ee5UKzdqrHgSd5v64bNnbCae1t7NJfUpvS7DZod"
-tokenized_vault = "8eDcyX8Z8yZXBQsuatwxDC1qzGbuUbP7wGERDBQoPmBH"
+strategy_program = "ErJGueTn3xVKETP4dc8vrmS5Lu7iupJZ2pr7kYJkCtUE"
+tokenized_vault = "CNyqz3mqw6koNmAe7rn2xHGHAS9ftXUNQohwHSiXhJLQ"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "Localnet"
+cluster = "http://34.42.12.83:8899"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
@@ -20,6 +20,7 @@ test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/integration/**/*.t
 set_roles = "yarn run set_roles"
 init_vault = "yarn run init_vault"
 whitelist = "yarn run whitelist"
+update_deposit_limit = "yarn run update-deposit-limit"
 
 [[test.genesis]] 
 address = "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s" 

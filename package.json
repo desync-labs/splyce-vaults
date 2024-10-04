@@ -5,7 +5,8 @@
     "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check",
     "set_roles": "npx ts-node scripts/set_roles.ts",
     "init_vault": "npx ts-node scripts/create_default_vault_with_strategy.ts",
-    "whitelist": "npx ts-node scripts/add_to_whitelist.ts"
+    "whitelist": "npx ts-node scripts/add_to_whitelist.ts",
+    "update-deposit-limit": "npx ts-node scripts/update-deposit-limit.ts"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.30.1",

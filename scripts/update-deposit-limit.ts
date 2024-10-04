@@ -3,6 +3,7 @@ import { Program } from "@coral-xyz/anchor";
 import { TokenizedVault } from "../target/types/tokenized_vault";
 import * as fs from 'fs'; // Import fs module
 import * as path from 'path'; // Import path module
+import { BN } from "@coral-xyz/anchor";
 
 // Define the config function
 async function main() {
@@ -17,16 +18,26 @@ async function main() {
 
         const vaultProgram = anchor.workspace.TokenizedVault as Program<TokenizedVault>;
 
-        const userKey = new anchor.web3.PublicKey("F7FLF8hrNk1p493dCjHHVoQJBqfzXVk917BvfAj5r4yJ");
+        const newDepositLimit = new BN(100000000000000);
 
-        let role = { whitelisted: {} };
-        await vaultProgram.methods.setRole(role, userKey)
+        let vault = anchor.web3.PublicKey.findProgramAddressSync(
+            [
+              Buffer.from("vault"),
+              Buffer.from(new Uint8Array(new BigUint64Array([BigInt(0)]).buffer))
+            ],
+            vaultProgram.programId
+          )[0];
+          console.log("Vault PDA:", vault.toBase58());
+
+        await vaultProgram.methods.setDepositLimit(newDepositLimit)
             .accounts({
-                signer: admin.publicKey,
+            vault,
+            signer: admin.publicKey,
             })
             .signers([admin])
             .rpc();
-        console.log("User added to whitelist");
+
+        console.log("Updated depsotit limit to:", newDepositLimit.toString());
     } catch (error) {
         console.error("Error occurred:", error);
     }
