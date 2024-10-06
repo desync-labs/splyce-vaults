@@ -23,6 +23,7 @@ init_vault = "yarn run init_vault"
 whitelist = "yarn run whitelist"
 update_deposit_limit = "yarn run update-deposit-limit"
 init_faucet = "yarn run init_faucet"
+report_profit = "yarn run report_profit"
 
 [[test.genesis]] 
 address = "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s" 
