@@ -5,7 +5,7 @@ import { StrategyProgram } from "../target/types/strategy_program";
 import { BN } from "@coral-xyz/anchor";
 import * as token from "@solana/spl-token";
 import * as borsh from 'borsh';
-import { SimpleStrategy, SimpleStrategySchema } from "../tests/utils/schemas";
+import { SimpleStrategyConfig, SimpleStrategyConfigSchema } from "../tests/utils/schemas";
 import * as fs from 'fs'; // Import fs module
 import * as path from 'path'; // Import path module
 
@@ -83,13 +83,13 @@ async function main() {
     )[0];
 
     const strategyType = { simple: {} };
-    const strategyConfig = new SimpleStrategy({
+    const strategyConfig = new SimpleStrategyConfig({
       depositLimit: new BN(1000),
       performanceFee: new BN(0),
       feeManager: admin.publicKey,
     });
 
-    const configBytes = Buffer.from(borsh.serialize(SimpleStrategySchema, strategyConfig));
+    const configBytes = Buffer.from(borsh.serialize(SimpleStrategyConfigSchema, strategyConfig));
     await strategyProgram.methods.initStrategy(0, strategyType, configBytes)
       .accounts({
         vault,
