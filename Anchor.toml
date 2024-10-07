@@ -18,7 +18,7 @@ faucet = "GUrM139EUwYkoEWebecqiTLJrvut4mDdHGTu9d87tgQC"
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "mainnet"
+cluster = "solana-mainnet-beta"
 wallet = "~/.config/solana/mainnet.json"
 
 [scripts]
