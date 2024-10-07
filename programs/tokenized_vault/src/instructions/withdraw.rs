@@ -158,17 +158,19 @@ fn get_strategies_with_token_acc<'info>(
         let token_account_info: &AccountInfo<'info> = &remaining_accounts[accounts_map[i].strategy_token_account as usize];
         let expected_token_account = strategy::get_token_account_key(&strategy_acc_info)?;
 
-        if *token_account_info.key != expected_token_account {
+        if token_account_info.key() != expected_token_account {
             return Err(ErrorCode::InvalidAccountPairs.into());
-        }
-
-        for j in 0..accounts_map[i].remaining_accounts_to_strategies.len() {
-            let acc: &AccountInfo<'info> = &remaining_accounts[accounts_map[i].remaining_accounts_to_strategies[j] as usize];
-            strategy_remaining_accounts.push(vec![acc.clone()]);
         }
 
         strategy_account_infos.push(strategy_acc_info.clone());
         token_accounts.push(token_account_info.clone());
+
+        if !accounts_map[i].remaining_accounts_to_strategies.is_empty() {
+            for j in 0..accounts_map[i].remaining_accounts_to_strategies.len() {
+                let acc: &AccountInfo<'info> = &remaining_accounts[accounts_map[i].remaining_accounts_to_strategies[j] as usize];
+                strategy_remaining_accounts.push(vec![acc.clone()]);
+            }
+        }
     }
 
     Ok((strategy_account_infos, token_accounts, strategy_remaining_accounts))
