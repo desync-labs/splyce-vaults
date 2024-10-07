@@ -6,7 +6,8 @@
     "set_roles": "npx ts-node scripts/set_roles.ts",
     "init_vault": "npx ts-node scripts/create_default_vault_with_strategy.ts",
     "whitelist": "npx ts-node scripts/add_to_whitelist.ts",
-    "init_faucet": "npx ts-node scripts/init_faucet.ts"
+    "init_faucet": "npx ts-node scripts/init_faucet.ts",
+    "init_trade_fi": "npx ts-node scripts/create_vault_with_trade_fi_strategy.ts"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.30.1",
