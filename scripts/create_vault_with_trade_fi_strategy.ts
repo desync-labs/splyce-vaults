@@ -26,10 +26,10 @@ async function main() {
     const vaultProgram = anchor.workspace.TokenizedVault as Program<TokenizedVault>;
     const strategyProgram = anchor.workspace.StrategyProgram as Program<StrategyProgram>;
 
-    const underlyingMint = await token.createMint(provider.connection, admin, admin.publicKey, null, 9);
+    const underlyingMint = new anchor.web3.PublicKey("4dCLhR7U8PzwXau6qfjr73tKgp5SD42aLbyo3XQNzY4V");
     console.log("Underlying token mint public key:", underlyingMint.toBase58());
 
-    const vault_index = 1;
+    const vault_index = 2;
 
     const vault = anchor.web3.PublicKey.findProgramAddressSync(
       [
@@ -83,6 +83,7 @@ async function main() {
     )[0];
 
 
+    //TODO: Depoit and lock period ends in 30 minutes
     const strategyType = { tradeFintech: {} };
     const strategyConfig = new TradeFintechConfig({
       depositLimit: new BN(1000),
