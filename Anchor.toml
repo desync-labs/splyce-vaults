@@ -5,15 +5,15 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-strategy_program = "ErJGueTn3xVKETP4dc8vrmS5Lu7iupJZ2pr7kYJkCtUE"
-tokenized_vault = "CNyqz3mqw6koNmAe7rn2xHGHAS9ftXUNQohwHSiXhJLQ"
-faucet = "BnjdeSt6reRowzTYp5KQFWXnqBymUe4oNRwjfBW3g5Bu"
+strategy_program = "EDA9ee5UKzdqrHgSd5v64bNnbCae1t7NJfUpvS7DZod"
+tokenized_vault = "8eDcyX8Z8yZXBQsuatwxDC1qzGbuUbP7wGERDBQoPmBH"
+faucet = "GUrM139EUwYkoEWebecqiTLJrvut4mDdHGTu9d87tgQC"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "https://rpc.solana.splyce.finance"
+cluster = "Localnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
