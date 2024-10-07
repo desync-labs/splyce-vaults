@@ -5,7 +5,7 @@ import { StrategyProgram } from "../target/types/strategy_program";
 import { BN } from "@coral-xyz/anchor";
 import * as token from "@solana/spl-token";
 import * as borsh from 'borsh';
-import { SimpleStrategy, SimpleStrategySchema } from "../tests/utils/schemas";
+import { TradeFintechConfig, TradeFintechConfigSchema } from "../tests/utils/schemas";
 import * as fs from 'fs'; // Import fs module
 import * as path from 'path'; // Import path module
 
@@ -29,7 +29,7 @@ async function main() {
     const underlyingMint = await token.createMint(provider.connection, admin, admin.publicKey, null, 9);
     console.log("Underlying token mint public key:", underlyingMint.toBase58());
 
-    const vault_index = 0;
+    const vault_index = 1;
 
     const vault = anchor.web3.PublicKey.findProgramAddressSync(
       [
@@ -46,7 +46,7 @@ async function main() {
 
     const config = {
       name: "Share Splyce USD",
-      symbol: "spvUSD",
+      symbol: "sstUSD",
       uri: "https://gist.githubusercontent.com/vito-kovalione/a3fcf481b0cced2615ae626ebdd04288/raw/f6a648dfebce511448c81ea5b4672bdd9f14c2e2/gistfile1.txt",
       depositLimit: new BN(1_000_000_000).mul(new BN(10).pow(new BN(9))),
       minUserDeposit: new BN(0),
@@ -82,23 +82,29 @@ async function main() {
       strategyProgram.programId
     )[0];
 
-    const strategyType = { simple: {} };
-    const strategyConfig = new SimpleStrategy({
+
+    const strategyType = { tradeFintech: {} };
+    const strategyConfig = new TradeFintechConfig({
       depositLimit: new BN(1000),
-      performanceFee: new BN(0),
-      feeManager: admin.publicKey,
+      // deposit ends in 1 minute, epoch time in seconds
+      depositPeriodEnds: new BN(Date.now() / 1000 + 60 * 30),
+      // lock period ends in 2 minute
+      lockPeriodEnds: new BN(Date.now() / 1000 + 2 * 60 * 30),
+      performanceFee: new BN(1),
+      feeManager: admin.publicKey
     });
 
-    const configBytes = Buffer.from(borsh.serialize(SimpleStrategySchema, strategyConfig));
+    const configBytes = Buffer.from(borsh.serialize(TradeFintechConfigSchema, strategyConfig));
+    console.log("strategy:", strategy);
     await strategyProgram.methods.initStrategy(0, strategyType, configBytes)
       .accounts({
-        vault,
         underlyingMint,
+        vault,
         signer: admin.publicKey,
       })
       .signers([admin])
       .rpc();
-
+  
     console.log("Strategy:", strategy.toBase58());
 
     await vaultProgram.methods.addStrategy(new BN(1000000000))
