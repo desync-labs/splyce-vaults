@@ -13,7 +13,7 @@ faucet = "GUrM139EUwYkoEWebecqiTLJrvut4mDdHGTu9d87tgQC"
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "http://34.42.12.83:8899"
+cluster = "https://rpc.solana.splyce.finance"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
@@ -23,7 +23,7 @@ init_vault = "yarn run init_vault"
 whitelist = "yarn run whitelist"
 update_deposit_limit = "yarn run update-deposit-limit"
 init_faucet = "yarn run init_faucet"
-report_profit = "yarn run report_profit"
+process_report = "yarn run process_report"
 
 [[test.genesis]] 
 address = "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s" 

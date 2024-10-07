@@ -8,7 +8,7 @@
     "whitelist": "npx ts-node scripts/add_to_whitelist.ts",
     "update-deposit-limit": "npx ts-node scripts/update-deposit-limit.ts",
     "init_faucet": "npx ts-node scripts/init_faucet.ts",
-    "report_profit": "npx ts-node scripts/report_profit.ts"
+    "process_report": "npx ts-node scripts/process_report.ts"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.30.1",
