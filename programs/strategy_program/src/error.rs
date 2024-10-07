@@ -37,4 +37,7 @@ pub enum ErrorCode {
 
     #[msg("Signer has no access")]
     AccessDenied,
+
+    #[msg("Loss is too high")]
+    LossTooHigh,
 }

@@ -11,12 +11,12 @@ pub struct Deposit<'info> {
     /// CHECK: can by any strategy
     #[account(mut)]
     pub strategy: UncheckedAccount<'info>,
-    #[account()]
-    pub signer: Signer<'info>,
     #[account(mut, seeds = [UNDERLYING_SEED.as_bytes(), strategy.key().as_ref()], bump)]
-    pub token_account: Account<'info, TokenAccount>,
+    pub underlying_token_account: Account<'info, TokenAccount>,
     #[account(mut)]
     pub vault_token_account: Account<'info, TokenAccount>,
+    #[account()]
+    pub signer: Signer<'info>,
     pub token_program: Program<'info, Token>,
 }
 
@@ -39,12 +39,11 @@ pub fn handle_deposit<'info>(
     transfer_token_to(
         ctx.accounts.token_program.to_account_info(),
         ctx.accounts.vault_token_account.to_account_info(), 
-        ctx.accounts.token_account.to_account_info(), 
+        ctx.accounts.underlying_token_account.to_account_info(), 
         ctx.accounts.signer.to_account_info(), 
         amount
     )?;
 
     strategy.deposit(amount)?;
-
     strategy.save_changes(&mut &mut ctx.accounts.strategy.try_borrow_mut_data()?[8..])
 }

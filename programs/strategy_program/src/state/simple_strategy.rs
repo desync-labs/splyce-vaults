@@ -8,6 +8,7 @@ use crate::events::StrategyDepositEvent;
 use crate::events::StrategyInitEvent;
 use crate::events::StrategyWithdrawEvent;
 use crate::utils::token;
+use crate::instructions::{Report, ReportProfit, ReportLoss, DeployFunds, FreeFunds};
 
 #[account()]
 #[derive(Default, Debug, InitSpace)]
@@ -72,6 +73,67 @@ impl Strategy for SimpleStrategy {
         Ok(())
     }
 
+    // remaining[0] - manager token account
+    fn report_profit<'info>(&mut self, accounts: &ReportProfit<'info>, remaining: &[AccountInfo<'info>], profit: u64) -> Result<()> {
+        if token::get_balance(&remaining[0].to_account_info())? < profit {
+            return Err(ErrorCode::InsufficientFunds.into());
+        }
+
+        token::transfer_token_to(
+            accounts.token_program.to_account_info(),
+            remaining[0].to_account_info(),
+            accounts.underlying_token_account.to_account_info(),
+            accounts.signer.to_account_info(),
+            profit,
+        )?;
+
+        let underlying_token_account = &mut accounts.underlying_token_account.clone();
+        underlying_token_account.reload()?;
+
+        self.report(
+            &mut Report {
+            strategy: accounts.strategy.clone(),
+            underlying_token_account: underlying_token_account.clone(),
+            token_program: accounts.token_program.clone(),
+            signer: accounts.signer.clone(),
+            }, 
+            &remaining
+        )?;
+
+        Ok(())
+    }
+
+    /// remaining[0] - manager token account
+    fn report_loss<'info>(&mut self, accounts: &ReportLoss<'info>, remaining: &[AccountInfo<'info>], loss: u64) -> Result<()> {
+        if  accounts.underlying_token_account.amount < loss {
+            return Err(ErrorCode::InsufficientFunds.into());
+        }
+
+        token::transfer_token_from(
+            accounts.token_program.to_account_info(),
+            accounts.underlying_token_account.to_account_info(),
+            remaining[0].to_account_info(),
+            accounts.strategy.to_account_info(),
+            loss,
+            &self.seeds(),
+        )?;
+
+        let underlying_token_account = &mut accounts.underlying_token_account.clone();
+        underlying_token_account.reload()?;
+
+        self.report(
+            &mut Report {
+            strategy: accounts.strategy.clone(),
+            underlying_token_account: underlying_token_account.clone(),
+            token_program: accounts.token_program.clone(),
+            signer: accounts.signer.clone(),
+            }, 
+            &remaining
+        )?;
+
+        Ok(())
+    }
+
     fn withdraw(&mut self, amount: u64) -> Result<()> {
         self.total_assets -= amount;
 
@@ -87,13 +149,16 @@ impl Strategy for SimpleStrategy {
         Ok(())
     }
 
-    /// accounts[0] - underlying token account
-    fn harvest_and_report<'info>(&mut self, accounts: &[AccountInfo<'info>]) -> Result<u64> {
-        // check if the remaining_accounts[0] is the strategy token account
-        if *accounts[0].key != self.underlying_token_acc {
+    fn withdraw_fees(&mut self, amount: u64) -> Result<()> {
+        self.fee_data.fee_balance -= amount;
+        Ok(())
+    }
+
+    fn harvest_and_report<'info>(&mut self, accounts: &Report<'info>, _remining: &[AccountInfo<'info>]) -> Result<u64> {
+        if accounts.underlying_token_account.key() != self.underlying_token_acc {
             return Err(ErrorCode::InvalidAccount.into());
         }
-        let new_total_assets = token::get_balance(&accounts[0])?;
+        let new_total_assets = accounts.underlying_token_account.amount;
         Ok(new_total_assets)
     }
 
@@ -101,11 +166,11 @@ impl Strategy for SimpleStrategy {
         self.underlying_token_acc
     }
 
-    fn deploy_funds<'info>(&mut self, _accounts: &[AccountInfo<'info>], _amount: u64) -> Result<()> {
+    fn deploy_funds<'info>(&mut self, _accounts: &DeployFunds<'info>, _remaining: &[AccountInfo<'info>], _amount: u64) -> Result<()> {
         Ok(())
     }
 
-    fn free_funds<'info>(&mut self, _accounts: &[AccountInfo<'info>], _amount: u64) -> Result<()> {
+    fn free_funds<'info>(&mut self, _accounts: &FreeFunds<'info>, _remaining: &[AccountInfo<'info>], _amount: u64) -> Result<()> {
         Ok(())
     }
 
@@ -183,7 +248,6 @@ impl StrategyDataAccount for SimpleStrategy {
     }
     fn seeds(&self) -> [&[u8]; 3] {
         [
-            // &SIMPLE_STRATEGY_SEED.as_bytes(),
             self.vault.as_ref(),
             self.index_bytes.as_ref(),
             self.bump.as_ref(),

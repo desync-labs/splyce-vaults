@@ -17,8 +17,7 @@ export class VaultConfig {
     }
 }
 
-// Define the SimpleStrategy class
-export class SimpleStrategy {
+export class SimpleStrategyConfig {
     depositLimit: BN;
     performanceFee: BN;
     feeManager: Buffer;
@@ -29,6 +28,29 @@ export class SimpleStrategy {
         this.feeManager = fields.feeManager.toBuffer();
     }
 }
+
+export class TradeFintechConfig {
+    depositLimit: BN;
+    depositPeriodEnds: BN;
+    lockPeriodEnds: BN;
+    performanceFee: BN;
+    feeManager: Buffer;
+
+    constructor(fields: { 
+        depositLimit: BN, 
+        depositPeriodEnds: BN,
+        lockPeriodEnds: BN,
+        performanceFee: BN, 
+        feeManager: anchor.web3.PublicKey 
+    }) {
+        this.depositLimit = fields.depositLimit;
+        this.depositPeriodEnds = fields.depositPeriodEnds;
+        this.lockPeriodEnds = fields.lockPeriodEnds;
+        this.performanceFee = fields.performanceFee;
+        this.feeManager = fields.feeManager.toBuffer();
+    }
+}
+
 
 export const VaultConfigSchema = new Map([
     [
@@ -47,13 +69,29 @@ export const VaultConfigSchema = new Map([
 ]);
 
 // Define the schema for SimpleStrategy
-export const SimpleStrategySchema = new Map([
+export const SimpleStrategyConfigSchema = new Map([
     [
-        SimpleStrategy,
+        SimpleStrategyConfig,
         {
             kind: 'struct',
             fields: [
                 ['depositLimit', 'u64'],
+                ['performanceFee', 'u64'],
+                ['feeManager', [32]],
+            ],
+        },
+    ],
+]);
+
+export const TradeFintechConfigSchema = new Map([
+    [
+        TradeFintechConfig,
+        {
+            kind: 'struct',
+            fields: [
+                ['depositLimit', 'u64'],
+                ['depositPeriodEnds', 'u64'],
+                ['lockPeriodEnds', 'u64'],
                 ['performanceFee', 'u64'],
                 ['feeManager', [32]],
             ],
