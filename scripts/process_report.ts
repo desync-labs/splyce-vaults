@@ -39,7 +39,7 @@ async function main() {
         const sharesMint = anchor.web3.PublicKey.findProgramAddressSync(
             [Buffer.from("shares"), vault.toBuffer()],
             vaultProgram.programId
-          )[0];
+        )[0];
 
 
         console.log("1");

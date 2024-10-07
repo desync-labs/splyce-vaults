@@ -6,7 +6,7 @@ use crate::error::ErrorCode;
 use crate::constants::UNDERLYING_SEED;
 
 #[derive(Accounts)]
-pub struct Report<'info> {
+pub struct ReportProfit<'info> {
     /// CHECK: can by any strategy
     #[account(mut)]
     pub strategy: UncheckedAccount<'info>,
@@ -17,13 +17,13 @@ pub struct Report<'info> {
     pub token_program: Program<'info, Token>,
 }
 
-pub fn handle_report<'info>(ctx: Context<'_, '_, '_, 'info, Report<'info>>) -> Result<()> {
+pub fn handle_report_profit<'info>(ctx: Context<'_, '_, '_, 'info, ReportProfit<'info>>, profit: u64) -> Result<()> {
     let mut strategy = strategy::from_acc_info(&ctx.accounts.strategy)?;
 
     if ctx.accounts.signer.key() != strategy.manager() {
         return Err(ErrorCode::AccessDenied.into());
     }
 
-    strategy.report(&ctx.accounts, &ctx.remaining_accounts)?;
+    strategy.report_profit(&ctx.accounts, &ctx.remaining_accounts, profit)?;
     strategy.save_changes(&mut &mut ctx.accounts.strategy.try_borrow_mut_data()?[8..])
 }

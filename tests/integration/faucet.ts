@@ -28,7 +28,6 @@ describe("tokenized_vault", () => {
     await provider.connection.confirmTransaction(airdropSignature);
     await provider.connection.confirmTransaction(airdropSignature2);
 
-
     underlyingMint = await token.createMint(provider.connection, admin, admin.publicKey, null, 9);
     console.log("Token mint public key:", underlyingMint.toBase58());
 

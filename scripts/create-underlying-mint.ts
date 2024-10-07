@@ -3,30 +3,22 @@ import { Program } from "@coral-xyz/anchor";
 import { TokenizedVault } from "../target/types/tokenized_vault";
 import * as fs from 'fs'; // Import fs module
 import * as path from 'path'; // Import path module
+import { BN } from "@coral-xyz/anchor";
+import * as token from "@solana/spl-token";
+
 
 // Define the config function
 async function main() {
     try {
         const provider = anchor.AnchorProvider.env();
-        anchor.setProvider(provider);
 
         const secretKeyPath = path.resolve(process.env.HOME, '.config/solana/id.json');
         const secretKeyString = fs.readFileSync(secretKeyPath, 'utf8');
         const secretKey = Uint8Array.from(JSON.parse(secretKeyString));
         const admin = anchor.web3.Keypair.fromSecretKey(secretKey);
 
-        const vaultProgram = anchor.workspace.TokenizedVault as Program<TokenizedVault>;
-
-        const userKey = new anchor.web3.PublicKey("F7FLF8hrNk1p493dCjHHVoQJBqfzXVk917BvfAj5r4yJ");
-
-        let role = { whitelisted: {} };
-        await vaultProgram.methods.setRole(role, userKey)
-            .accounts({
-                signer: admin.publicKey,
-            })
-            .signers([admin])
-            .rpc();
-        console.log("User added to whitelist");
+        const underlyingMint = await token.createMint(provider.connection, admin, admin.publicKey, null, 9);
+        console.log("Underlying token mint public key:", underlyingMint.toBase58());
     } catch (error) {
         console.error("Error occurred:", error);
     }

@@ -41,12 +41,20 @@ pub mod strategy_program {
         handle_deposit(ctx, amount)
     }
 
-    pub fn withdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
+    pub fn withdraw<'info>(ctx:  Context<'_, '_, '_, 'info, Withdraw<'info>>, amount: u64) -> Result<()> {
         handle_withdraw(ctx, amount)
     }
 
-    pub fn report(ctx: Context<Report>) -> Result<()> {
+    pub fn report<'info>(ctx: Context<'_, '_, '_, 'info, Report<'info>>) -> Result<()> {
         handle_report(ctx)
+    }
+
+    pub fn report_profit<'info>(ctx: Context<'_, '_, '_, 'info, ReportProfit<'info>>, profit: u64) -> Result<()> {
+        handle_report_profit(ctx, profit)
+    }
+
+    pub fn report_loss<'info>(ctx: Context<'_, '_, '_, 'info, ReportLoss<'info>>, loss: u64) -> Result<()> {
+        handle_report_loss(ctx, loss)
     }
 
     pub fn transfer_management(ctx: Context<TransferManagement>, new_admin: Pubkey) -> Result<()> {
@@ -61,7 +69,11 @@ pub mod strategy_program {
         handle_set_fee_manager(ctx, recipient)
     }
 
-    pub fn withdraw_fee(ctx: Context<WithdrawFee>, amount: u64) -> Result<()> {
+    pub fn withdraw_fee<'info>(ctx:  Context<'_, '_, '_, 'info, WithdrawFee<'info>>, amount: u64) -> Result<()> {
         handle_withdraw_fee(ctx, amount)
+    }
+
+    pub fn deploy_funds<'info>(ctx:  Context<'_, '_, '_, 'info, DeployFunds<'info>>, amount: u64) -> Result<()> {
+        handle_deploy_funds(ctx, amount)
     }
 }
