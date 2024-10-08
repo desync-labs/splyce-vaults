@@ -15,32 +15,18 @@ const TOKEN_METADATA_PROGRAM_ID = new anchor.web3.PublicKey("metaqbxxUerdq28cj1R
 // Define the config function
 async function main() {
   try {
-    // const provider = anchor.AnchorProvider.env();
-    // anchor.setProvider(provider);
-
-    // const secretKeyPath = path.resolve(process.env.HOME, '.config/solana/id.json');
-    // const secretKeyString = fs.readFileSync(secretKeyPath, 'utf8');
-    // const secretKey = Uint8Array.from(JSON.parse(secretKeyString));
-    // const admin = anchor.web3.Keypair.fromSecretKey(secretKey);
-
-    const vaultProgram = anchor.workspace.TokenizedVault as Program<TokenizedVault>;
-    const strategyProgram = anchor.workspace.StrategyProgram as Program<StrategyProgram>;
-
-    // const underlyingMint = new anchor.web3.PublicKey("DxfWf9httFokj41aQhYhZVB2GxjxUnCzC5Rcxig2kfDv");
-
-    // const underlyingMint = new anchor.web3.PublicKey("");
-
-    const provider = anchor.AnchorProvider.env();
-
     const secretKeyPath = path.resolve(process.env.HOME, '.config/solana/id.json');
     const secretKeyString = fs.readFileSync(secretKeyPath, 'utf8');
     const secretKey = Uint8Array.from(JSON.parse(secretKeyString));
     const admin = anchor.web3.Keypair.fromSecretKey(secretKey);
 
-    const underlyingMint = await token.createMint(provider.connection, admin, admin.publicKey, null, 9);
+    const vaultProgram = anchor.workspace.TokenizedVault as Program<TokenizedVault>;
+    const strategyProgram = anchor.workspace.StrategyProgram as Program<StrategyProgram>;
+
+    const underlyingMint = new anchor.web3.PublicKey("4dCLhR7U8PzwXau6qfjr73tKgp5SD42aLbyo3XQNzY4V");
     console.log("Underlying token mint public key:", underlyingMint.toBase58());
 
-    const vault_index = 0;
+    const vault_index = 1;
 
     const vault = anchor.web3.PublicKey.findProgramAddressSync(
       [

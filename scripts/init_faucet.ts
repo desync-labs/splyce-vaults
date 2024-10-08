@@ -19,8 +19,9 @@ async function main() {
         console.log("Admin public key:", admin.publicKey.toBase58());
 
         let faucetProgram: Program<Faucet> = anchor.workspace.Faucet;
+        console.log("Faucet program ID:", faucetProgram.programId.toBase58());
 
-        const underlyingMint = new anchor.web3.PublicKey("GWNUeKoJ4tpr477erZjsw6VSST59eMVTczKAqTziDPN1");
+        const underlyingMint = new anchor.web3.PublicKey("4dCLhR7U8PzwXau6qfjr73tKgp5SD42aLbyo3XQNzY4V");
     
         const faucetData = anchor.web3.PublicKey.findProgramAddressSync(
           [Buffer.from("data")],

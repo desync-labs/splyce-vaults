@@ -26,3 +26,9 @@ pub struct StrategyWithdrawEvent {
     pub amount: u64,
     pub total_assets: u64,
 }
+
+#[event]
+pub struct SetPerformanceFeeEvent {
+    pub account_key: Pubkey,
+    pub fee: u64,
+}
