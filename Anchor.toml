@@ -10,15 +10,15 @@ tokenized_vault = "CNyqz3mqw6koNmAe7rn2xHGHAS9ftXUNQohwHSiXhJLQ"
 faucet = "BnjdeSt6reRowzTYp5KQFWXnqBymUe4oNRwjfBW3g5Bu"
 
 [programs.mainnet]
-strategy_program = "ErJGueTn3xVKETP4dc8vrmS5Lu7iupJZ2pr7kYJkCtUE"
-tokenized_vault = "CNyqz3mqw6koNmAe7rn2xHGHAS9ftXUNQohwHSiXhJLQ"
-faucet = "GUrM139EUwYkoEWebecqiTLJrvut4mDdHGTu9d87tgQC"
+strategy_program = "FeMChq4ZCFP8UstbyHnVyme3ATa2vtteLNCwms4jLMAj"
+tokenized_vault = "Crf2XbpWt5uLe7fJCohFrZYLXYu5asFh9QmHwjhreQQZ"
+faucet = "4rza9AifAapN4SKho3teAuLhc1TPpNWp9DHNPEMzVqgp"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "solana-mainnet-beta"
+cluster = "mainnet"
 wallet = "~/.config/solana/mainnet.json"
 
 [scripts]

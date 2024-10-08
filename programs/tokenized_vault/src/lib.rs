@@ -11,7 +11,7 @@ pub use constants::*;
 pub use state::*;
 pub use instructions::*;
 
-declare_id!("CNyqz3mqw6koNmAe7rn2xHGHAS9ftXUNQohwHSiXhJLQ");
+declare_id!("Crf2XbpWt5uLe7fJCohFrZYLXYu5asFh9QmHwjhreQQZ");
 
 #[program]
 pub mod tokenized_vault {

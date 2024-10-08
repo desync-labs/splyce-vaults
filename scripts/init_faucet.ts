@@ -11,7 +11,7 @@ async function main() {
         const provider = anchor.AnchorProvider.env();
         anchor.setProvider(provider);
 
-        const secretKeyPath = path.resolve(process.env.HOME, '.config/solana/id.json');
+        const secretKeyPath = path.resolve(process.env.HOME, '.config/solana/mainnet.json');
         const secretKeyString = fs.readFileSync(secretKeyPath, 'utf8');
         const secretKey = Uint8Array.from(JSON.parse(secretKeyString));
         const admin = anchor.web3.Keypair.fromSecretKey(secretKey);
@@ -21,7 +21,7 @@ async function main() {
         let faucetProgram: Program<Faucet> = anchor.workspace.Faucet;
         console.log("Faucet program ID:", faucetProgram.programId.toBase58());
 
-        const underlyingMint = new anchor.web3.PublicKey("4dCLhR7U8PzwXau6qfjr73tKgp5SD42aLbyo3XQNzY4V");
+        const underlyingMint = new anchor.web3.PublicKey("4N37FD6SU35ssX6yTu2AcCvzVbdS6z3YZTtk5gv7ejhE");
     
         const faucetData = anchor.web3.PublicKey.findProgramAddressSync(
           [Buffer.from("data")],

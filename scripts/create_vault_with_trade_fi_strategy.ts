@@ -18,7 +18,7 @@ async function main() {
     const provider = anchor.AnchorProvider.env();
     anchor.setProvider(provider);
 
-    const secretKeyPath = path.resolve(process.env.HOME, '.config/solana/id.json');
+    const secretKeyPath = path.resolve(process.env.HOME, '.config/solana/mainnet.json');
     const secretKeyString = fs.readFileSync(secretKeyPath, 'utf8');
     const secretKey = Uint8Array.from(JSON.parse(secretKeyString));
     const admin = anchor.web3.Keypair.fromSecretKey(secretKey);
@@ -26,7 +26,7 @@ async function main() {
     const vaultProgram = anchor.workspace.TokenizedVault as Program<TokenizedVault>;
     const strategyProgram = anchor.workspace.StrategyProgram as Program<StrategyProgram>;
 
-    const underlyingMint = new anchor.web3.PublicKey("4dCLhR7U8PzwXau6qfjr73tKgp5SD42aLbyo3XQNzY4V");
+    const underlyingMint = new anchor.web3.PublicKey("4N37FD6SU35ssX6yTu2AcCvzVbdS6z3YZTtk5gv7ejhE");
     console.log("Underlying token mint public key:", underlyingMint.toBase58());
 
     const vault_index = 2;
@@ -84,13 +84,15 @@ async function main() {
 
 
     //TODO: Depoit and lock period ends in 30 minutes
+  // deposit period end -> 1728568800 -> Thursday, October 10, 2024 6:00:00 PM GMT+04:00
+  // lock period end -> 1728655200 -> Friday, October 11, 2024 6:00:00 PM GMT+04:00
     const strategyType = { tradeFintech: {} };
     const strategyConfig = new TradeFintechConfig({
       depositLimit: new BN(1000),
       // deposit ends in 1 minute, epoch time in seconds
-      depositPeriodEnds: new BN(Date.now() / 1000 + 60 * 30),
+      depositPeriodEnds: new BN(1728568800), //Date.now() / 1000 + 60 * 30),
       // lock period ends in 2 minute
-      lockPeriodEnds: new BN(Date.now() / 1000 + 2 * 60 * 30),
+      lockPeriodEnds: new BN(1728655200),//Date.now() / 1000 + 2 * 60 * 30),
       performanceFee: new BN(1),
       feeManager: admin.publicKey
     });
