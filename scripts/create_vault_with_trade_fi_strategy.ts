@@ -29,7 +29,7 @@ async function main() {
     const underlyingMint = await token.createMint(provider.connection, admin, admin.publicKey, null, 9);
     console.log("Underlying token mint public key:", underlyingMint.toBase58());
 
-    const vault_index = 1;
+    const vault_index = 2;
 
     const vault = anchor.web3.PublicKey.findProgramAddressSync(
       [
@@ -44,10 +44,7 @@ async function main() {
       vaultProgram.programId
     )[0];
 
-    const config = {
-      name: "Share Splyce USD",
-      symbol: "sstUSD",
-      uri: "https://gist.githubusercontent.com/vito-kovalione/a3fcf481b0cced2615ae626ebdd04288/raw/f6a648dfebce511448c81ea5b4672bdd9f14c2e2/gistfile1.txt",
+    const vaultConfig = {
       depositLimit: new BN(1_000_000_000).mul(new BN(10).pow(new BN(9))),
       minUserDeposit: new BN(0),
       performanceFee: new BN(1000),
@@ -63,9 +60,8 @@ async function main() {
       TOKEN_METADATA_PROGRAM_ID
     );
 
-    await vaultProgram.methods.initVault(new BN(vault_index), config)
+    await vaultProgram.methods.initVault(new BN(vault_index), vaultConfig)
       .accounts({
-        metadata: metadataAddress,
         underlyingMint,
         signer: admin.publicKey,
       })
@@ -74,6 +70,22 @@ async function main() {
 
     console.log("Vault:", vault.toBase58());
 
+    const sharesConfig = {
+      name: "Share Splyce USD",
+      symbol: "spvUSD",
+      uri: "https://gist.githubusercontent.com/vito-kovalione/a3fcf481b0cced2615ae626ebdd04288/raw/f6a648dfebce511448c81ea5b4672bdd9f14c2e2/gistfile1.txt",
+    };
+
+    await vaultProgram.methods.initVaultShares(new BN(vault_index), sharesConfig)
+    .accounts({
+      metadata: metadataAddress,
+      signer: admin.publicKey,
+    })
+    .signers([admin])
+    .rpc();
+
+    console.log("shares inited");
+
     const strategy = anchor.web3.PublicKey.findProgramAddressSync(
       [
         vault.toBuffer(),
@@ -81,7 +93,6 @@ async function main() {
       ],
       strategyProgram.programId
     )[0];
-
 
     const strategyType = { tradeFintech: {} };
     const strategyConfig = new TradeFintechConfig({
