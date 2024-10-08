@@ -1,19 +1,19 @@
 import * as anchor from "@coral-xyz/anchor";
-import { BN } from "@coral-xyz/anchor";
+import { BN, web3 } from "@coral-xyz/anchor";
 import * as token from "@solana/spl-token";
 import { assert, expect } from "chai";
-import { SimpleStrategy } from "../utils/schemas";
+import { SimpleStrategyConfig } from "../../utils/schemas";
 import {
   airdrop,
   initializeSimpleStrategy,
   initializeVault,
-} from "../utils/helpers";
+} from "../../utils/helpers";
 import {
   vaultProgram,
   strategyProgram,
   rolesAdmin,
   connection,
-} from "./setups/globalSetup";
+} from "../setups/globalSetup";
 
 describe("Roles & Permissions Tests", () => {
   let vaultsAdmin: anchor.web3.Keypair;
@@ -26,23 +26,28 @@ describe("Roles & Permissions Tests", () => {
   // First - For Role Admin
   let vaultOne: anchor.web3.PublicKey;
   let sharesMintOne: anchor.web3.PublicKey;
+  let metadataAccountOne: anchor.web3.PublicKey;
+  let vaultTokenAccountOne: anchor.web3.PublicKey;
   let strategyOne: anchor.web3.PublicKey;
   let strategyTokenAccountOne: anchor.web3.PublicKey;
   // Second - For Vault Admin
   let vaultTwo: anchor.web3.PublicKey;
   let sharesMintTwo: anchor.web3.PublicKey;
+  let metadataAccountTwo: anchor.web3.PublicKey;
   let vaultTokenAccountTwo: anchor.web3.PublicKey;
   let strategyTwo: anchor.web3.PublicKey;
   let strategyTokenAccountTwo: anchor.web3.PublicKey;
   // Third - For Reporting Manager
   let vaultThree: anchor.web3.PublicKey;
   let sharesMintThree: anchor.web3.PublicKey;
+  let metadataAccountThree: anchor.web3.PublicKey;
   let vaultTokenAccountThree: anchor.web3.PublicKey;
   let strategyThree: anchor.web3.PublicKey;
   let strategyTokenAccountThree: anchor.web3.PublicKey;
   // Fourth - For whitelisted user and regular / non-whitelisted user
   let vaultFour: anchor.web3.PublicKey;
   let sharesMintFour: anchor.web3.PublicKey;
+  let metadataAccountFour: anchor.web3.PublicKey;
   let vaultTokenAccountFour: anchor.web3.PublicKey;
   let strategyFour: anchor.web3.PublicKey;
   let strategyTokenAccountFour: anchor.web3.PublicKey;
@@ -52,7 +57,7 @@ describe("Roles & Permissions Tests", () => {
   const whitelistedObj = { whitelisted: {} };
 
   let vaultConfig: any;
-  let strategyConfig: SimpleStrategy;
+  let strategyConfig: SimpleStrategyConfig;
 
   const anchorError3012 =
     "Error Code: AccountNotInitialized. Error Number: 3012. Error Message: The program expected this account to be already initialized.";
@@ -138,20 +143,23 @@ describe("Roles & Permissions Tests", () => {
 
     // Initialize vaults and strategies
     vaultConfig = {
+      name: "Roles & Permissions Test",
+      symbol: "RPT",
+      uri: "https://gist.githubusercontent.com/vito-kovalione/08b86d3c67440070a8061ae429572494/raw/833e3d5f5988c18dce2b206a74077b2277e13ab6/PVT.json",
       depositLimit: new BN(1000000000),
       minUserDeposit: new BN(0),
       performanceFee: new BN(1000),
       profitMaxUnlockTime: new BN(0),
     };
 
-    strategyConfig = new SimpleStrategy({
+    strategyConfig = new SimpleStrategyConfig({
       depositLimit: new BN(1000),
       performanceFee: new BN(1),
       // @ts-ignore
       feeManager: vaultsAdmin.publicKey,
     });
 
-    [vaultOne, sharesMintOne] = await initializeVault({
+    [vaultOne, sharesMintOne, metadataAccountOne, vaultTokenAccountOne] = await initializeVault({
       vaultProgram,
       underlyingMint,
       vaultIndex: 1,
@@ -159,7 +167,7 @@ describe("Roles & Permissions Tests", () => {
       config: vaultConfig,
     });
 
-    [vaultTwo, sharesMintTwo, vaultTokenAccountTwo] = await initializeVault({
+    [vaultTwo, sharesMintTwo, metadataAccountTwo, vaultTokenAccountTwo] = await initializeVault({
       vaultProgram,
       underlyingMint,
       vaultIndex: 2,
@@ -167,7 +175,7 @@ describe("Roles & Permissions Tests", () => {
       config: vaultConfig,
     });
 
-    [vaultThree, sharesMintThree, vaultTokenAccountThree] =
+    [vaultThree, sharesMintThree, metadataAccountThree, vaultTokenAccountThree] =
       await initializeVault({
         vaultProgram,
         underlyingMint,
@@ -176,7 +184,7 @@ describe("Roles & Permissions Tests", () => {
         config: vaultConfig,
       });
 
-    [vaultFour, sharesMintFour, vaultTokenAccountFour] = await initializeVault({
+    [vaultFour, sharesMintFour, metadataAccountFour, vaultTokenAccountFour] = await initializeVault({
       vaultProgram,
       underlyingMint,
       vaultIndex: 4,
@@ -669,7 +677,7 @@ describe("Roles & Permissions Tests", () => {
     });
 
     it("Vaults Admin - Initializing vault is successful", async () => {
-      const [vaultInner, sharesMintInner, vaultTokenAccountInner] =
+      const [vaultInner, sharesMintInner, metadataAccountInner, vaultTokenAccountInner] =
         await initializeVault({
           vaultProgram,
           underlyingMint,
@@ -1111,7 +1119,6 @@ describe("Roles & Permissions Tests", () => {
         .report()
         .accounts({
           strategy: strategyThree,
-          tokenAccount: strategyTokenAccountThree,
           signer: vaultsAdmin.publicKey,
           // @ts-ignore
           tokenProgram: token.TOKEN_PROGRAM_ID,

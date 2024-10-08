@@ -3,7 +3,8 @@ use anchor_lang::Discriminator;
 use anchor_spl::token_interface::Mint;
 
 use crate::state::*;
-use crate::constants::{SIMPLE_STRATEGY_SEED, TRADE_FINTECH_STRATEGY_SEED, DISCRIMINATOR_LEN};
+use crate::constants::{ DISCRIMINATOR_LEN, FEE_BPS };
+use crate::instructions::{Report, ReportProfit, ReportLoss, DeployFunds, FreeFunds};
 
 pub trait StrategyDataAccount {
     fn save_changes(&self, writer: &mut dyn std::io::Write) -> Result<()>;
@@ -35,10 +36,35 @@ pub trait Strategy: StrategyDataAccount + StrategyInit + StrategyManagement {
     // setters 
     fn deposit(&mut self, amount: u64) -> Result<()>;
     fn withdraw(&mut self, amount: u64) -> Result<()>;
-    fn harvest_and_report<'info>(&mut self, accounts: &[AccountInfo<'info>]) -> Result<u64>;
-    fn deploy_funds<'info>(&mut self, accounts: &[AccountInfo<'info>], amount: u64) -> Result<()>;
-    fn free_funds<'info>(&mut self, accounts: &[AccountInfo<'info>], amount: u64) -> Result<()>;
+    fn withdraw_fees(&mut self, amount: u64) -> Result<()>;
+    fn harvest_and_report<'info>(&mut self, accounts: &Report<'info>, remaining: &[AccountInfo<'info>]) -> Result<u64>;
+    fn deploy_funds<'info>(&mut self, accounts: &DeployFunds<'info>, remaining: &[AccountInfo<'info>], amount: u64) -> Result<()>;
+    fn free_funds<'info>(&mut self, accounts: &FreeFunds<'info>, remaining: &[AccountInfo<'info>], amount: u64) -> Result<()>;
     fn set_total_assets(&mut self, total_assets: u64);
+
+    fn report<'info>(&mut self, accounts: &Report<'info>, remaining: &[AccountInfo<'info>]) -> Result<()> {
+        let old_total_assets = self.total_assets();
+        let new_total_assets = self.harvest_and_report(accounts, remaining)?;
+
+        if new_total_assets > old_total_assets {
+            let profit = new_total_assets - old_total_assets;
+            let fee_data = self.fee_data();
+
+            if fee_data.performance_fee > 0 {
+                let fees = (profit * fee_data.performance_fee) / FEE_BPS;
+                fee_data.fee_balance += fees;
+        
+                self.set_total_assets(new_total_assets - fees);
+            }
+        } else {
+            self.set_total_assets(new_total_assets);
+        }
+
+        Ok(())
+    }
+
+    fn report_profit<'info>(&mut self, accounts: &ReportProfit<'info>, remaining: &[AccountInfo<'info>], profit: u64) -> Result<()>;
+    fn report_loss<'info>(&mut self, accounts: &ReportLoss<'info>, remaining: &[AccountInfo<'info>], loss: u64) -> Result<()>;
 
     // getters
     fn strategy_type(&self) -> StrategyType;
@@ -63,17 +89,6 @@ pub enum StrategyType {
 }
 
 impl StrategyType {
-    pub fn to_seed(&self) -> Vec<u8> {
-        match self {
-            StrategyType::Simple => SIMPLE_STRATEGY_SEED.as_bytes().to_vec(),
-            StrategyType::TradeFintech => TRADE_FINTECH_STRATEGY_SEED.as_bytes().to_vec(),
-            StrategyType::RWA => b"rwa".to_vec(),
-            StrategyType::Lending => b"lending".to_vec(),
-            StrategyType::Liquidation => b"liquidation".to_vec(),
-            StrategyType::Investor => b"investor".to_vec(),
-        }
-    }
-
     // TODO: Implement for other strategies
     pub fn from_discriminator(discriminator: &[u8]) -> Option<Self> {
         if discriminator == SimpleStrategy::discriminator() {

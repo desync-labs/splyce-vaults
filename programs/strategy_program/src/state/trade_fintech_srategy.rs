@@ -6,6 +6,7 @@ use crate::fee_data::*;
 use crate::error::ErrorCode;
 use crate::events::{StrategyDepositEvent, StrategyInitEvent, StrategyWithdrawEvent};
 use crate::utils::token;
+use crate::instructions::{Report, ReportProfit, ReportLoss, DeployFunds, FreeFunds};
 
 #[account]
 #[derive(Default, Debug, InitSpace)]
@@ -98,55 +99,99 @@ impl Strategy for TradeFintechStrategy {
         Ok(())
     }
 
-    /// accounts[0] - underlying token account
-    fn harvest_and_report<'info>(&mut self, accounts: &[AccountInfo<'info>]) -> Result<u64> {
-        // check if the remaining_accounts[0] is the strategy token account
-        if *accounts[0].key != self.underlying_token_acc {
-            return Err(ErrorCode::InvalidAccount.into());
-        }
-
-        let idle = token::get_balance(&accounts[0])?;
-        Ok(self.total_invested + idle)
+    fn withdraw_fees(&mut self, amount: u64) -> Result<()> {
+        self.fee_data.fee_balance -= amount;
+        Ok(())
     }
 
-    /// accounts should be the next:
-    /// - manager token account
-    /// - strategy token account
-    /// - manager account 
-    /// - token program
-    fn free_funds<'info>(&mut self, accounts: &[AccountInfo<'info>], amount: u64) -> Result<()> {
-        let timestamp = Clock::get()?.unix_timestamp;
-
-        // if it's still in the deposit period we don't do anything, cause no funds were deployed
-        if timestamp < self.deposit_period_ends {
-            return Ok(())
-        }
-
-        // can't free funds during lock period
-        if timestamp < self.lock_period_ends {
+    fn report_profit<'info>(&mut self, accounts: &ReportProfit<'info>, remaining: &[AccountInfo<'info>], profit: u64) -> Result<()> {
+        if self.lock_period_ends > Clock::get()?.unix_timestamp {
             return Err(TradeFintechErrorCode::LockPeriodNotEnded.into());
         }
 
+        let amount_to_repay = profit + self.total_invested;
+        if token::get_balance(&remaining[0].to_account_info())? < amount_to_repay {
+            return Err(ErrorCode::InsufficientFunds.into());
+        }
+
         token::transfer_token_to(
-            accounts[3].to_account_info(),
-            accounts[0].to_account_info(),
-            accounts[1].to_account_info(),
-            accounts[2].to_account_info(),
-            amount
+            accounts.token_program.to_account_info(),
+            remaining[0].to_account_info(),
+            accounts.underlying_token_account.to_account_info(),
+            accounts.signer.to_account_info(),
+            amount_to_repay,
         )?;
 
-        self.total_invested = 0;
+        let underlying_token_account = &mut accounts.underlying_token_account.clone();
+        underlying_token_account.reload()?;
 
-        // }
+        self.report(
+            &mut Report {
+            strategy: accounts.strategy.clone(),
+            underlying_token_account: underlying_token_account.clone(),
+            token_program: accounts.token_program.clone(),
+            signer: accounts.signer.clone(),
+            }, 
+            &remaining
+        )?;
+
+        Ok(())
+    }
+
+    fn report_loss<'info>(&mut self, accounts: &ReportLoss<'info>, remaining: &[AccountInfo<'info>],  loss: u64) -> Result<()> {
+        if self.lock_period_ends > Clock::get()?.unix_timestamp {
+            return Err(TradeFintechErrorCode::LockPeriodNotEnded.into());
+        }
+
+        if loss > self.total_invested {
+            return Err(ErrorCode::LossTooHigh.into());
+        }
+
+        let amount_to_repay = self.total_invested - loss;
+        if token::get_balance(&remaining[0].to_account_info())? < amount_to_repay {
+            return Err(ErrorCode::InsufficientFunds.into());
+        }
+
+        token::transfer_token_to(
+            accounts.token_program.to_account_info(),
+            remaining[0].to_account_info(),
+            accounts.underlying_token_account.to_account_info(),
+            accounts.signer.to_account_info(),
+            amount_to_repay,
+        )?;
+
+        let underlying_token_account = &mut accounts.underlying_token_account.clone();
+        underlying_token_account.reload()?;
+
+        self.report(
+            &mut Report {
+            strategy: accounts.strategy.clone(),
+            underlying_token_account: underlying_token_account.clone(),
+            token_program: accounts.token_program.clone(),
+            signer: accounts.signer.clone(),
+            }, 
+            &remaining
+        )?;
+
+        Ok(())
+    }
+
+    fn harvest_and_report<'info>(&mut self, accounts: &Report<'info>, _remaining: &[AccountInfo<'info>]) -> Result<u64> {
+        if accounts.underlying_token_account.key() != self.underlying_token_acc {
+            return Err(ErrorCode::InvalidAccount.into());
+        }
+        let new_total_assets = accounts.underlying_token_account.amount;
+        Ok(new_total_assets)
+    }
+
+    /// for this strategy we cannot free funds since we deploy it only after deposit period ends
+    fn free_funds<'info>(&mut self, _accounts: &FreeFunds<'info>, _remaining: &[AccountInfo<'info>], _amount: u64) -> Result<()> {
         Ok(())
     }
 
     /// accounts should be the next:
-    /// - strategy token account
-    /// - manager token account
-    /// - strategy account
-    /// - token program
-    fn deploy_funds<'info>(&mut self, accounts: &[AccountInfo<'info>], amount: u64) -> Result<()> {
+    /// [0] - manager token account
+    fn deploy_funds<'info>(&mut self, accounts: &DeployFunds<'info>, remaining: &[AccountInfo<'info>], amount: u64) -> Result<()> {
         let timestamp = Clock::get()?.unix_timestamp;
         if timestamp < self.deposit_period_ends {
             return Err(TradeFintechErrorCode::DepositPeriodNotEnded.into());
@@ -154,10 +199,10 @@ impl Strategy for TradeFintechStrategy {
 
         let seeds = self.seeds();
         token::transfer_token_from(
-            accounts[3].to_account_info(),
-            accounts[0].to_account_info(),
-            accounts[1].to_account_info(),
-            accounts[2].to_account_info(),
+            accounts.token_program.to_account_info(),
+            accounts.underlying_token_account.to_account_info(),
+            remaining[0].to_account_info(),
+            accounts.strategy.to_account_info(),
             amount,
             &seeds
         )?;
@@ -268,7 +313,6 @@ impl StrategyDataAccount for TradeFintechStrategy {
     
     fn seeds(&self) -> [&[u8]; 3] {
         [
-            // TRADE_FINTECH_STRATEGY_SEED.as_bytes(),
             self.vault.as_ref(),
             self.index_bytes.as_ref(),
             self.bump.as_ref(),

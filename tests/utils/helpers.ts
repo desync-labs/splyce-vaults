@@ -1,10 +1,15 @@
 import * as anchor from "@coral-xyz/anchor";
 import { TokenizedVault } from "../../target/types/tokenized_vault";
-import { BN } from "@coral-xyz/anchor";
+import { BN, web3 } from "@coral-xyz/anchor";
 import { token } from "@coral-xyz/anchor/dist/cjs/utils";
 import { StrategyProgram } from "../../target/types/strategy_program";
-import { SimpleStrategy, SimpleStrategySchema } from "./schemas";
+import { SimpleStrategyConfigSchema } from "./schemas";
 import * as borsh from "borsh";
+
+const TOKEN_METADATA_PROGRAM_ID = new web3.PublicKey(
+  "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"
+);
+const METADATA_SEED = "metadata";
 
 export const airdrop = async ({
   connection,
@@ -52,6 +57,15 @@ export const initializeVault = async ({
     vaultProgram.programId
   )[0];
 
+  const [metadataAddress] = web3.PublicKey.findProgramAddressSync(
+    [
+      Buffer.from(METADATA_SEED),
+      TOKEN_METADATA_PROGRAM_ID.toBuffer(),
+      sharesMint.toBuffer(),
+    ],
+    TOKEN_METADATA_PROGRAM_ID
+  );
+
   const vaultTokenAccount = anchor.web3.PublicKey.findProgramAddressSync(
     [Buffer.from("underlying"), vault.toBuffer()],
     vaultProgram.programId
@@ -60,14 +74,14 @@ export const initializeVault = async ({
   await vaultProgram.methods
     .initVault(new BN(vaultIndex), config)
     .accounts({
+      metadata: metadataAddress,
       underlyingMint,
       signer: signer.publicKey,
-      tokenProgram: token.TOKEN_PROGRAM_ID,
     })
     .signers([signer])
     .rpc();
 
-  return [vault, sharesMint, vaultTokenAccount];
+  return [vault, sharesMint, metadataAddress, vaultTokenAccount];
 };
 
 export const initializeSimpleStrategy = async ({
@@ -98,7 +112,7 @@ export const initializeSimpleStrategy = async ({
   const strategyType = { simple: {} };
 
   const configBytes = Buffer.from(
-    borsh.serialize(SimpleStrategySchema, config)
+    borsh.serialize(SimpleStrategyConfigSchema, config)
   );
 
   await strategyProgram.methods

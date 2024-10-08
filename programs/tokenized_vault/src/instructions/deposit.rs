@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Mint, MintTo, Token, TokenAccount};
 
-use crate::constants::{ROLES_SEED, SHARES_SEED, UNDERLYING_SEED};
+use crate::constants::{SHARES_SEED, UNDERLYING_SEED};
 
 use crate::events::VaultDepositEvent;
 use crate::state::*;
@@ -16,9 +16,6 @@ pub struct Deposit<'info> {
     #[account(mut)]
     pub user_token_account: Account<'info, TokenAccount>,
 
-    #[account(seeds = [ROLES_SEED.as_bytes(), user.key().as_ref()], bump)]
-    pub roles: Account<'info, AccountRoles>,
-
     #[account(mut, seeds = [UNDERLYING_SEED.as_bytes(), vault.key().as_ref()], bump)]
     pub vault_token_account: Account<'info, TokenAccount>,
 
@@ -28,7 +25,7 @@ pub struct Deposit<'info> {
     #[account(mut)]
     pub user_shares_account: Account<'info, TokenAccount>,
 
-    #[account(mut, constraint = roles.is_whitelisted)]
+    #[account(mut)]
     pub user: Signer<'info>,
 
     pub token_program: Program<'info, Token>,
@@ -51,9 +48,9 @@ pub fn handle_deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
             MintTo {
                 mint: ctx.accounts.shares_mint.to_account_info(),
                 to: ctx.accounts.user_shares_account.to_account_info(),
-                authority: ctx.accounts.vault.to_account_info(),
+                authority: ctx.accounts.shares_mint.to_account_info(),
             }, 
-            &[&ctx.accounts.vault.load()?.seeds()]
+            &[&ctx.accounts.vault.load()?.seeds_shares()]
         ), 
         shares
     )?;

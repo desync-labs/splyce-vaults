@@ -17,7 +17,7 @@ declare_id!("8eDcyX8Z8yZXBQsuatwxDC1qzGbuUbP7wGERDBQoPmBH");
 pub mod tokenized_vault {
     use super::*;
 
-    pub fn init_vault(ctx: Context<Initialize>, index: u64, config: VaultConfig) -> Result<()> {
+    pub fn init_vault(ctx: Context<Initialize>, index: u64, config: Box<VaultConfig>) -> Result<()> {
         handle_init_vault(ctx, index, config)
     }
 
@@ -39,11 +39,22 @@ pub mod tokenized_vault {
 
     pub fn withdraw<'info>(
         ctx: Context<'_, '_, '_, 'info, Withdraw<'info>>, 
+        amount: u64, 
+        max_loss: u64,
+        remaining_accounts_map: AccountsMap
+    ) -> Result<()> {
+        let shares = ctx.accounts.vault.load()?.convert_to_shares(amount);
+        handle_withdraw(ctx, amount, shares, max_loss, remaining_accounts_map)
+    }
+    
+    pub fn redeem<'info>(
+        ctx: Context<'_, '_, '_, 'info, Withdraw<'info>>, 
         shares: u64, 
         max_loss: u64,
         remaining_accounts_map: AccountsMap
     ) -> Result<()> {
-        handle_redeem(ctx, shares, max_loss, remaining_accounts_map)
+        let amount = ctx.accounts.vault.load()?.convert_to_underlying(shares);
+        handle_withdraw(ctx, amount, shares, max_loss, remaining_accounts_map)
     }
 
     pub fn add_strategy(ctx: Context<AddStrategy>, max_debt: u64) -> Result<()> {

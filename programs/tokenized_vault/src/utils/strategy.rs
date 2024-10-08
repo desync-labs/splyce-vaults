@@ -2,7 +2,6 @@ use anchor_lang::prelude::*;
 use strategy_program::state::*;
 use anchor_spl::token::TokenAccount;
  
-use crate::state::*;
 use strategy_program::{self};
 use strategy_program::cpi::accounts::{
     Deposit,
@@ -10,12 +9,11 @@ use strategy_program::cpi::accounts::{
 };
 
 use crate::error::ErrorCode::*;
-// use crate::vault;
 
 pub fn deposit<'a>(
     strategy: AccountInfo<'a>,
     vault: AccountInfo<'a>,
-    token_account: AccountInfo<'a>,
+    underlying_token_account: AccountInfo<'a>,
     vault_token_account: AccountInfo<'a>,
     token_program: AccountInfo<'a>,
     strategy_program: AccountInfo<'a>,
@@ -29,7 +27,7 @@ pub fn deposit<'a>(
             Deposit {
                 strategy,
                 signer: vault,
-                token_account,
+                underlying_token_account,
                 vault_token_account,
                 token_program,
             },
@@ -42,7 +40,7 @@ pub fn deposit<'a>(
 pub fn withdraw<'a>(
     strategy: AccountInfo<'a>,
     vault: AccountInfo<'a>,
-    token_account: AccountInfo<'a>,
+    underlying_token_account: AccountInfo<'a>,
     vault_token_account: &mut Account<'a, TokenAccount>,
     token_program: AccountInfo<'a>,
     strategy_program: AccountInfo<'a>,
@@ -56,7 +54,7 @@ pub fn withdraw<'a>(
         strategy_program, 
         Withdraw {
             strategy,
-            token_account,
+            underlying_token_account,
             signer: vault,
             vault_token_account: vault_token_account.to_account_info(),
             token_program,

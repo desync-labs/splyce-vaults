@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface::Mint;
 
-use crate::constants::{VAULT_SEED, MAX_BPS};
+use crate::constants::{VAULT_SEED, MAX_BPS, SHARES_SEED};
 use crate::error::ErrorCode;
 use crate::utils::strategy;
 use crate::events::{VaultAddStrategyEvent, VaultInitEvent};
@@ -13,6 +13,9 @@ use crate::events::{VaultAddStrategyEvent, VaultInitEvent};
 pub struct Vault {
     pub bump: [u8; 1],
     pub index_buffer: [u8; 8],
+    pub shares_bump: [u8; 1],
+
+    pub key: Pubkey,
 
     pub underlying_mint: Pubkey,
     pub underlying_token_acc: Pubkey,
@@ -57,6 +60,14 @@ impl Vault {
         self.bump.as_ref(),
     ]}
 
+    pub fn seeds_shares(&self) -> [&[u8]; 3] {
+        [
+            &SHARES_SEED.as_bytes(),
+            self.key.as_ref(),
+            self.shares_bump.as_ref(),
+        ]
+    }
+
     pub fn init(
         &mut self,
         bump: u8,
@@ -69,6 +80,8 @@ impl Vault {
         performance_fee: u64,
         index: u64,
         profit_max_unlock_time: u64,
+        share_bump: u8,
+        pubkey: Pubkey,
     ) -> Result<()> {
         self.bump = [bump];
         self.underlying_mint = underlying_mint.key();
@@ -84,6 +97,8 @@ impl Vault {
         self.index_buffer = index.to_le_bytes();
         self.profit_max_unlock_time = profit_max_unlock_time;
 
+        self.key = pubkey;
+        self.shares_bump = [share_bump];
 
         //Emit the VaultInitEvent
         emit!(VaultInitEvent {
