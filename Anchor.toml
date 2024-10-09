@@ -11,7 +11,7 @@ faucet = "GUrM139EUwYkoEWebecqiTLJrvut4mDdHGTu9d87tgQC"
 
 [programs.mainnet]
 strategy_program = "FeMChq4ZCFP8UstbyHnVyme3ATa2vtteLNCwms4jLMAj"
-tokenized_vault = "Crf2XbpWt5uLe7fJCohFrZYLXYu5asFh9QmHwjhreQQZ"
+tokenized_vault = "5R6bVKZfag4X9vW4nek6UNP8XXwH7cPaVohyAo1xfVEU"
 faucet = "4rza9AifAapN4SKho3teAuLhc1TPpNWp9DHNPEMzVqgp"
 
 [registry]
