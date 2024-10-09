@@ -55,7 +55,7 @@ Initialize the minting process for the underlying token by running:
 
 **Step 5.1: Capture the Mint Public Key**
 
-After running the above command, capture the Underlying Token Mint Public Key from the output (e.g., "4dCLhR7U8PzwXau6qfjr73tKgp5SD42aLbyo3XQNzY4V"). You will use this public key in later steps.
+After running the above command, capture the Underlying Token Mint Public Key from the output (e.g., "4N37FD6SU35ssX6yTu2AcCvzVbdS6z3YZTtk5gv7ejhE"). You will use this public key in later steps.
 
 ----------------------------------------------------------------------------------------
 
