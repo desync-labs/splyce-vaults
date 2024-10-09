@@ -74,12 +74,22 @@ export const initializeVault = async ({
   await vaultProgram.methods
     .initVault(new BN(vaultIndex), config)
     .accounts({
-      metadata: metadataAddress,
       underlyingMint,
       signer: signer.publicKey,
     })
     .signers([signer])
     .rpc();
+
+
+  await vaultProgram.methods
+  .initVaultShares(new BN(vaultIndex), config)
+  .accounts({
+    metadata: metadataAddress,
+    signer: signer.publicKey,
+  })
+  .signers([signer])
+  .rpc();
+
 
   return [vault, sharesMint, metadataAddress, vaultTokenAccount];
 };
