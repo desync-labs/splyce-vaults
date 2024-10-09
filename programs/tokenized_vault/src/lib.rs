@@ -17,8 +17,12 @@ declare_id!("8eDcyX8Z8yZXBQsuatwxDC1qzGbuUbP7wGERDBQoPmBH");
 pub mod tokenized_vault {
     use super::*;
 
-    pub fn init_vault(ctx: Context<Initialize>, index: u64, config: Box<VaultConfig>) -> Result<()> {
+    pub fn init_vault(ctx: Context<InitVault>, index: u64, config: Box<VaultConfig>) -> Result<()> {
         handle_init_vault(ctx, index, config)
+    }
+
+    pub fn init_vault_shares(ctx: Context<InitVaultShares>, index: u64, config: Box<SharesConfig>) -> Result<()> {
+        handle_init_vault_shares(ctx, index, config)
     }
 
     pub fn init_role_admin(ctx: Context<InitializeRoleAdmin>) -> Result<()> {

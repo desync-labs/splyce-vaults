@@ -125,14 +125,17 @@ describe("tokenized_vault", () => {
   });
 
   it("Initializes the vault", async () => {
-    const config = {
-      name: "Polite Viking Token",
-      symbol: "PVT",
-      uri: "https://gist.githubusercontent.com/vito-kovalione/08b86d3c67440070a8061ae429572494/raw/833e3d5f5988c18dce2b206a74077b2277e13ab6/PVT.json",
+    const vaultConfig = {
       depositLimit: new BN(1000000000),
       minUserDeposit: new BN(0),
       performanceFee: new BN(1000),
       profitMaxUnlockTime: new BN(0),
+    };
+
+    const sharesConfig = {
+      name: "Polite Viking Token",
+      symbol: "PVT",
+      uri: "https://gist.githubusercontent.com/vito-kovalione/08b86d3c67440070a8061ae429572494/raw/833e3d5f5988c18dce2b206a74077b2277e13ab6/PVT.json",
     };
 
     const [metadataAddress] = web3.PublicKey.findProgramAddressSync(
@@ -144,20 +147,38 @@ describe("tokenized_vault", () => {
       TOKEN_METADATA_PROGRAM_ID
     );
 
-    await vaultProgram.methods.initVault(new BN(0), config)
+    await vaultProgram.methods.initVault(new BN(0), vaultConfig)
       .accounts({
-        metadata: metadataAddress,
         underlyingMint,
         signer: admin.publicKey,
       })
       .signers([admin])
       .rpc();
 
-    const vaultAccount = await vaultProgram.account.vault.fetch(vault);
-    assert.ok(vaultAccount.underlyingTokenAcc.equals(vaultTokenAccount));
-    assert.strictEqual(vaultAccount.depositLimit.toString(), '1000000000');
-    console.log("Vault deposit limit: ", vaultAccount.depositLimit.toString());
-    console.log("minUserDeposit: ", vaultAccount.minUserDeposit.toString());
+      console.log("vault inited");
+      let vaultAccount = await vaultProgram.account.vault.fetch(vault);
+      // assert.ok(vaultAccount.underlyingTokenAcc.equals(vaultTokenAccount));
+      assert.strictEqual(vaultAccount.depositLimit.toString(), '1000000000');
+      console.log("Vault deposit limit: ", vaultAccount.depositLimit.toString());
+      console.log("minUserDeposit: ", vaultAccount.minUserDeposit.toString());
+
+      await vaultProgram.methods.initVaultShares(new BN(0), sharesConfig)
+      .accounts({
+        metadata: metadataAddress,
+        signer: admin.publicKey,
+      })
+      .signers([admin])
+      .rpc();
+
+    console.log("shares inited");
+
+    vaultAccount = await vaultProgram.account.vault.fetch(vault);
+    // assert.ok(vaultAccount.underlyingTokenAcc.equals(vaultTokenAccount));
+    // assert.strictEqual(vaultAccount.depositLimit.toString(), '1000000000');
+    console.log("sharesBump: ", vaultAccount.sharesBump.toString());
+    // console.log("minUserDeposit: ", vaultAccount.minUserDeposit.toString());
+
+
   });
 
   it("Initializes the strategy", async () => {

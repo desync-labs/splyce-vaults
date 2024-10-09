@@ -4,7 +4,7 @@ use anchor_spl::token_interface::Mint;
 use crate::constants::{VAULT_SEED, MAX_BPS, SHARES_SEED};
 use crate::error::ErrorCode;
 use crate::utils::strategy;
-use crate::events::{VaultAddStrategyEvent, VaultInitEvent};
+use crate::events::VaultAddStrategyEvent;
 
 
 #[account(zero_copy(unsafe))]
@@ -52,6 +52,21 @@ pub struct StrategyData {
     pub is_active: bool,
 }
 
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
+pub struct VaultConfig {
+    pub deposit_limit: u64,
+    pub min_user_deposit: u64,
+    pub performance_fee: u64,
+    pub profit_max_unlock_time: u64,
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
+pub struct SharesConfig {
+    pub name: String,
+    pub symbol: String,
+    pub uri: String,
+}
+
 impl Vault {
     pub fn seeds(&self) -> [&[u8]; 3] {
     [
@@ -70,52 +85,37 @@ impl Vault {
 
     pub fn init(
         &mut self,
+        index: u64,
         bump: u8,
+        pubkey: Pubkey,
         underlying_mint: &InterfaceAccount<Mint>,
         underlying_token_acc: Pubkey,
-        share_mint: &InterfaceAccount<Mint>,
-        share_token_acc: Pubkey,
-        deposit_limit: u64,
-        min_user_deposit: u64,
-        performance_fee: u64,
-        index: u64,
-        profit_max_unlock_time: u64,
-        share_bump: u8,
-        pubkey: Pubkey,
+        config: &VaultConfig
     ) -> Result<()> {
+        self.index_buffer = index.to_le_bytes();
         self.bump = [bump];
+        self.key = pubkey;
+
         self.underlying_mint = underlying_mint.key();
         self.underlying_token_acc = underlying_token_acc;
         self.underlying_decimals = underlying_mint.decimals;
-        self.deposit_limit = deposit_limit;
-        self.min_user_deposit = min_user_deposit;
-        self.performance_fee = performance_fee;
+
+        self.deposit_limit = config.deposit_limit;
+        self.min_user_deposit = config.min_user_deposit;
+        self.performance_fee = config.performance_fee;
+        self.profit_max_unlock_time = config.profit_max_unlock_time;
+
         self.is_shutdown = false;
         self.total_debt = 0;
         self.total_shares = 0;
         self.total_idle = 0;
-        self.index_buffer = index.to_le_bytes();
-        self.profit_max_unlock_time = profit_max_unlock_time;
-
-        self.key = pubkey;
-        self.shares_bump = [share_bump];
-
-        //Emit the VaultInitEvent
-        emit!(VaultInitEvent {
-            vault_index: self.index_buffer,
-            underlying_mint: self.underlying_mint,
-            underlying_token_acc: self.underlying_token_acc,
-            underlying_decimals: self.underlying_decimals,
-            share_mint: share_mint.key(),
-            share_token_acc: share_token_acc,
-            share_decimals: share_mint.decimals,
-            deposit_limit: self.deposit_limit,
-            min_user_deposit: self.min_user_deposit,
-            performance_fee: self.performance_fee,
-        });
 
         Ok(())
     }
+
+    // pub fn set_shares_info(&mut self, config: SharesConfig, bump: u8) {
+    //     self.shares_bump = [bump];
+    // }
 
     pub fn shutdown(&mut self) {
         self.is_shutdown = true;
