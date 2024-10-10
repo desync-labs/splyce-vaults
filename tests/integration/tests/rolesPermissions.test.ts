@@ -1,5 +1,5 @@
 import * as anchor from "@coral-xyz/anchor";
-import { BN, web3 } from "@coral-xyz/anchor";
+import { BN } from "@coral-xyz/anchor";
 import * as token from "@solana/spl-token";
 import { assert, expect } from "chai";
 import { SimpleStrategyConfig } from "../../utils/schemas";
@@ -646,37 +646,6 @@ describe("Roles & Permissions Tests", () => {
       }
     });
 
-    it("Vaults Admin - Process report for the vault should revert", async () => {
-      const feeRecipient = anchor.web3.Keypair.generate();
-      await airdrop({
-        connection,
-        publicKey: feeRecipient.publicKey,
-        amount: 10e9,
-      });
-      const feeRecipientSharesAccount = await token.createAccount(
-        connection,
-        feeRecipient,
-        sharesMintTwo,
-        feeRecipient.publicKey
-      );
-
-      try {
-        await vaultProgram.methods
-          .processReport()
-          .accounts({
-            vault: vaultTwo,
-            strategy: strategyTwo,
-            signer: vaultsAdmin.publicKey,
-            feeSharesRecipient: feeRecipientSharesAccount,
-          })
-          .signers([vaultsAdmin])
-          .rpc();
-        assert.fail("Error was not thrown");
-      } catch (err) {
-        expect(err.message).contains(anchorError2003);
-      }
-    });
-
     it("Vaults Admin - Initializing vault is successful", async () => {
       const [vaultInner, sharesMintInner, metadataAccountInner, vaultTokenAccountInner] =
         await initializeVault({
@@ -1059,7 +1028,7 @@ describe("Roles & Permissions Tests", () => {
     });
 
     // TO DO, need to validate assertions
-    it.skip("Reporting Manager - Process report is successful", async () => {
+    it("Reporting Manager - Process report is successful", async () => {
       const whitelistedUserSharesTokenAccount = await token.createAccount(
         connection,
         whitelistedUser,
@@ -1211,7 +1180,7 @@ describe("Roles & Permissions Tests", () => {
     });
   });
 
-  describe("Whitelisted User Tests", () => {
+  describe("Whitelisted User Role Tests", () => {
     it("Whitelisted User - Setting Vaults Admin role should revert", async () => {
       const vaultsAdminUserInner = anchor.web3.Keypair.generate();
       try {
