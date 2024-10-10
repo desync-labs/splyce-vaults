@@ -3,7 +3,6 @@ import { Program } from "@coral-xyz/anchor";
 import { StrategyProgram } from "../../../target/types/strategy_program";
 import { TokenizedVault } from "../../../target/types/tokenized_vault";
 import { airdrop } from "../../utils/helpers";
-import { before } from "mocha";
 
 anchor.setProvider(anchor.AnchorProvider.env());
 const provider = anchor.AnchorProvider.env();

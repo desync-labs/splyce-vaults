@@ -1,5 +1,5 @@
 import * as anchor from "@coral-xyz/anchor";
-import { BN, web3 } from "@coral-xyz/anchor";
+import { BN } from "@coral-xyz/anchor";
 import * as token from "@solana/spl-token";
 import { assert, expect } from "chai";
 import { SimpleStrategyConfig } from "../../utils/schemas";
@@ -257,7 +257,8 @@ describe("Roles & Permissions Tests", () => {
   });
 
   describe("Roles Admin Role Tests", () => {
-    it("Roles Admin - Setting Vaults Admin role is successful", async () => {
+    it("Roles Admin - Setting Vaults Admin role is successful", async function () {
+      this.qaseId(12);
       const vaultsAdminUserInner = anchor.web3.Keypair.generate();
       await vaultProgram.methods
         .setRole(vaultsAdminObj, vaultsAdminUserInner.publicKey)
@@ -278,7 +279,8 @@ describe("Roles & Permissions Tests", () => {
       assert.isTrue(!vaultAdminAccount.isWhitelisted);
     });
 
-    it("Roles Admin - Setting Reporting Manager role is successful", async () => {
+    it("Roles Admin - Setting Reporting Manager role is successful", async function () {
+      this.qaseId(13);
       const reportingManagerUserInner = anchor.web3.Keypair.generate();
       await vaultProgram.methods
         .setRole(reportingManagerObj, reportingManagerUserInner.publicKey)
@@ -298,7 +300,8 @@ describe("Roles & Permissions Tests", () => {
       assert.isTrue(!reportingManagerAccount.isWhitelisted);
     });
 
-    it("Roles Admin - Setting Whitelisted role is successful", async () => {
+    it("Roles Admin - Setting Whitelisted role is successful", async function () {
+      this.qaseId(14);
       const whitelistedUserInner = anchor.web3.Keypair.generate();
       await vaultProgram.methods
         .setRole(whitelistedObj, whitelistedUserInner.publicKey)
@@ -319,7 +322,8 @@ describe("Roles & Permissions Tests", () => {
       assert.isTrue(!whitelistedAccount.isReportingManager);
     });
 
-    it("Roles Admin - Setting all 3 roles to the same user is successful", async () => {
+    it("Roles Admin - Setting all 3 roles to the same user is successful", async function () {
+      this.qaseId(15);
       const allRolesUser = anchor.web3.Keypair.generate();
       await vaultProgram.methods
         .setRole(vaultsAdminObj, allRolesUser.publicKey)
@@ -355,61 +359,63 @@ describe("Roles & Permissions Tests", () => {
     });
 
     // Drop role not working currently
-    it.skip("Roles Admin - Can successfully drop a role", async () => {
-      const allRolesUser = anchor.web3.Keypair.generate();
-      await vaultProgram.methods
-        .setRole(vaultsAdminObj, allRolesUser.publicKey)
-        .accounts({
-          signer: rolesAdmin.publicKey,
-        })
-        .signers([rolesAdmin])
-        .rpc();
-      await vaultProgram.methods
-        .setRole(reportingManagerObj, allRolesUser.publicKey)
-        .accounts({
-          signer: rolesAdmin.publicKey,
-        })
-        .signers([rolesAdmin])
-        .rpc();
-      await vaultProgram.methods
-        .setRole(whitelistedObj, allRolesUser.publicKey)
-        .accounts({
-          signer: rolesAdmin.publicKey,
-        })
-        .signers([rolesAdmin])
-        .rpc();
-      const accountRoles = anchor.web3.PublicKey.findProgramAddressSync(
-        [Buffer.from("roles"), allRolesUser.publicKey.toBuffer()],
-        vaultProgram.programId
-      )[0];
-      const allRolesAccount = await vaultProgram.account.accountRoles.fetch(
-        accountRoles
-      );
-      assert.isTrue(allRolesAccount.isWhitelisted);
-      assert.isTrue(allRolesAccount.isVaultsAdmin);
-      assert.isTrue(allRolesAccount.isReportingManager);
-      await vaultProgram.methods
-        .dropRole(reportingManagerObj)
-        .accounts({
-          user: allRolesUser.publicKey,
-          signer: rolesAdmin.publicKey,
-        })
-        .signers([rolesAdmin])
-        .rpc();
-      await vaultProgram.methods
-        .dropRole(whitelistedObj)
-        .accounts({
-          user: allRolesUser.publicKey,
-          signer: rolesAdmin.publicKey,
-        })
-        .signers([rolesAdmin])
-        .rpc();
-      assert.isTrue(allRolesAccount.isVaultsAdmin);
-      assert.isTrue(!allRolesAccount.isWhitelisted);
-      assert.isTrue(!allRolesAccount.isReportingManager);
-    });
+    // it.skip("Roles Admin - Can successfully drop a role", async function () {
+    //   this.qaseId(24);
+    //   const allRolesUser = anchor.web3.Keypair.generate();
+    //   await vaultProgram.methods
+    //     .setRole(vaultsAdminObj, allRolesUser.publicKey)
+    //     .accounts({
+    //       signer: rolesAdmin.publicKey,
+    //     })
+    //     .signers([rolesAdmin])
+    //     .rpc();
+    //   await vaultProgram.methods
+    //     .setRole(reportingManagerObj, allRolesUser.publicKey)
+    //     .accounts({
+    //       signer: rolesAdmin.publicKey,
+    //     })
+    //     .signers([rolesAdmin])
+    //     .rpc();
+    //   await vaultProgram.methods
+    //     .setRole(whitelistedObj, allRolesUser.publicKey)
+    //     .accounts({
+    //       signer: rolesAdmin.publicKey,
+    //     })
+    //     .signers([rolesAdmin])
+    //     .rpc();
+    //   const accountRoles = anchor.web3.PublicKey.findProgramAddressSync(
+    //     [Buffer.from("roles"), allRolesUser.publicKey.toBuffer()],
+    //     vaultProgram.programId
+    //   )[0];
+    //   const allRolesAccount = await vaultProgram.account.accountRoles.fetch(
+    //     accountRoles
+    //   );
+    //   assert.isTrue(allRolesAccount.isWhitelisted);
+    //   assert.isTrue(allRolesAccount.isVaultsAdmin);
+    //   assert.isTrue(allRolesAccount.isReportingManager);
+    //   await vaultProgram.methods
+    //     .dropRole(reportingManagerObj)
+    //     .accounts({
+    //       user: allRolesUser.publicKey,
+    //       signer: rolesAdmin.publicKey,
+    //     })
+    //     .signers([rolesAdmin])
+    //     .rpc();
+    //   await vaultProgram.methods
+    //     .dropRole(whitelistedObj)
+    //     .accounts({
+    //       user: allRolesUser.publicKey,
+    //       signer: rolesAdmin.publicKey,
+    //     })
+    //     .signers([rolesAdmin])
+    //     .rpc();
+    //   assert.isTrue(allRolesAccount.isVaultsAdmin);
+    //   assert.isTrue(!allRolesAccount.isWhitelisted);
+    //   assert.isTrue(!allRolesAccount.isReportingManager);
+    // });
 
-    it("Roles Admin - Initializing vault should revert", async () => {
+    it("Roles Admin - Initializing vault should revert", async function () {
+      this.qaseId(16);
       try {
         await initializeVault({
           vaultProgram,
@@ -424,7 +430,8 @@ describe("Roles & Permissions Tests", () => {
       }
     });
 
-    it("Roles Admin - Adding a strategy to the vault should revert", async () => {
+    it("Roles Admin - Adding a strategy to the vault should revert", async function () {
+      this.qaseId(17);
       try {
         await vaultProgram.methods
           .addStrategy(new BN(1000000000))
@@ -441,7 +448,8 @@ describe("Roles & Permissions Tests", () => {
       }
     });
 
-    it("Roles Admin - Removing a strategy from the vault should revert", async () => {
+    it("Roles Admin - Removing a strategy from the vault should revert", async function () {
+      this.qaseId(18);
       await vaultProgram.methods
         .addStrategy(new BN(1000000000))
         .accounts({
@@ -466,7 +474,8 @@ describe("Roles & Permissions Tests", () => {
       }
     });
 
-    it("Roles Admin - Shutting down the vault should revert", async () => {
+    it("Roles Admin - Shutting down the vault should revert", async function () {
+      this.qaseId(19);
       try {
         await vaultProgram.methods
           .shutdownVault()
@@ -482,7 +491,8 @@ describe("Roles & Permissions Tests", () => {
       }
     });
 
-    it("Roles Admin - Update debt for the vault should revert", async () => {
+    it("Roles Admin - Update debt for the vault should revert", async function () {
+      this.qaseId(20);
       try {
         await vaultProgram.methods
           .updateDebt(new BN(100))
@@ -503,7 +513,8 @@ describe("Roles & Permissions Tests", () => {
       }
     });
 
-    it("Roles Admin - Set deposit limit for the vault should revert", async () => {
+    it("Roles Admin - Set deposit limit for the vault should revert", async function () {
+      this.qaseId(21);
       try {
         await vaultProgram.methods
           .setDepositLimit(new BN(2000))
@@ -519,7 +530,8 @@ describe("Roles & Permissions Tests", () => {
       }
     });
 
-    it("Roles Admin - Process report for the vault should revert", async () => {
+    it("Roles Admin - Process report for the vault should revert", async function () {
+      this.qaseId(22);
       const feeRecipient = anchor.web3.Keypair.generate();
       await airdrop({
         connection,
@@ -551,48 +563,50 @@ describe("Roles & Permissions Tests", () => {
     });
 
     // TO DO - need to either unskip later or modify the test
-    it.skip("Roles Admin - Depositing into the vault should revert", async () => {
-      const rolesAdminTokenAccount = await token.createAccount(
-        connection,
-        rolesAdmin,
-        underlyingMint,
-        rolesAdmin.publicKey
-      );
-      const rolesAdminSharesAccount = await token.createAccount(
-        connection,
-        rolesAdmin,
-        sharesMintOne,
-        rolesAdmin.publicKey
-      );
-      await token.mintTo(
-        connection,
-        underlyingMintOwner,
-        underlyingMint,
-        rolesAdminTokenAccount,
-        underlyingMintOwner.publicKey,
-        1000
-      );
+    // it.skip("Roles Admin - Depositing into the vault should revert", async function () {
+    //   this.qaseId(23);
+    //   const rolesAdminTokenAccount = await token.createAccount(
+    //     connection,
+    //     rolesAdmin,
+    //     underlyingMint,
+    //     rolesAdmin.publicKey
+    //   );
+    //   const rolesAdminSharesAccount = await token.createAccount(
+    //     connection,
+    //     rolesAdmin,
+    //     sharesMintOne,
+    //     rolesAdmin.publicKey
+    //   );
+    //   await token.mintTo(
+    //     connection,
+    //     underlyingMintOwner,
+    //     underlyingMint,
+    //     rolesAdminTokenAccount,
+    //     underlyingMintOwner.publicKey,
+    //     1000
+    //   );
 
-      try {
-        await vaultProgram.methods
-          .deposit(new BN(100))
-          .accounts({
-            vault: vaultOne,
-            user: rolesAdmin.publicKey,
-            userTokenAccount: rolesAdminTokenAccount,
-            userSharesAccount: rolesAdminSharesAccount,
-          })
-          .signers([rolesAdmin])
-          .rpc();
-        assert.fail("Error was not thrown");
-      } catch (err) {
-        expect(err.message).contains(anchorError3012);
-      }
-    });
+    //   try {
+    //     await vaultProgram.methods
+    //       .deposit(new BN(100))
+    //       .accounts({
+    //         vault: vaultOne,
+    //         user: rolesAdmin.publicKey,
+    //         userTokenAccount: rolesAdminTokenAccount,
+    //         userSharesAccount: rolesAdminSharesAccount,
+    //       })
+    //       .signers([rolesAdmin])
+    //       .rpc();
+    //     assert.fail("Error was not thrown");
+    //   } catch (err) {
+    //     expect(err.message).contains(anchorError3012);
+    //   }
+    // });
   });
 
   describe("Vaults Admin Role Tests", () => {
-    it("Vaults Admin - Setting Vaults Admin role should revert", async () => {
+    it("Vaults Admin - Setting Vaults Admin role should revert", async function () {
+      this.qaseId(25);
       const vaultsAdminUserInner = anchor.web3.Keypair.generate();
       try {
         await vaultProgram.methods
@@ -610,7 +624,8 @@ describe("Roles & Permissions Tests", () => {
       }
     });
 
-    it("Vaults Admin - Setting Reporting Manager role should revert", async () => {
+    it("Vaults Admin - Setting Reporting Manager role should revert", async function () {
+      this.qaseId(26);
       const reportingManagerUserInner = anchor.web3.Keypair.generate();
       try {
         await vaultProgram.methods
@@ -628,7 +643,8 @@ describe("Roles & Permissions Tests", () => {
       }
     });
 
-    it("Vaults Admin - Setting Whitelisted User role should revert", async () => {
+    it("Vaults Admin - Setting Whitelisted User role should revert", async function () {
+      this.qaseId(27);
       const whiteListedUserInner = anchor.web3.Keypair.generate();
       try {
         await vaultProgram.methods
@@ -646,38 +662,8 @@ describe("Roles & Permissions Tests", () => {
       }
     });
 
-    it("Vaults Admin - Process report for the vault should revert", async () => {
-      const feeRecipient = anchor.web3.Keypair.generate();
-      await airdrop({
-        connection,
-        publicKey: feeRecipient.publicKey,
-        amount: 10e9,
-      });
-      const feeRecipientSharesAccount = await token.createAccount(
-        connection,
-        feeRecipient,
-        sharesMintTwo,
-        feeRecipient.publicKey
-      );
-
-      try {
-        await vaultProgram.methods
-          .processReport()
-          .accounts({
-            vault: vaultTwo,
-            strategy: strategyTwo,
-            signer: vaultsAdmin.publicKey,
-            feeSharesRecipient: feeRecipientSharesAccount,
-          })
-          .signers([vaultsAdmin])
-          .rpc();
-        assert.fail("Error was not thrown");
-      } catch (err) {
-        expect(err.message).contains(anchorError2003);
-      }
-    });
-
-    it("Vaults Admin - Initializing vault is successful", async () => {
+    it("Vaults Admin - Initializing vault is successful", async function () {
+      this.qaseId(29);
       const [vaultInner, sharesMintInner, metadataAccountInner, vaultTokenAccountInner] =
         await initializeVault({
           vaultProgram,
@@ -695,7 +681,8 @@ describe("Roles & Permissions Tests", () => {
       expect(vaultAccountInner.isShutdown).to.equal(false);
     });
 
-    it("Vaults Admin - Adding a strategy to the vault is successful", async () => {
+    it("Vaults Admin - Adding a strategy to the vault is successful", async function () {
+      this.qaseId(30);
       await vaultProgram.methods
         .addStrategy(new BN(1000000000))
         .accounts({
@@ -709,7 +696,8 @@ describe("Roles & Permissions Tests", () => {
       assert.ok(vaultAccount.strategies[0].key.equals(strategyTwo));
     });
 
-    it("Vaults Admin - Update debt for the vault is successful", async () => {
+    it("Vaults Admin - Update debt for the vault is successful", async function () {
+      this.qaseId(31);
       const depositAmount = 100;
       const allocationAmount = 90;
       const whitelistedUserSharesTokenAccount = await token.createAccount(
@@ -778,7 +766,8 @@ describe("Roles & Permissions Tests", () => {
       assert.strictEqual(Number(strategyAccount.totalAssets), allocationAmount);
     });
 
-    it("Vaults Admin - Set deposit limit for the vault is successful", async () => {
+    it("Vaults Admin - Set deposit limit for the vault is successful", async function () {
+      this.qaseId(32);
       const depositLimit = new BN(2000);
       await vaultProgram.methods
         .setDepositLimit(depositLimit)
@@ -792,7 +781,8 @@ describe("Roles & Permissions Tests", () => {
       expect(Number(vaultAccount.depositLimit)).equals(Number(depositLimit));
     });
 
-    it("Vaults Admin - Process report for the vault should revert", async () => {
+    it("Vaults Admin - Process report for the vault should revert", async function () {
+      this.qaseId(33);
       const feeRecipient = anchor.web3.Keypair.generate();
       await airdrop({
         connection,
@@ -824,46 +814,48 @@ describe("Roles & Permissions Tests", () => {
     });
 
     // TO DO - need to either unskip later or modify the test
-    it.skip("Vaults Admin - Depositing into the vault should revert", async () => {
-      const vaultsAdminTokenAccount = await token.createAccount(
-        connection,
-        vaultsAdmin,
-        underlyingMint,
-        vaultsAdmin.publicKey
-      );
-      const vaultsAdminSharesAccount = await token.createAccount(
-        connection,
-        vaultsAdmin,
-        sharesMintTwo,
-        vaultsAdmin.publicKey
-      );
-      await token.mintTo(
-        connection,
-        underlyingMintOwner,
-        underlyingMint,
-        vaultsAdminTokenAccount,
-        underlyingMintOwner.publicKey,
-        1000
-      );
+    // it.skip("Vaults Admin - Depositing into the vault should revert", async function () {
+    //   this.qaseId(34);
+    //   const vaultsAdminTokenAccount = await token.createAccount(
+    //     connection,
+    //     vaultsAdmin,
+    //     underlyingMint,
+    //     vaultsAdmin.publicKey
+    //   );
+    //   const vaultsAdminSharesAccount = await token.createAccount(
+    //     connection,
+    //     vaultsAdmin,
+    //     sharesMintTwo,
+    //     vaultsAdmin.publicKey
+    //   );
+    //   await token.mintTo(
+    //     connection,
+    //     underlyingMintOwner,
+    //     underlyingMint,
+    //     vaultsAdminTokenAccount,
+    //     underlyingMintOwner.publicKey,
+    //     1000
+    //   );
 
-      try {
-        await vaultProgram.methods
-          .deposit(new BN(100))
-          .accounts({
-            vault: vaultTwo,
-            user: vaultsAdmin.publicKey,
-            userTokenAccount: vaultsAdminTokenAccount,
-            userSharesAccount: vaultsAdminSharesAccount,
-          })
-          .signers([vaultsAdmin])
-          .rpc();
-        assert.fail("Error was not thrown");
-      } catch (err) {
-        expect(err.message).contains(anchorError2003);
-      }
-    });
+    //   try {
+    //     await vaultProgram.methods
+    //       .deposit(new BN(100))
+    //       .accounts({
+    //         vault: vaultTwo,
+    //         user: vaultsAdmin.publicKey,
+    //         userTokenAccount: vaultsAdminTokenAccount,
+    //         userSharesAccount: vaultsAdminSharesAccount,
+    //       })
+    //       .signers([vaultsAdmin])
+    //       .rpc();
+    //     assert.fail("Error was not thrown");
+    //   } catch (err) {
+    //     expect(err.message).contains(anchorError2003);
+    //   }
+    // });
 
-    it("Vaults Admin - Removing a strategy from the vault is successful", async () => {
+    it("Vaults Admin - Removing a strategy from the vault is successful", async function () {
+      this.qaseId(35);
       await vaultProgram.methods
         .removeStrategy(strategyTwo, true)
         .accounts({
@@ -879,7 +871,8 @@ describe("Roles & Permissions Tests", () => {
       );
     });
 
-    it("Vaults Admin - Shutting down the vault is successful", async () => {
+    it("Vaults Admin - Shutting down the vault is successful", async function () {
+      this.qaseId(36);
       await vaultProgram.methods
         .shutdownVault()
         .accounts({
@@ -894,7 +887,8 @@ describe("Roles & Permissions Tests", () => {
   });
 
   describe("Reporting Manager Role Tests", () => {
-    it("Reporting Manager - Setting Vaults Admin role should revert", async () => {
+    it("Reporting Manager - Setting Vaults Admin role should revert", async function () {
+      this.qaseId(37);
       const vaultsAdminUserInner = anchor.web3.Keypair.generate();
       try {
         await vaultProgram.methods
@@ -912,7 +906,8 @@ describe("Roles & Permissions Tests", () => {
       }
     });
 
-    it("Reporting Manager - Setting Reporting Manager role should revert", async () => {
+    it("Reporting Manager - Setting Reporting Manager role should revert", async function () {
+      this.qaseId(38);
       const reportingManagerUserInner = anchor.web3.Keypair.generate();
       try {
         await vaultProgram.methods
@@ -930,7 +925,8 @@ describe("Roles & Permissions Tests", () => {
       }
     });
 
-    it("Reporting Manager - Setting Whitelisted role should revert", async () => {
+    it("Reporting Manager - Setting Whitelisted role should revert", async function () {
+      this.qaseId(39);
       const whiteListedUserInner = anchor.web3.Keypair.generate();
       try {
         await vaultProgram.methods
@@ -948,7 +944,8 @@ describe("Roles & Permissions Tests", () => {
       }
     });
 
-    it("Reporting Manager - Initializing vault should revert", async () => {
+    it("Reporting Manager - Initializing vault should revert", async function () {
+      this.qaseId(40);
       try {
         await initializeVault({
           vaultProgram,
@@ -963,7 +960,8 @@ describe("Roles & Permissions Tests", () => {
       }
     });
 
-    it("Reporting Manager - Adding a strategy to the vault should revert", async () => {
+    it("Reporting Manager - Adding a strategy to the vault should revert", async function () {
+      this.qaseId(41);
       try {
         await vaultProgram.methods
           .addStrategy(new BN(1000000000))
@@ -980,7 +978,8 @@ describe("Roles & Permissions Tests", () => {
       }
     });
 
-    it("Reporting Manager - Removing a strategy from the vault should revert", async () => {
+    it("Reporting Manager - Removing a strategy from the vault should revert", async function () {
+      this.qaseId(42);
       await vaultProgram.methods
         .addStrategy(new BN(1000000000))
         .accounts({
@@ -1005,7 +1004,8 @@ describe("Roles & Permissions Tests", () => {
       }
     });
 
-    it("Reporting Manager - Shutting down the vault should revert", async () => {
+    it("Reporting Manager - Shutting down the vault should revert", async function () {
+      this.qaseId(43);
       try {
         await vaultProgram.methods
           .shutdownVault()
@@ -1021,7 +1021,8 @@ describe("Roles & Permissions Tests", () => {
       }
     });
 
-    it("Reporting Manager - Update debt for the vault should revert", async () => {
+    it("Reporting Manager - Update debt for the vault should revert", async function () {
+      this.qaseId(44);
       try {
         await vaultProgram.methods
           .updateDebt(new BN(100))
@@ -1042,7 +1043,8 @@ describe("Roles & Permissions Tests", () => {
       }
     });
 
-    it("Reporting Manager - Set deposit limit for the vault should revert", async () => {
+    it("Reporting Manager - Set deposit limit for the vault should revert", async function () {
+      this.qaseId(45);
       try {
         await vaultProgram.methods
           .setDepositLimit(new BN(2000))
@@ -1059,7 +1061,8 @@ describe("Roles & Permissions Tests", () => {
     });
 
     // TO DO, need to validate assertions
-    it.skip("Reporting Manager - Process report is successful", async () => {
+    it("Reporting Manager - Process report is successful", async function () {
+      this.qaseId(46);
       const whitelistedUserSharesTokenAccount = await token.createAccount(
         connection,
         whitelistedUser,
@@ -1171,48 +1174,50 @@ describe("Roles & Permissions Tests", () => {
     });
 
     // TO DO - need to either unskip later or modify the test
-    it.skip("Reporting Manager - Depositing into the vault should revert", async () => {
-      const reportingManagerTokenAccount = await token.createAccount(
-        connection,
-        reportingManager,
-        underlyingMint,
-        reportingManager.publicKey
-      );
-      const reportingManagerSharesAccount = await token.createAccount(
-        connection,
-        reportingManager,
-        sharesMintThree,
-        reportingManager.publicKey
-      );
-      await token.mintTo(
-        connection,
-        underlyingMintOwner,
-        underlyingMint,
-        reportingManagerTokenAccount,
-        underlyingMintOwner.publicKey,
-        1000
-      );
+    // it.skip("Reporting Manager - Depositing into the vault should revert", async function () {
+    //   this.qaseId(47);
+    //   const reportingManagerTokenAccount = await token.createAccount(
+    //     connection,
+    //     reportingManager,
+    //     underlyingMint,
+    //     reportingManager.publicKey
+    //   );
+    //   const reportingManagerSharesAccount = await token.createAccount(
+    //     connection,
+    //     reportingManager,
+    //     sharesMintThree,
+    //     reportingManager.publicKey
+    //   );
+    //   await token.mintTo(
+    //     connection,
+    //     underlyingMintOwner,
+    //     underlyingMint,
+    //     reportingManagerTokenAccount,
+    //     underlyingMintOwner.publicKey,
+    //     1000
+    //   );
 
-      try {
-        await vaultProgram.methods
-          .deposit(new BN(100))
-          .accounts({
-            vault: vaultThree,
-            user: reportingManager.publicKey,
-            userTokenAccount: reportingManagerTokenAccount,
-            userSharesAccount: reportingManagerSharesAccount,
-          })
-          .signers([reportingManager])
-          .rpc();
-        assert.fail("Error was not thrown");
-      } catch (err) {
-        expect(err.message).contains(anchorError2003);
-      }
-    });
+    //   try {
+    //     await vaultProgram.methods
+    //       .deposit(new BN(100))
+    //       .accounts({
+    //         vault: vaultThree,
+    //         user: reportingManager.publicKey,
+    //         userTokenAccount: reportingManagerTokenAccount,
+    //         userSharesAccount: reportingManagerSharesAccount,
+    //       })
+    //       .signers([reportingManager])
+    //       .rpc();
+    //     assert.fail("Error was not thrown");
+    //   } catch (err) {
+    //     expect(err.message).contains(anchorError2003);
+    //   }
+    // });
   });
 
-  describe("Whitelisted User Tests", () => {
-    it("Whitelisted User - Setting Vaults Admin role should revert", async () => {
+  describe("Whitelisted User Role Tests", () => {
+    it("Whitelisted User - Setting Vaults Admin role should revert", async function () {
+      this.qaseId(48);
       const vaultsAdminUserInner = anchor.web3.Keypair.generate();
       try {
         await vaultProgram.methods
@@ -1230,7 +1235,8 @@ describe("Roles & Permissions Tests", () => {
       }
     });
 
-    it("Whitelisted User - Setting Reporting Manager role should revert", async () => {
+    it("Whitelisted User - Setting Reporting Manager role should revert", async function () {
+      this.qaseId(49);
       const reportingManagerUserInner = anchor.web3.Keypair.generate();
       try {
         await vaultProgram.methods
@@ -1248,7 +1254,8 @@ describe("Roles & Permissions Tests", () => {
       }
     });
 
-    it("Whitelisted User - Setting Whitelisted role should revert", async () => {
+    it("Whitelisted User - Setting Whitelisted role should revert", async function () {
+      this.qaseId(50);
       const whiteListedUserInner = anchor.web3.Keypair.generate();
       try {
         await vaultProgram.methods
@@ -1266,7 +1273,8 @@ describe("Roles & Permissions Tests", () => {
       }
     });
 
-    it("Whitelisted User - Initializing vault should revert", async () => {
+    it("Whitelisted User - Initializing vault should revert", async function () {
+      this.qaseId(51);
       try {
         await initializeVault({
           vaultProgram,
@@ -1281,7 +1289,8 @@ describe("Roles & Permissions Tests", () => {
       }
     });
 
-    it("Whitelisted User - Adding a strategy to the vault should revert", async () => {
+    it("Whitelisted User - Adding a strategy to the vault should revert", async function () {
+      this.qaseId(52);
       try {
         await vaultProgram.methods
           .addStrategy(new BN(1000000000))
@@ -1298,7 +1307,8 @@ describe("Roles & Permissions Tests", () => {
       }
     });
 
-    it("Whitelisted User - Removing a strategy from the vault should revert", async () => {
+    it("Whitelisted User - Removing a strategy from the vault should revert", async function () {
+      this.qaseId(53);
       await vaultProgram.methods
         .addStrategy(new BN(1000000000))
         .accounts({
@@ -1323,7 +1333,8 @@ describe("Roles & Permissions Tests", () => {
       }
     });
 
-    it("Whitelisted User - Shutting down the vault should revert", async () => {
+    it("Whitelisted User - Shutting down the vault should revert", async function () {
+      this.qaseId(54);
       try {
         await vaultProgram.methods
           .shutdownVault()
@@ -1339,7 +1350,8 @@ describe("Roles & Permissions Tests", () => {
       }
     });
 
-    it("Whitelisted User - Update debt for the vault should revert", async () => {
+    it("Whitelisted User - Update debt for the vault should revert", async function () {
+      this.qaseId(55);
       try {
         await vaultProgram.methods
           .updateDebt(new BN(100))
@@ -1360,7 +1372,8 @@ describe("Roles & Permissions Tests", () => {
       }
     });
 
-    it("Whitelisted User - Set deposit limit for the vault should revert", async () => {
+    it("Whitelisted User - Set deposit limit for the vault should revert", async function () {
+      this.qaseId(56);
       try {
         await vaultProgram.methods
           .setDepositLimit(new BN(2000))
@@ -1376,7 +1389,8 @@ describe("Roles & Permissions Tests", () => {
       }
     });
 
-    it("Whitelisted User - Process report for vault should revert", async () => {
+    it("Whitelisted User - Process report for vault should revert", async function () {
+      this.qaseId(57);
       const feeRecipient = anchor.web3.Keypair.generate();
       await airdrop({
         connection,
@@ -1407,7 +1421,8 @@ describe("Roles & Permissions Tests", () => {
       }
     });
 
-    it("Whitelisted User - Depositing into the vault is successful", async () => {
+    it("Whitelisted User - Depositing into the vault is successful", async function () {
+      this.qaseId(58);
       const depositAmount = 100;
 
       const whitelistedUserSharesAccount = await token.createAccount(
