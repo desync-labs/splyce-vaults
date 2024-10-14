@@ -317,7 +317,7 @@ describe("Roles & Permissions Tests", () => {
       const whitelistedAccount = await vaultProgram.account.accountRoles.fetch(
         accountRoles
       );
-      assert.isTrue(!whitelistedAccount.isWhitelisted);
+      assert.isTrue(whitelistedAccount.isWhitelisted);
       assert.isTrue(!whitelistedAccount.isVaultsAdmin);
       assert.isTrue(!whitelistedAccount.isReportingManager);
     });
