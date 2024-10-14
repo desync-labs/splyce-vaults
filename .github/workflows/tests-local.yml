@@ -1,0 +1,98 @@
+name: Anchor Localnet Tests
+
+on:
+  pull_request:
+    branches:
+      - master
+      - dev
+  workflow_dispatch:
+
+env:
+  RUST_TOOLCHAIN: 1.75.0
+  SOLANA_CLI_VERSION: 1.18.11
+  ANCHOR_CLI_VERSION: 0.30.1
+
+jobs:
+  tests-local:
+    name: Anchor Localnet Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout the repository
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      # 2. Install Rust Toolchain
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+          profile: minimal
+          components: rustfmt, clippy
+          override: true
+
+      # 3. Cache Cargo registry and build
+      - name: Cache Cargo registry
+        uses: actions/cache@v3
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
+
+      - name: Cache Cargo build
+        uses: actions/cache@v3
+        with:
+          path: target
+          key: ${{ runner.os }}-cargo-build-${{ hashFiles('Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-build-
+
+      # 4. Install Solana CLI
+      - name: Install Solana
+        run: |
+          sh -c "$(curl -sSfL https://release.solana.com/v${{ env.SOLANA_CLI_VERSION }}/install)"
+          echo "$HOME/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
+      - name: Verify Solana Installation
+        run: solana --version
+
+      # 5. Cache Anchor CLI installation
+      - name: Cache Anchor CLI
+        uses: actions/cache@v3
+        with:
+          path: ~/.cargo/bin/anchor
+          key: ${{ runner.os }}-anchor-cli-${{ env.ANCHOR_CLI_VERSION }}
+          restore-keys: |
+            ${{ runner.os }}-anchor-cli-
+
+      # 6. Install Anchor CLI using Cargo if not cached
+      - name: Install Anchor
+        run: |
+          if [ ! -f ~/.cargo/bin/anchor ]; then
+            cargo install --git https://github.com/coral-xyz/anchor --tag v${{ env.ANCHOR_CLI_VERSION }} anchor-cli;
+          fi
+      - name: Verify Anchor Installation
+        run: anchor --version
+
+      # 7. Use a keypair from GitHub Secrets
+      - name: Setup Keypair from Secret
+        run: |
+          echo "${{ secrets.SOLANA_KEYPAIR }}" > /home/runner/.config/solana/id.json
+          solana config set --keypair /home/runner/.config/solana/id.json
+
+      # 8. Install Node.js dependencies (using cache)
+      - name: Cache Node.js modules
+        uses: actions/cache@v3
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install Node.js dependencies
+        run: yarn install
+
+      # 9. Run Anchor Tests (skip build step since we built earlier)
+      - name: Run Anchor Tests
+        run: anchor test
+        timeout-minutes: 15
