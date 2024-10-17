@@ -127,7 +127,7 @@ pub fn handle_withdraw<'info>(
     emit!(VaultWithdrawlEvent {
         vault_index: vault.index_buffer,
         total_idle: vault.total_idle,
-        total_share: vault.total_shares,
+        total_share: vault.total_shares(),
         assets_to_transfer,
         shares_to_burn,
         token_account: ctx.accounts.user_token_account.to_account_info().key(),

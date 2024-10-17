@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface::Mint;
 
-use crate::constants::{VAULT_SEED, MAX_BPS, SHARES_SEED};
+use crate::constants::{VAULT_SEED, MAX_BPS, SHARES_SEED, MAX_BPS_EXTENDED};
 use crate::error::ErrorCode;
 use crate::utils::strategy;
 use crate::events::VaultAddStrategyEvent;
@@ -36,7 +36,7 @@ pub struct Vault {
     pub profit_max_unlock_time: u64,
     pub full_profit_unlock_date: u64,
     pub profit_unlocking_rate: u64,
-    pub last_profit_update: i64,
+    pub last_profit_update: u64,
 
     pub strategies: [StrategyData; 10],
 }
@@ -112,11 +112,6 @@ impl Vault {
 
         Ok(())
     }
-
-    // pub fn set_shares_info(&mut self, config: SharesConfig, bump: u8) {
-    //     self.shares_bump = [bump];
-    // }
-
     pub fn shutdown(&mut self) {
         self.is_shutdown = true;
         self.deposit_limit = 0;
@@ -130,8 +125,6 @@ impl Vault {
     pub fn handle_withdraw(&mut self, amount: u64, shares: u64) {
         self.total_idle -= amount;
         self.total_shares -= shares;
-
-        
     }
 
     pub fn max_deposit(&self) -> u64 {
@@ -189,18 +182,18 @@ impl Vault {
     }
 
     pub fn convert_to_shares(&self, amount: u64) -> u64 {
-        if self.total_shares == 0 {
+        if self.total_shares() == 0 {
             amount
         } else {
-            (amount as u128 * self.total_shares as u128 / self.total_funds() as u128) as u64
+            (amount as u128 * self.total_shares() as u128 / self.total_funds() as u128) as u64
         }
     } 
 
     pub fn convert_to_underlying(&self, shares: u64) -> u64 {
-        if self.total_shares == 0 {
+        if self.total_shares() == 0 {
             shares
         } else {
-            (shares as u128 * self.total_funds() as u128 / self.total_shares as u128) as u64
+            (shares as u128 * self.total_funds() as u128 / self.total_shares() as u128) as u64
         }
     }
 
@@ -260,5 +253,29 @@ impl Vault {
 
     pub fn get_strategy_data_mut(&mut self, strategy: Pubkey) -> Result<&mut StrategyData> {
         self.strategies.iter_mut().find(|x| x.key == strategy).ok_or(ErrorCode::StrategyNotFound.into())
+    }
+
+    pub fn update_strategy_current_debt(&mut self, strategy: Pubkey, amount: u64) -> Result<()> {
+        let strategy_data = self.get_strategy_data_mut(strategy)?;
+        strategy_data.current_debt = amount;
+        strategy_data.last_update = Clock::get()?.unix_timestamp;
+        Ok(())
+    }
+
+    pub fn unlocked_shares(&self) -> Result<u64> {
+        let curr_timestamp = Clock::get()?.unix_timestamp as u64;
+        let mut curr_unlocked_shares = 0;
+
+        if self.full_profit_unlock_date > curr_timestamp {
+            curr_unlocked_shares = (self.profit_unlocking_rate * (curr_timestamp - self.last_profit_update)) / MAX_BPS_EXTENDED;
+        } else if self.full_profit_unlock_date != 0 {
+            curr_unlocked_shares = (self.profit_unlocking_rate * (self.full_profit_unlock_date - self.last_profit_update)) / MAX_BPS_EXTENDED;
+        }
+
+        Ok(curr_unlocked_shares)
+    }
+
+    pub fn total_shares(&self) -> u64 {
+        self.total_shares - self.unlocked_shares().unwrap()
     }
 }
