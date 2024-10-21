@@ -15,6 +15,7 @@ pub struct VaultInitEvent {
     pub vault_pda: Pubkey,
 }
 
+
 #[event]
 pub struct VaultAddStrategyEvent {
     pub vault_index: [u8; 8],

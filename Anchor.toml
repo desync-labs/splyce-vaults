@@ -5,15 +5,15 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-strategy_program = "EDA9ee5UKzdqrHgSd5v64bNnbCae1t7NJfUpvS7DZod"
-tokenized_vault = "8eDcyX8Z8yZXBQsuatwxDC1qzGbuUbP7wGERDBQoPmBH"
-faucet = "GUrM139EUwYkoEWebecqiTLJrvut4mDdHGTu9d87tgQC"
+strategy_program = "5rQVgdeNp4RMUXjL8B8ksajVNywLoS7rK9e5yD4pi983"
+tokenized_vault = "ATdWqQQrwKbwbGv2zmD2nfcXsmTVA62eXWEtundAdwfE"
+faucet = "84SxMfjJ3xZzZFCEsZSaPJWF7aWQBiyXq4KMaC4k892Y"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "Localnet"
+cluster = "https://rpc.solana.splyce.finance"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
@@ -26,6 +26,7 @@ init_faucet = "yarn run init_faucet"
 process_report = "yarn run process_report"
 init_trade_fi =  "yarn run init_trade_fi"
 underlying_mint = "yarn run underlying_mint"
+shutdown_vault = "yarn run shutdown_vault"
 test = "yarn run ts-mocha -r dotenv/config -p ./tsconfig.json -t 2000000 --require './tests/integration/setups/globalSetup.ts' --recursive 'tests/integration/**/*.test.ts'"
 dev_test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/integration/vault.ts"
 

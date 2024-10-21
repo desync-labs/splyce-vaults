@@ -15,15 +15,20 @@ const TOKEN_METADATA_PROGRAM_ID = new anchor.web3.PublicKey("metaqbxxUerdq28cj1R
 // Define the config function
 async function main() {
   try {
+    const provider = anchor.AnchorProvider.env();
+    anchor.setProvider(provider);
+
     const secretKeyPath = path.resolve(process.env.HOME, '.config/solana/id.json');
     const secretKeyString = fs.readFileSync(secretKeyPath, 'utf8');
     const secretKey = Uint8Array.from(JSON.parse(secretKeyString));
     const admin = anchor.web3.Keypair.fromSecretKey(secretKey);
 
+    console.log("Admin public key:", admin.publicKey.toBase58());
+
     const vaultProgram = anchor.workspace.TokenizedVault as Program<TokenizedVault>;
     const strategyProgram = anchor.workspace.StrategyProgram as Program<StrategyProgram>;
 
-    const underlyingMint = new anchor.web3.PublicKey("4dCLhR7U8PzwXau6qfjr73tKgp5SD42aLbyo3XQNzY4V");
+    const underlyingMint = new anchor.web3.PublicKey("gMiieh8f3j6VVRaSKqxa2iiznqXCNkY6ocr65YCY7i1");
     console.log("Underlying token mint public key:", underlyingMint.toBase58());
 
     const vault_index = 1;
@@ -35,6 +40,8 @@ async function main() {
       ],
       vaultProgram.programId
     )[0];
+
+    console.log("Vault:", vault.toBase58());
 
     const sharesMint = anchor.web3.PublicKey.findProgramAddressSync(
       [Buffer.from("shares"), vault.toBuffer()],
@@ -56,6 +63,9 @@ async function main() {
       ],
       TOKEN_METADATA_PROGRAM_ID
     );
+
+    console.log("metadataAddress:", metadataAddress.toBase58());
+
 
     await vaultProgram.methods.initVault(new BN(vault_index), vaultConfig)
       .accounts({
