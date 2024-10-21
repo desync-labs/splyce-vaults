@@ -6,3 +6,4 @@ yarn.lock
 .anchor
 test-ledger
 .env
+build/qase-report
