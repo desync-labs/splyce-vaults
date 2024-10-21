@@ -29,7 +29,15 @@ async function main() {
     const underlyingMint = new anchor.web3.PublicKey("4dCLhR7U8PzwXau6qfjr73tKgp5SD42aLbyo3XQNzY4V");
     console.log("Underlying token mint public key:", underlyingMint.toBase58());
 
-    const vault_index = 2;
+    let config = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("config")],
+      vaultProgram.programId
+    )[0];
+
+    let configAccount = await vaultProgram.account.config.fetch(config);
+
+    const vault_index = configAccount.nextVaultIndex.toNumber();
+    console.log("Vault index:", vault_index);
 
     const vault = anchor.web3.PublicKey.findProgramAddressSync(
       [

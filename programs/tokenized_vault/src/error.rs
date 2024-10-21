@@ -73,4 +73,10 @@ pub enum ErrorCode {
 
     #[msg("Strategy has debt")]
     StrategyHasDebt,
+
+    #[msg("Vault is active")]
+    VaultActive,
+
+    #[msg("Vault has debt")]
+    VaultHasDebt,
 }

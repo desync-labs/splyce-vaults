@@ -111,6 +111,7 @@ pub fn handle_init_vault_shares(ctx: Context<InitVaultShares>, _index: u64, conf
         deposit_limit: vault.deposit_limit,
         min_user_deposit: vault.min_user_deposit,
         performance_fee: vault.performance_fee,
+
     });
 
     Ok(())

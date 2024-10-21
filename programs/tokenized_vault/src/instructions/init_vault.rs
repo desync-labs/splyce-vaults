@@ -6,6 +6,7 @@ use anchor_spl::{
 };
 
 use crate::constants::{
+    CONFIG_SEED,
     VAULT_SEED, 
     UNDERLYING_SEED, 
     ROLES_SEED,
@@ -14,13 +15,12 @@ use crate::constants::{
 use crate::state::*;
 
 #[derive(Accounts)]
-#[instruction(index: u64)]
 pub struct InitVault<'info> {
     #[account(
         init, 
         seeds = [
             VAULT_SEED.as_bytes(), 
-            index.to_le_bytes().as_ref()
+            config.next_vault_index.to_le_bytes().as_ref()
         ], 
         bump,  
         payer = signer, 
@@ -43,6 +43,9 @@ pub struct InitVault<'info> {
     
     #[account(seeds = [ROLES_SEED.as_bytes(), signer.key().as_ref()], bump)]
     pub roles: Box<Account<'info, AccountRoles>>,
+
+    #[account(mut, seeds = [CONFIG_SEED.as_bytes()], bump)]
+    pub config: Box<Account<'info, Config>>,
     
     #[account(mut, constraint = roles.is_vaults_admin)]
     pub signer: Signer<'info>,
@@ -52,15 +55,17 @@ pub struct InitVault<'info> {
     pub rent: Sysvar<'info, Rent>,
 }
 
-pub fn handle_init_vault(ctx: Context<InitVault>, index: u64, config: Box<VaultConfig>) -> Result<()> {
+pub fn handle_init_vault(ctx: Context<InitVault>, config: Box<VaultConfig>) -> Result<()> {
     ctx.accounts.vault.load_init()?.init(
-        index,
+        ctx.accounts.config.next_vault_index,
         ctx.bumps.vault,
         ctx.accounts.vault.key(),
         ctx.accounts.underlying_mint.as_ref(),
         ctx.accounts.underlying_token_account.key(),
         config.as_ref()
     )?;
+
+    ctx.accounts.config.next_vault_index += 1;
 
     Ok(())
 }

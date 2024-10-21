@@ -147,7 +147,22 @@ describe("tokenized_vault", () => {
       TOKEN_METADATA_PROGRAM_ID
     );
 
-    await vaultProgram.methods.initVault(new BN(0), vaultConfig)
+    const config = web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("config")],
+      vaultProgram.programId,
+    )[0];
+
+    await vaultProgram.methods.initialize()
+      .accounts({
+        admin: admin.publicKey,
+      })
+      .signers([admin])
+      .rpc();
+
+    let configAccount = await vaultProgram.account.config.fetch(config);
+    assert.strictEqual(configAccount.nextVaultIndex.toString(), '0');
+
+    await vaultProgram.methods.initVault(vaultConfig)
       .accounts({
         underlyingMint,
         signer: admin.publicKey,
@@ -155,14 +170,17 @@ describe("tokenized_vault", () => {
       .signers([admin])
       .rpc();
 
-      console.log("vault inited");
-      let vaultAccount = await vaultProgram.account.vault.fetch(vault);
-      // assert.ok(vaultAccount.underlyingTokenAcc.equals(vaultTokenAccount));
-      assert.strictEqual(vaultAccount.depositLimit.toString(), '1000000000');
-      console.log("Vault deposit limit: ", vaultAccount.depositLimit.toString());
-      console.log("minUserDeposit: ", vaultAccount.minUserDeposit.toString());
+    configAccount = await vaultProgram.account.config.fetch(config);
+    assert.strictEqual(configAccount.nextVaultIndex.toString(), '1');
 
-      await vaultProgram.methods.initVaultShares(new BN(0), sharesConfig)
+    console.log("vault inited");
+    let vaultAccount = await vaultProgram.account.vault.fetch(vault);
+    // assert.ok(vaultAccount.underlyingTokenAcc.equals(vaultTokenAccount));
+    assert.strictEqual(vaultAccount.depositLimit.toString(), '1000000000');
+    console.log("Vault deposit limit: ", vaultAccount.depositLimit.toString());
+    console.log("minUserDeposit: ", vaultAccount.minUserDeposit.toString());
+
+    await vaultProgram.methods.initVaultShares(new BN(0), sharesConfig)
       .accounts({
         metadata: metadataAddress,
         signer: admin.publicKey,
@@ -734,9 +752,9 @@ describe("tokenized_vault", () => {
       .signers([user])
       .rpc();
 
-      let strategyTokenAccountInfo = await token.getAccount(provider.connection, strategyTokenAccount);
+    let strategyTokenAccountInfo = await token.getAccount(provider.connection, strategyTokenAccount);
 
-      await vaultProgram.methods.updateDebt(new BN(100))
+    await vaultProgram.methods.updateDebt(new BN(100))
       .accounts({
         vault,
         strategy,
@@ -814,28 +832,64 @@ describe("tokenized_vault", () => {
 
   it("remove strategy - no debt", async () => {
     await vaultProgram.methods.addStrategy(new BN(1000000000))
-    .accounts({
-      vault,
-      strategy,
-      signer: admin.publicKey,
-    })
-    .signers([admin])
-    .rpc();
+      .accounts({
+        vault,
+        strategy,
+        signer: admin.publicKey,
+      })
+      .signers([admin])
+      .rpc();
 
     // get the vault strategies
     let vaultAccount = await vaultProgram.account.vault.fetch(vault);
     assert.ok(vaultAccount.strategies[0].key.equals(strategy));
 
     await vaultProgram.methods.removeStrategy(strategy, false)
-    .accounts({
-      vault,
-      signer: admin.publicKey,
-    })
-    .signers([admin])
-    .rpc();
+      .accounts({
+        vault,
+        signer: admin.publicKey,
+      })
+      .signers([admin])
+      .rpc();
 
-  // shpuld be default value
-  vaultAccount = await vaultProgram.account.vault.fetch(vault);
-  assert.strictEqual(vaultAccount.strategies[0].key.toString(), '11111111111111111111111111111111');
+    // shpuld be default value
+    vaultAccount = await vaultProgram.account.vault.fetch(vault);
+    assert.strictEqual(vaultAccount.strategies[0].key.toString(), '11111111111111111111111111111111');
+  });
+
+  it("shutdown vault", async () => {
+    await vaultProgram.methods.shutdownVault()
+      .accounts({
+        vault,
+        signer: admin.publicKey,
+      })
+      .signers([admin])
+      .rpc();
+
+    const vaultAccount = await vaultProgram.account.vault.fetch(vault);
+    assert.isTrue(vaultAccount.isShutdown);
+  });
+
+  it("close vault", async () => {
+    // get admin sol balance
+    const provider = AnchorProvider.env();
+    const adminSolBalance = await provider.connection.getBalance(admin.publicKey);
+    console.log("Admin SOL balance:", adminSolBalance);
+
+    await vaultProgram.methods.closeVault()
+      .accounts({
+        vault,
+        signer: admin.publicKey,
+        recipient: admin.publicKey,
+      })
+      .signers([admin])
+      .rpc();
+
+      // get admin sol balance
+    const adminSolBalanceAfter = await provider.connection.getBalance(admin.publicKey);
+    console.log("Admin SOL balance after:", adminSolBalanceAfter);
+
+    // const vaultAccount = await vaultProgram.account.vault.fetch(vault);
+    // assert.isTrue(vaultAccount.isClosed);
   });
 });

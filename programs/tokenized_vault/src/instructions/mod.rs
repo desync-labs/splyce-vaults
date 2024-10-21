@@ -1,6 +1,8 @@
 pub mod add_strategy;
+pub mod close_vault;
 pub mod deposit;
 pub mod drop_role;
+pub mod initialize;
 pub mod init_vault;
 pub mod init_role_admin;
 pub mod init_vault_shares;
@@ -13,8 +15,10 @@ pub mod update_debt;
 pub mod withdraw;
 
 pub use add_strategy::*;
+pub use close_vault::*;
 pub use deposit::*;
 pub use drop_role::*;
+pub use initialize::*;
 pub use init_vault::*;
 pub use init_role_admin::*;
 pub use init_vault_shares::*;

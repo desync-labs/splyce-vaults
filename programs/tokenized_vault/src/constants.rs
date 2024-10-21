@@ -4,6 +4,7 @@ pub const SHARES_ACCOUNT_SEED: &str = "shares_account";
 pub const UNDERLYING_SEED: &str = "underlying";
 pub const ROLES_SEED: &str = "roles";
 pub const ROLES_ADMIN_ROLE_SEED: &str = "protocol_admin_role";
+pub const CONFIG_SEED: &str = "config";
 
 pub const MAX_BPS: u64 = 10_000;
 pub const FEE_BPS: u64 = 10_000;

@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_spl::{
-    token::{Token},
+    token::Token,
     token_interface::{self as token, Burn, Mint, MintTo, TokenAccount},
 };
 
@@ -56,7 +56,6 @@ pub fn handle_process_report(ctx: Context<ProcessReport>) -> Result<()> {
         if ctx.accounts.vault.load()?.performance_fee > 0 {
             total_fees = issue_fee_shares(&ctx, gain)?;
         }
-    
     } else {
         loss = current_debt - strategy_assets;
         handle_loss(&ctx, loss)?;
