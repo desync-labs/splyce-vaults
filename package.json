@@ -14,7 +14,8 @@
     "initialize": "npx ts-node scripts/initialize.ts"
   },
   "dependencies": {
-    "@coral-xyz/anchor": "^0.30.1"
+    "@coral-xyz/anchor": "^0.30.1",
+    "dotenv": "^16.4.5"
   },
   "devDependencies": {
     "@types/bn.js": "^5.1.0",
@@ -25,6 +26,7 @@
     "@metaplex-foundation/mpl-token-metadata": "^3.2.1",
     "@metaplex-foundation/umi-bundle-defaults": "^0.9.2",
     "@metaplex-foundation/umi-signer-wallet-adapters": "^0.9.2",
+    "mocha-qase-reporter": "^1.0.0-beta.4",
     "prettier": "^2.6.2",
     "@solana/spl-token": "0.4.8",
     "@solana/spl-token-metadata": "^0.1.5",

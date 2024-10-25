@@ -12,6 +12,7 @@ pub struct VaultInitEvent {
     pub deposit_limit: u64,
     pub min_user_deposit: u64,
     pub performance_fee: u64,
+    pub vault_pda: Pubkey,
 }
 
 #[event]

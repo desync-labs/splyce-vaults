@@ -122,8 +122,9 @@ pub fn handle_init_vault_shares(ctx: Context<InitVaultShares>, _index: u64, conf
         share_decimals: ctx.accounts.shares_mint.decimals,
         deposit_limit: vault.deposit_limit,
         min_user_deposit: vault.min_user_deposit,
-        // todo: add performance fee
-        performance_fee: 0
+        // todo: add actual performance_fee from accountant or remove it
+        performance_fee: 0,
+        vault_pda: vault_key,
     });
 
     Ok(())
