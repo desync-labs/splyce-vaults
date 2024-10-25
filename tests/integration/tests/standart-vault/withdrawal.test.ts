@@ -15,33 +15,80 @@ import {
   connection,
 } from "../../setups/globalSetup";
 
-describe("Standard Vault: Withdrawal Tests", () => {
+interface User {
+  keypair: anchor.web3.Keypair;
+  tokenAccount: anchor.web3.PublicKey;
+  vaultOneSharesAccount: anchor.web3.PublicKey;
+  vaultTwoSharesAccount: anchor.web3.PublicKey;
+  vaultThreeSharesAccount: anchor.web3.PublicKey;
+  underlyingTokenCurrentBalance: number;
+  vaultOneSharesCurrentBalance: number;
+  vaultTwoSharesCurrentBalance: number;
+}
+
+interface Vault {
+  vault: anchor.web3.PublicKey;
+  sharesMintAccount: anchor.web3.PublicKey;
+  metadataAccount: anchor.web3.PublicKey;
+  tokenAccount: anchor.web3.PublicKey;
+  currentTokenBalance: number;
+}
+
+describe.only("Standard Vault: Withdrawal Tests", () => {
   let vaultsAndReportingAdmin: anchor.web3.Keypair;
-  let userOne: anchor.web3.Keypair;
-  let userOneTokenAccount: anchor.web3.PublicKey;
-  let userOneVaultOneSharesAccount: anchor.web3.PublicKey;
-  let userOneVaultTwoSharesAccount: anchor.web3.PublicKey;
-  let userOneVaultThreeSharesAccount: anchor.web3.PublicKey;
-  let userTwo: anchor.web3.Keypair;
-  let userTwoTokenAccount: anchor.web3.PublicKey;
-  let userTwoVaultOneSharesAccount: anchor.web3.PublicKey;
-  let userTwoVaultTwoSharesAccount: anchor.web3.PublicKey;
   let underlyingMint: anchor.web3.PublicKey;
   let underlyingMintOwner: anchor.web3.Keypair;
+  let vaultConfig: any;
+  let strategyConfig: SimpleStrategyConfig;
+  const vaultsAdminObj = { vaultsAdmin: {} };
+  const reportingManagerObj = { reportingManager: {} };
 
-  // First - For Role Admin
-  let vaultOne: anchor.web3.PublicKey;
-  let vaultTwo: anchor.web3.PublicKey;
-  let vaultThree: anchor.web3.PublicKey;
-  let sharesMintOne: anchor.web3.PublicKey;
-  let sharesMintTwo: anchor.web3.PublicKey;
-  let sharesMintThree: anchor.web3.PublicKey;
-  let metadataAccountOne: anchor.web3.PublicKey;
-  let metadataAccountTwo: anchor.web3.PublicKey;
-  let metadataAccountThree: anchor.web3.PublicKey;
-  let vaultTokenAccountOne: anchor.web3.PublicKey;
-  let vaultTokenAccountTwo: anchor.web3.PublicKey;
-  let vaultTokenAccountThree: anchor.web3.PublicKey;
+  let userOne: User = {
+    keypair: null,
+    tokenAccount: null,
+    vaultOneSharesAccount: null,
+    vaultTwoSharesAccount: null,
+    vaultThreeSharesAccount: null,
+    underlyingTokenCurrentBalance: 0,
+    vaultOneSharesCurrentBalance: 0,
+    vaultTwoSharesCurrentBalance: 0,
+  };
+
+  let userTwo: User = {
+    keypair: null,
+    tokenAccount: null,
+    vaultOneSharesAccount: null,
+    vaultTwoSharesAccount: null,
+    vaultThreeSharesAccount: null,
+    underlyingTokenCurrentBalance: 0,
+    vaultOneSharesCurrentBalance: 0,
+    vaultTwoSharesCurrentBalance: 0,
+  };
+
+  let vaultOne: Vault = {
+    vault: null,
+    sharesMintAccount: null,
+    metadataAccount: null,
+    tokenAccount: null,
+    currentTokenBalance: 0,
+  };
+
+  let vaultTwo: Vault = {
+    vault: null,
+    sharesMintAccount: null,
+    metadataAccount: null,
+    tokenAccount: null,
+    currentTokenBalance: 0,
+  };
+
+  let vaultThree: Vault = {
+    vault: null,
+    sharesMintAccount: null,
+    metadataAccount: null,
+    tokenAccount: null,
+    currentTokenBalance: 0,
+  };
+
   let strategyOne: anchor.web3.PublicKey;
   let strategyTokenAccountOne: anchor.web3.PublicKey;
   let strategyTwo: anchor.web3.PublicKey;
@@ -49,27 +96,11 @@ describe("Standard Vault: Withdrawal Tests", () => {
   let strategyThree: anchor.web3.PublicKey;
   let strategyTokenAccountThree: anchor.web3.PublicKey;
 
-  let userOneUnderlyingTokenCurrentBalance: number = 0;
-  let userOneVaultOneSharesCurrentBalance: number = 0;
-  let userOneVaultTwoSharesCurrentBalance: number = 0;
-  let userTwoUnderlyingTokenCurrentBalance: number = 0;
-  let userTwoVaultOneSharesCurrentBalance: number = 0;
-  let userTwoVaultTwoSharesCurrentBalance: number = 0;
-
-  let vaultOneCurrentTokenBalance: number = 0;
-  let vaultTwoCurrentTokenBalance: number = 0;
-
-  const vaultsAdminObj = { vaultsAdmin: {} };
-  const reportingManagerObj = { reportingManager: {} };
-
-  let vaultConfig: any;
-  let strategyConfig: SimpleStrategyConfig;
-
   before(async () => {
     console.log("-------Before Step Started-------");
     vaultsAndReportingAdmin = anchor.web3.Keypair.generate();
-    userOne = anchor.web3.Keypair.generate();
-    userTwo = anchor.web3.Keypair.generate();
+    userOne.keypair = anchor.web3.Keypair.generate();
+    userTwo.keypair = anchor.web3.Keypair.generate();
     underlyingMintOwner = rolesAdmin;
 
     console.log("Vault Program ID:", vaultProgram.programId.toBase58());
@@ -82,13 +113,14 @@ describe("Standard Vault: Withdrawal Tests", () => {
       "Vaults and Reporting Admin public key:",
       vaultsAndReportingAdmin.publicKey.toBase58()
     );
-    console.log("User One public key:", userOne.publicKey.toBase58());
+    console.log("User One public key:", userOne.keypair.publicKey.toBase58());
+    console.log("User Two public key:", userOne.keypair.publicKey.toBase58());
 
     // Airdrop to all accounts
     const publicKeysList = [
       vaultsAndReportingAdmin.publicKey,
-      userOne.publicKey,
-      userTwo.publicKey,
+      userOne.keypair.publicKey,
+      userTwo.keypair.publicKey,
     ];
     for (const publicKey of publicKeysList) {
       await airdrop({
@@ -146,29 +178,37 @@ describe("Standard Vault: Withdrawal Tests", () => {
       feeManager: vaultsAndReportingAdmin.publicKey,
     });
 
-    [vaultOne, sharesMintOne, metadataAccountOne, vaultTokenAccountOne] =
-      await initializeVault({
-        vaultProgram,
-        underlyingMint,
-        vaultIndex: 21,
-        signer: vaultsAndReportingAdmin,
-        config: vaultConfig,
-      });
-
-    [vaultTwo, sharesMintTwo, metadataAccountTwo, vaultTokenAccountTwo] =
-      await initializeVault({
-        vaultProgram,
-        underlyingMint,
-        vaultIndex: 22,
-        signer: vaultsAndReportingAdmin,
-        config: vaultConfig,
-      });
+    [
+      vaultOne.vault,
+      vaultOne.sharesMintAccount,
+      vaultOne.metadataAccount,
+      vaultOne.tokenAccount,
+    ] = await initializeVault({
+      vaultProgram,
+      underlyingMint,
+      vaultIndex: 21,
+      signer: vaultsAndReportingAdmin,
+      config: vaultConfig,
+    });
 
     [
-      vaultThree,
-      sharesMintThree,
-      metadataAccountThree,
-      vaultTokenAccountThree,
+      vaultTwo.vault,
+      vaultTwo.sharesMintAccount,
+      vaultTwo.metadataAccount,
+      vaultTwo.tokenAccount,
+    ] = await initializeVault({
+      vaultProgram,
+      underlyingMint,
+      vaultIndex: 22,
+      signer: vaultsAndReportingAdmin,
+      config: vaultConfig,
+    });
+
+    [
+      vaultThree.vault,
+      vaultThree.sharesMintAccount,
+      vaultThree.metadataAccount,
+      vaultThree.tokenAccount,
     ] = await initializeVault({
       vaultProgram,
       underlyingMint,
@@ -181,7 +221,7 @@ describe("Standard Vault: Withdrawal Tests", () => {
 
     [strategyOne, strategyTokenAccountOne] = await initializeSimpleStrategy({
       strategyProgram,
-      vault: vaultOne,
+      vault: vaultOne.vault,
       underlyingMint,
       signer: vaultsAndReportingAdmin,
       index: 1,
@@ -190,7 +230,7 @@ describe("Standard Vault: Withdrawal Tests", () => {
 
     [strategyTwo, strategyTokenAccountTwo] = await initializeSimpleStrategy({
       strategyProgram,
-      vault: vaultTwo,
+      vault: vaultTwo.vault,
       underlyingMint,
       signer: vaultsAndReportingAdmin,
       index: 1,
@@ -200,7 +240,7 @@ describe("Standard Vault: Withdrawal Tests", () => {
     [strategyThree, strategyTokenAccountThree] = await initializeSimpleStrategy(
       {
         strategyProgram,
-        vault: vaultTwo,
+        vault: vaultTwo.vault,
         underlyingMint,
         signer: vaultsAndReportingAdmin,
         index: 2,
@@ -213,7 +253,7 @@ describe("Standard Vault: Withdrawal Tests", () => {
     await vaultProgram.methods
       .addStrategy(new BN(1000000000000))
       .accounts({
-        vault: vaultOne,
+        vault: vaultOne.vault,
         strategy: strategyOne,
         signer: vaultsAndReportingAdmin.publicKey,
       })
@@ -223,7 +263,7 @@ describe("Standard Vault: Withdrawal Tests", () => {
     await vaultProgram.methods
       .addStrategy(new BN(1000000000000))
       .accounts({
-        vault: vaultTwo,
+        vault: vaultTwo.vault,
         strategy: strategyTwo,
         signer: vaultsAndReportingAdmin.publicKey,
       })
@@ -233,7 +273,7 @@ describe("Standard Vault: Withdrawal Tests", () => {
     await vaultProgram.methods
       .addStrategy(new BN(1000000000000))
       .accounts({
-        vault: vaultTwo,
+        vault: vaultTwo.vault,
         strategy: strategyThree,
         signer: vaultsAndReportingAdmin.publicKey,
       })
@@ -242,17 +282,17 @@ describe("Standard Vault: Withdrawal Tests", () => {
 
     console.log("All Strategies added to corresponding vaults successfully");
 
-    userOneTokenAccount = await token.createAccount(
+    userOne.tokenAccount = await token.createAccount(
       connection,
-      userOne,
+      userOne.keypair,
       underlyingMint,
-      userOne.publicKey
+      userOne.keypair.publicKey
     );
-    userTwoTokenAccount = await token.createAccount(
+    userTwo.tokenAccount = await token.createAccount(
       connection,
-      userTwo,
+      userTwo.keypair,
       underlyingMint,
-      userTwo.publicKey
+      userTwo.keypair.publicKey
     );
     console.log("User token accounts created successfully");
 
@@ -261,7 +301,7 @@ describe("Standard Vault: Withdrawal Tests", () => {
       connection,
       underlyingMintOwner,
       underlyingMint,
-      userOneTokenAccount,
+      userOne.tokenAccount,
       underlyingMintOwner.publicKey,
       mintAmount
     );
@@ -269,45 +309,48 @@ describe("Standard Vault: Withdrawal Tests", () => {
       connection,
       underlyingMintOwner,
       underlyingMint,
-      userTwoTokenAccount,
+      userTwo.tokenAccount,
       underlyingMintOwner.publicKey,
       mintAmount
     );
-    userOneUnderlyingTokenCurrentBalance = mintAmount;
-    userTwoUnderlyingTokenCurrentBalance = mintAmount;
+
+    userOne.underlyingTokenCurrentBalance = mintAmount;
+    userTwo.underlyingTokenCurrentBalance = mintAmount;
 
     console.log("Minted 1000000000000 underlying tokens to users successfully");
 
-    userOneVaultOneSharesAccount = await token.createAccount(
+    userOne.vaultOneSharesAccount = await token.createAccount(
       connection,
-      userOne,
-      sharesMintOne,
-      userOne.publicKey
+      userOne.keypair,
+      vaultOne.sharesMintAccount,
+      userOne.keypair.publicKey
     );
-    userOneVaultTwoSharesAccount = await token.createAccount(
+    userOne.vaultTwoSharesAccount = await token.createAccount(
       connection,
-      userOne,
-      sharesMintTwo,
-      userOne.publicKey
+      userOne.keypair,
+      vaultTwo.sharesMintAccount,
+      userOne.keypair.publicKey
     );
-    userOneVaultThreeSharesAccount = await token.createAccount(
+    userOne.vaultThreeSharesAccount = await token.createAccount(
       connection,
-      userOne,
-      sharesMintThree,
-      userOne.publicKey
+      userOne.keypair,
+      vaultThree.sharesMintAccount,
+      userOne.keypair.publicKey
     );
-    userTwoVaultOneSharesAccount = await token.createAccount(
+
+    userTwo.vaultOneSharesAccount = await token.createAccount(
       connection,
-      userTwo,
-      sharesMintOne,
-      userTwo.publicKey
+      userTwo.keypair,
+      vaultOne.sharesMintAccount,
+      userTwo.keypair.publicKey
     );
-    userTwoVaultTwoSharesAccount = await token.createAccount(
+    userTwo.vaultTwoSharesAccount = await token.createAccount(
       connection,
-      userTwo,
-      sharesMintTwo,
-      userTwo.publicKey
+      userTwo.keypair,
+      vaultTwo.sharesMintAccount,
+      userTwo.keypair.publicKey
     );
+
     console.log(
       "Created all required shares accounts for all users successfully"
     );
@@ -315,57 +358,223 @@ describe("Standard Vault: Withdrawal Tests", () => {
   });
 
   it("Withdrawing partially from a single strategy vault with non-allocated funds is successful", async function () {
-    this.qaseId(69);
-    // TO DO
+    // this.qaseId(69);
+    const depositAmount = 100000000000;
+
+    await vaultProgram.methods
+      .deposit(new BN(depositAmount))
+      .accounts({
+        vault: vaultOne.vault,
+        user: userOne.keypair.publicKey,
+        userTokenAccount: userOne.tokenAccount,
+        userSharesAccount: userOne.vaultOneSharesAccount,
+      })
+      .signers([userOne.keypair])
+      .rpc();
+
+    userOne.underlyingTokenCurrentBalance -= depositAmount;
+    userOne.vaultOneSharesCurrentBalance += depositAmount;
+    vaultOne.currentTokenBalance += depositAmount;
+
+    const remainingAccountsMap = {
+      accountsMap: [
+        {
+          strategyAcc: new BN(0),
+          strategyTokenAccount: new BN(1),
+          remainingAccountsToStrategies: [new BN(0)],
+        },
+      ],
+    };
+
+    const withdrawalAmount = 50000000000;
+
+    await vaultProgram.methods
+      .withdraw(
+        new BN(withdrawalAmount),
+        new BN(100000000000),
+        remainingAccountsMap
+      )
+      .accounts({
+        vault: vaultOne.vault,
+        user: userOne.keypair.publicKey,
+        userTokenAccount: userOne.tokenAccount,
+        userSharesAccount: userOne.vaultOneSharesAccount,
+      })
+      .remainingAccounts([
+        { pubkey: strategyOne, isWritable: true, isSigner: false },
+        { pubkey: strategyTokenAccountOne, isWritable: true, isSigner: false },
+      ])
+      .signers([userOne.keypair])
+      .rpc();
+
+    userOne.underlyingTokenCurrentBalance += withdrawalAmount;
+    userOne.vaultOneSharesCurrentBalance -= withdrawalAmount;
+    vaultOne.currentTokenBalance -= withdrawalAmount;
+
+    const vaultAccount = await vaultProgram.account.vault.fetch(vaultOne.vault);
+    assert.strictEqual(
+      vaultAccount.totalIdle.toString(),
+      vaultOne.currentTokenBalance.toString()
+    );
+
+    let vaultTokenAccountInfo = await token.getAccount(
+      connection,
+      vaultOne.tokenAccount
+    );
+    assert.strictEqual(
+      vaultTokenAccountInfo.amount.toString(),
+      vaultOne.currentTokenBalance.toString()
+    );
+
+    let userSharesAccountInfo = await token.getAccount(
+      connection,
+      userOne.vaultOneSharesAccount
+    );
+    assert.strictEqual(
+      userSharesAccountInfo.amount.toString(),
+      userOne.vaultOneSharesCurrentBalance.toString()
+    );
+
+    let userTokenAccountInfo = await token.getAccount(
+      connection,
+      userOne.tokenAccount
+    );
+    assert.strictEqual(
+      userTokenAccountInfo.amount.toString(),
+      userOne.underlyingTokenCurrentBalance.toString()
+    );
   });
 
   it("Withdrawing fully from a single strategy vault with non-allocated funds is successful", async function () {
-    this.qaseId(70);
-    // TO DO
+    // this.qaseId(70);
+    const depositAmount = 100000000000;
+
+    await vaultProgram.methods
+      .deposit(new BN(depositAmount))
+      .accounts({
+        vault: vaultOne.vault,
+        user: userOne.keypair.publicKey,
+        userTokenAccount: userOne.tokenAccount,
+        userSharesAccount: userOne.vaultOneSharesAccount,
+      })
+      .signers([userOne.keypair])
+      .rpc();
+
+    userOne.underlyingTokenCurrentBalance -= depositAmount;
+    userOne.vaultOneSharesCurrentBalance += depositAmount;
+    vaultOne.currentTokenBalance += depositAmount;
+
+    const remainingAccountsMap = {
+      accountsMap: [
+        {
+          strategyAcc: new BN(0),
+          strategyTokenAccount: new BN(1),
+          remainingAccountsToStrategies: [new BN(0)],
+        },
+      ],
+    };
+
+    const withdrawalAmount = userOne.vaultOneSharesCurrentBalance;
+
+    await vaultProgram.methods
+      .withdraw(
+        new BN(withdrawalAmount),
+        new BN(100000000000),
+        remainingAccountsMap
+      )
+      .accounts({
+        vault: vaultOne.vault,
+        user: userOne.keypair.publicKey,
+        userTokenAccount: userOne.tokenAccount,
+        userSharesAccount: userOne.vaultOneSharesAccount,
+      })
+      .remainingAccounts([
+        { pubkey: strategyOne, isWritable: true, isSigner: false },
+        { pubkey: strategyTokenAccountOne, isWritable: true, isSigner: false },
+      ])
+      .signers([userOne.keypair])
+      .rpc();
+
+    userOne.underlyingTokenCurrentBalance += withdrawalAmount;
+    userOne.vaultOneSharesCurrentBalance -= withdrawalAmount;
+    vaultOne.currentTokenBalance -= withdrawalAmount;
+
+    const vaultAccount = await vaultProgram.account.vault.fetch(vaultOne.vault);
+    assert.strictEqual(
+      vaultAccount.totalIdle.toString(),
+      vaultOne.currentTokenBalance.toString()
+    );
+
+    let vaultTokenAccountInfo = await token.getAccount(
+      connection,
+      vaultOne.tokenAccount
+    );
+    assert.strictEqual(
+      vaultTokenAccountInfo.amount.toString(),
+      vaultOne.currentTokenBalance.toString()
+    );
+
+    let userSharesAccountInfo = await token.getAccount(
+      connection,
+      userOne.vaultOneSharesAccount
+    );
+    assert.strictEqual(
+      userSharesAccountInfo.amount.toString(),
+      userOne.vaultOneSharesCurrentBalance.toString()
+    );
+
+    let userTokenAccountInfo = await token.getAccount(
+      connection,
+      userOne.tokenAccount
+    );
+    assert.strictEqual(
+      userTokenAccountInfo.amount.toString(),
+      userOne.underlyingTokenCurrentBalance.toString()
+    );
   });
 
   it("Withdrawing partially from a multi strategy vault with non-allocated funds is successful", async function () {
-    this.qaseId(71);
+    // this.qaseId(71);
     // TO DO
   });
 
   it("Withdrawing fully from a multi strategy vault with non-allocated funds is successful", async function () {
-    this.qaseId(72);
+    // this.qaseId(72);
     // TO DO
   });
 
   it("Withdrawing partially from a single strategy vault with fully allocated funds is successful", async function () {
-    this.qaseId(73);
+    // this.qaseId(73);
     // TO DO
   });
 
   it("Withdrawing fully from a single strategy vault with fully allocated funds is successful", async function () {
-    this.qaseId(74);
+    // this.qaseId(74);
     // TO DO
   });
 
   it("Withdrawing partially from a multi strategy vault with fully allocated funds to both strategies is successful", async function () {
-    this.qaseId(75);
+    // this.qaseId(75);
     // TO DO
   });
 
   it("Withdrawing fully from a multi strategy vault with fully allocated funds to both strategies is successful", async function () {
-    this.qaseId(76);
+    // this.qaseId(76);
     // TO DO
   });
 
   it("Withdrawing transferred shares from vault is successful", async function () {
-    this.qaseId(77);
+    // this.qaseId(77);
     // TO DO
   });
 
   it("Withdrawing more than deposited balance in the vault should revert", async function () {
-    this.qaseId(78);
+    // this.qaseId(78);
     // TO DO
   });
 
   it("Withdrawing from a shut down vault should revert", async function () {
-    this.qaseId(79);
+    // this.qaseId(79);
     // TO DO
   });
 
