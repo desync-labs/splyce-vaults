@@ -10,7 +10,7 @@ async function main() {
         const provider = anchor.AnchorProvider.env();
         anchor.setProvider(provider);
 
-        const secretKeyPath = path.resolve(process.env.HOME, '.config/solana/id.json');
+        const secretKeyPath = path.resolve(process.env.HOME, '.config/solana/mainnet.json');
         const secretKeyString = fs.readFileSync(secretKeyPath, 'utf8');
         const secretKey = Uint8Array.from(JSON.parse(secretKeyString));
         const admin = anchor.web3.Keypair.fromSecretKey(secretKey);

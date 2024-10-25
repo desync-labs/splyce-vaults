@@ -10,7 +10,8 @@
     "process_report": "npx ts-node scripts/process_report.ts",
     "init_faucet": "npx ts-node scripts/init_faucet.ts",
     "init_trade_fi": "npx ts-node scripts/create_vault_with_trade_fi_strategy.ts",
-    "underlying_mint": "npx ts-node scripts/create-underlying-mint.ts"
+    "underlying_mint": "npx ts-node scripts/create-underlying-mint.ts",
+    "vault_init_share": "npx ts-node scripts/vault_init_share.ts"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.30.1",
