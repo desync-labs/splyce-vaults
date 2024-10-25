@@ -6,7 +6,7 @@ use anchor_spl::token::{Token, TokenAccount};
 use strategy_program::program::StrategyProgram;
 
 use crate::events::UpdatedCurrentDebtForStrategyEvent;
-use crate::state::*;
+use crate::state::{Vault, AccountRoles};
 use crate::error::ErrorCode;
 use crate::utils::strategy;
 use crate::constants::{ROLES_SEED, UNDERLYING_SEED};

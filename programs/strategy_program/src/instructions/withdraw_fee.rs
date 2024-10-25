@@ -26,7 +26,7 @@ pub fn handle_withdraw_fee<'info>(
     ctx: Context<'_, '_, '_, 'info, WithdrawFee<'info>>,
     amount: u64,
 ) -> Result<()> {
-    let mut strategy = strategy::from_acc_info(&ctx.accounts.strategy)?;
+    let mut strategy = strategy::from_unchecked(&ctx.accounts.strategy)?;
     let fee_data = strategy.fee_data();
 
     if *ctx.accounts.signer.key != fee_data.fee_manager() {

@@ -22,7 +22,7 @@ pub struct Vault {
     pub underlying_decimals: u8,
 
     // TODO: move fee to accontant
-    pub performance_fee: u64,
+    pub accountant: Pubkey,
 
     pub total_debt: u64,
     pub total_shares: u64,
@@ -56,7 +56,7 @@ pub struct StrategyData {
 pub struct VaultConfig {
     pub deposit_limit: u64,
     pub min_user_deposit: u64,
-    pub performance_fee: u64,
+    pub accountant: Pubkey,
     pub profit_max_unlock_time: u64,
 }
 
@@ -100,9 +100,9 @@ impl Vault {
         self.underlying_token_acc = underlying_token_acc;
         self.underlying_decimals = underlying_mint.decimals;
 
+        self.accountant = config.accountant;
         self.deposit_limit = config.deposit_limit;
         self.min_user_deposit = config.min_user_deposit;
-        self.performance_fee = config.performance_fee;
         self.profit_max_unlock_time = config.profit_max_unlock_time;
 
         self.is_shutdown = false;

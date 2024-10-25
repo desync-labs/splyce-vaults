@@ -7,6 +7,7 @@ skip-lint = false
 [programs.localnet]
 strategy_program = "EDA9ee5UKzdqrHgSd5v64bNnbCae1t7NJfUpvS7DZod"
 tokenized_vault = "8eDcyX8Z8yZXBQsuatwxDC1qzGbuUbP7wGERDBQoPmBH"
+accountant = "49pfysnCNyz6HrKsTUaKtyp8DPcXQadjkS5qBJPJKEnJ"
 faucet = "GUrM139EUwYkoEWebecqiTLJrvut4mDdHGTu9d87tgQC"
 
 [registry]

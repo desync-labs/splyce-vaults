@@ -23,7 +23,7 @@ pub struct SetFeeManager<'info> {
 }
 
 pub fn handle_set_performance_fee<'info>(ctx: Context<SetPerformanceFee<'info>>, new_fee: u64) -> Result<()> {
-    let mut strategy = strategy::from_acc_info(&ctx.accounts.strategy)?;
+    let mut strategy = strategy::from_unchecked(&ctx.accounts.strategy)?;
 
     if *ctx.accounts.signer.key != strategy.manager() {
         return Err(ErrorCode::AccessDenied.into());
@@ -42,7 +42,7 @@ pub fn handle_set_performance_fee<'info>(ctx: Context<SetPerformanceFee<'info>>,
 }
 
 pub fn handle_set_fee_manager<'info>(ctx: Context<SetFeeManager<'info>>, recipient: Pubkey) -> Result<()> {
-    let mut strategy = strategy::from_acc_info(&ctx.accounts.strategy)?;
+    let mut strategy = strategy::from_unchecked(&ctx.accounts.strategy)?;
 
     if *ctx.accounts.signer.key != strategy.manager() {
         return Err(ErrorCode::AccessDenied.into());

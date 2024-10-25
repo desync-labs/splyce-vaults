@@ -4,10 +4,11 @@ use anchor_spl::{
     token_interface::{self as token, Burn, Mint, MintTo, TokenAccount},
 };
 
-use crate::constants::{FEE_BPS, MAX_BPS_EXTENDED, ROLES_SEED, SHARES_ACCOUNT_SEED, SHARES_SEED};
+use crate::constants::{ MAX_BPS_EXTENDED, ROLES_SEED, SHARES_ACCOUNT_SEED, SHARES_SEED};
 use crate::events::StrategyReportedEvent;
-use crate::state::*;
+use crate::state::{AccountRoles, Vault};
 use crate::utils::strategy;
+use crate::utils::accountant;
 
 #[derive(Accounts)]
 pub struct ProcessReport<'info> {
@@ -27,8 +28,16 @@ pub struct ProcessReport<'info> {
     #[account(mut, seeds = [SHARES_ACCOUNT_SEED.as_bytes(), vault.key().as_ref()], bump)]
     pub vault_shares_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
 
-    #[account(mut)]
-    pub fee_shares_recipient: Box<InterfaceAccount<'info, TokenAccount>>,
+    /// CHECK:
+    #[account(mut, address = vault.load()?.accountant)]
+    pub accountant: UncheckedAccount<'info>,
+
+    #[account(
+        mut,
+        associated_token::mint = shares_mint, 
+        associated_token::authority = accountant,
+    )]
+    pub accountant_recipient: Box<InterfaceAccount<'info, TokenAccount>>,
 
     #[account(mut, constraint = roles.is_reporting_manager)]
     pub signer: Signer<'info>,
@@ -40,9 +49,9 @@ pub fn handle_process_report(ctx: Context<ProcessReport>) -> Result<()> {
     let strategy_assets = strategy::get_total_assets(&ctx.accounts.strategy)?;
     let strategy = &ctx.accounts.strategy;
 
-    let mut gain: u64 = 0;
+    let mut profit: u64 = 0;
     let mut loss: u64 = 0;
-    let mut total_fees: u64 = 0;
+    let mut fee_shares: u64 = 0;
 
     burn_unlocked_shares(&ctx)?;
     ctx.accounts.vault_shares_token_account.reload()?;
@@ -50,11 +59,16 @@ pub fn handle_process_report(ctx: Context<ProcessReport>) -> Result<()> {
     let current_debt = get_current_strategy_debt(&ctx.accounts.vault, strategy.key())?;
 
     if strategy_assets > current_debt {
-        gain = strategy_assets - current_debt;
-        handle_profit(&ctx, gain)?;
+        profit = strategy_assets - current_debt;
+        let (total_fees, _) = accountant::report(&ctx.accounts.accountant, profit, 0)?;
+        fee_shares = ctx.accounts.vault.load()?.convert_to_shares(total_fees);
 
-        if ctx.accounts.vault.load()?.performance_fee > 0 {
-            total_fees = issue_fee_shares(&ctx, gain)?;
+        handle_profit(&ctx, profit, total_fees)?;
+
+        msg!("Issuing fee shares");
+        msg!("Fee shares: {}", fee_shares);
+        if fee_shares > 0 {
+            issue_fee_shares(&ctx, fee_shares)?;
         }
     } else {
         loss = current_debt - strategy_assets;
@@ -68,27 +82,26 @@ pub fn handle_process_report(ctx: Context<ProcessReport>) -> Result<()> {
 
     emit!(StrategyReportedEvent {
         strategy_key: strategy.key(),
-        gain,
+        gain: profit,
         loss,
         current_debt: strategy_assets,
         protocol_fees: 0, //TODO: this is set as 0
-        total_fees,
+        total_fees: fee_shares,
         timestamp: Clock::get()?.unix_timestamp,
     });
 
     Ok(())
 }
 
-fn issue_fee_shares(ctx: &Context<ProcessReport>, profit: u64) -> Result<u64> {
+fn issue_fee_shares(ctx: &Context<ProcessReport>, fee_shares: u64) -> Result<u64> {
     let vault = &mut ctx.accounts.vault.load_mut()?;
-    let fee_shares = vault.convert_to_shares((profit * vault.performance_fee) / FEE_BPS);
 
     token::mint_to(
         CpiContext::new_with_signer(
             ctx.accounts.token_program.to_account_info(),
             MintTo {
                 mint: ctx.accounts.shares_mint.to_account_info(),
-                to: ctx.accounts.fee_shares_recipient.to_account_info(),
+                to: ctx.accounts.accountant_recipient.to_account_info(),
                 authority: ctx.accounts.shares_mint.to_account_info(),
             },
             &[&vault.seeds_shares()],
@@ -100,13 +113,13 @@ fn issue_fee_shares(ctx: &Context<ProcessReport>, profit: u64) -> Result<u64> {
     Ok(fee_shares)
 }
 
-fn handle_profit(ctx: &Context<ProcessReport>, profit: u64) -> Result<()> {
+fn handle_profit(ctx: &Context<ProcessReport>, profit: u64, fees: u64) -> Result<()> {
     let vault = &mut ctx.accounts.vault.load_mut()?;
   
     let mut shares_to_lock = 0;
     if vault.profit_max_unlock_time != 0 {
         // we don't lock fee shares
-        let amount_to_lock = profit - (profit * vault.performance_fee) / FEE_BPS;
+        let amount_to_lock = profit - fees;
         shares_to_lock = vault.convert_to_shares(amount_to_lock);
 
         let curr_locked_shares = ctx.accounts.vault_shares_token_account.amount;

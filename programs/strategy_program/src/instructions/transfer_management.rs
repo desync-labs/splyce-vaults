@@ -8,12 +8,13 @@ pub struct TransferManagement<'info> {
     /// CHECK: can by any strategy
     #[account(mut)]
     pub strategy: UncheckedAccount<'info>,
+    
     #[account(mut)]
     pub signer: Signer<'info>,
 }
 
 pub fn handle_transfer_management<'info>(ctx: Context<TransferManagement<'info>>, new_manager: Pubkey) -> Result<()> {
-    let mut strategy = strategy::from_acc_info(&ctx.accounts.strategy)?;
+    let mut strategy = strategy::from_unchecked(&ctx.accounts.strategy)?;
 
     if *ctx.accounts.signer.key != strategy.manager() {
         return Err(ErrorCode::AccessDenied.into());

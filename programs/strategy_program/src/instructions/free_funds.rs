@@ -20,7 +20,7 @@ pub struct FreeFunds<'info> {
 // if freed > actual, then loss
 // if freed < actual, then gain
 pub fn handle_free_funds<'info>(ctx: Context<'_, '_, '_, 'info, FreeFunds<'info>>, amount: u64) -> Result<()> {
-    let mut strategy = strategy::from_acc_info(&ctx.accounts.strategy)?;
+    let mut strategy = strategy::from_unchecked(&ctx.accounts.strategy)?;
 
     if *ctx.accounts.signer.key != strategy.manager() {
         return Err(ErrorCode::AccessDenied.into());

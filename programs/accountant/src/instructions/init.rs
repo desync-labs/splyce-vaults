@@ -13,12 +13,17 @@ pub struct Initialize<'info> {
         space = DISCRIMINATOR_LEN + Config::INIT_SPACE,
     )]
     pub config: Account<'info, Config>,
+    
     #[account(mut)]
     pub admin: Signer<'info>,
+
     pub system_program: Program<'info, System>,
     pub rent: Sysvar<'info, Rent>,
 }
 
-pub fn handle_initialize(_ctx: Context<Initialize>) -> Result<()> {
+pub fn handle_init(ctx: Context<Initialize>) -> Result<()> {
+    let mut config = &mut ctx.accounts.config;
+    config.admin = ctx.accounts.admin.key();
+
     Ok(())
 }

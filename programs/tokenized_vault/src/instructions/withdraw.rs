@@ -3,7 +3,8 @@ use anchor_spl::token::{self, Burn, Mint, Token, TokenAccount, Transfer};
 use strategy_program::program::StrategyProgram;
 
 use crate::events::VaultWithdrawlEvent;
-use crate::{state::*, utils::strategy};
+use crate::state::Vault;
+use crate::utils::strategy;
 use crate::error::ErrorCode;
 use crate::constants::{
     UNDERLYING_SEED, 

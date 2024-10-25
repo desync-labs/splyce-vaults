@@ -25,7 +25,7 @@ pub fn handle_withdraw<'info>(
     ctx:  Context<'_, '_, '_, 'info, Withdraw<'info>>,
     amount: u64,
 ) -> Result<()> {
-    let mut strategy = strategy::from_acc_info(&ctx.accounts.strategy)?;
+    let mut strategy = strategy::from_unchecked(&ctx.accounts.strategy)?;
 
     if *ctx.accounts.signer.key != strategy.vault() {
         return Err(ErrorCode::AccessDenied.into());

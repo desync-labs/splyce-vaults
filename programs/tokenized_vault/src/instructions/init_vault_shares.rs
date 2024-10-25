@@ -17,13 +17,20 @@ use crate::constants::{
     SHARES_SEED, 
     SHARES_ACCOUNT_SEED, 
     ROLES_SEED,
+    CONFIG_SEED,
 };
 use crate::state::*;
 
 #[derive(Accounts)]
-#[instruction(index: u64)]
 pub struct InitVaultShares<'info> {
-    #[account(mut, seeds = [VAULT_SEED.as_bytes(), index.to_le_bytes().as_ref()], bump)]
+    #[account(
+        mut, 
+        seeds = [
+        VAULT_SEED.as_bytes(), 
+        config.next_vault_index.to_le_bytes().as_ref()
+        ], 
+        bump
+    )]
     pub vault: AccountLoader<'info, Vault>,
     
     #[account(
@@ -55,6 +62,9 @@ pub struct InitVaultShares<'info> {
     
     #[account(mut, constraint = roles.is_vaults_admin)]
     pub signer: Signer<'info>,
+
+    #[account(mut, seeds = [CONFIG_SEED.as_bytes()], bump)]
+    pub config: Box<Account<'info, Config>>,
     
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
@@ -100,6 +110,8 @@ pub fn handle_init_vault_shares(ctx: Context<InitVaultShares>, _index: u64, conf
     let vault = &mut ctx.accounts.vault.load_mut()?;
     vault.shares_bump = [ctx.bumps.shares_mint];
 
+    ctx.accounts.config.next_vault_index += 1;
+
     emit!(VaultInitEvent {
         vault_index: vault.index_buffer,
         underlying_mint: vault.underlying_mint,
@@ -110,8 +122,8 @@ pub fn handle_init_vault_shares(ctx: Context<InitVaultShares>, _index: u64, conf
         share_decimals: ctx.accounts.shares_mint.decimals,
         deposit_limit: vault.deposit_limit,
         min_user_deposit: vault.min_user_deposit,
-        performance_fee: vault.performance_fee,
-
+        // todo: add performance fee
+        performance_fee: 0
     });
 
     Ok(())

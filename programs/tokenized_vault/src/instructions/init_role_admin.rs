@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 
 use crate::constants::{ROLES_ADMIN_ROLE_SEED, DISCRIMINATOR_LEN};
-use crate::state::roles_admin::*;
+use crate::state::roles_admin::RolesAdmin;
 
 #[derive(Accounts)]
 pub struct InitializeRoleAdmin<'info> {

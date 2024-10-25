@@ -18,7 +18,7 @@ pub struct DeployFunds<'info> {
 }
 
 pub fn handle_deploy_funds<'info>(ctx: Context<'_, '_, '_, 'info, DeployFunds<'info>>, amount: u64) -> Result<()> {
-    let mut strategy = strategy::from_acc_info(&ctx.accounts.strategy)?;
+    let mut strategy = strategy::from_unchecked(&ctx.accounts.strategy)?;
 
     if *ctx.accounts.signer.key != strategy.manager() {
         return Err(ErrorCode::AccessDenied.into());

@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 
 use crate::events::StrategyReportedEvent;
-use crate::state::*;
+use crate::state::{AccountRoles, Vault};
 use crate::constants::ROLES_SEED;
 use crate::error::ErrorCode;
 

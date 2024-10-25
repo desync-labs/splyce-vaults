@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 
 use crate::constants::ROLES_SEED;
 use crate::error::ErrorCode;
-use crate::state::*;
+use crate::state::{AccountRoles, Vault};
 
 #[derive(Accounts)]
 pub struct ShutdownVault<'info> {

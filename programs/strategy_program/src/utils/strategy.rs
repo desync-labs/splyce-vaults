@@ -3,7 +3,7 @@ use anchor_lang::prelude::*;
 use crate::state::*;
 use crate::error::ErrorCode;
 
-pub fn from_acc_info(strategy_acc: &UncheckedAccount) -> Result<Box<dyn Strategy>> {
+pub fn from_unchecked(strategy_acc: &UncheckedAccount) -> Result<Box<dyn Strategy>> {
     let strategy_data = strategy_acc.try_borrow_data()?;
     let discriminator = get_discriminator(strategy_acc)?;
 

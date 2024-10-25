@@ -1,8 +1,9 @@
 use anchor_lang::prelude::*;
 
-use crate::{events::VaultUpdateDepositLimitEvent, state::*};
+use crate::events::VaultUpdateDepositLimitEvent;
 use crate::constants::ROLES_SEED;
 use crate::error::ErrorCode;
+use crate::state::{AccountRoles, Vault};
 
 #[derive(Accounts)]
 pub struct SetDepositLimit<'info> {

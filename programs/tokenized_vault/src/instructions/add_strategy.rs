@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-use crate::state::*;
+use crate::state::{AccountRoles, Vault};
 use crate::constants::ROLES_SEED;
 
 #[derive(Accounts)]

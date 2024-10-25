@@ -18,7 +18,7 @@ pub struct ReportLoss<'info> {
 }
 
 pub fn handle_report_loss<'info>(ctx: Context<'_, '_, '_, 'info, ReportLoss<'info>>, loss: u64) -> Result<()> {
-    let mut strategy = strategy::from_acc_info(&ctx.accounts.strategy)?;
+    let mut strategy = strategy::from_unchecked(&ctx.accounts.strategy)?;
 
     if ctx.accounts.signer.key() != strategy.manager() {
         return Err(ErrorCode::AccessDenied.into());

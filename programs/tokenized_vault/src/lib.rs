@@ -7,8 +7,7 @@ pub mod events;
 
 use anchor_lang::prelude::*;
 
-pub use constants::*;
-pub use state::*;
+pub use state::{Role, SharesConfig, VaultConfig};
 pub use instructions::*;
 
 declare_id!("8eDcyX8Z8yZXBQsuatwxDC1qzGbuUbP7wGERDBQoPmBH");

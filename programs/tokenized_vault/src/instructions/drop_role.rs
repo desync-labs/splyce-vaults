@@ -1,8 +1,7 @@
 use anchor_lang::prelude::*;
 
 use crate::constants::{ROLES_ADMIN_ROLE_SEED, ROLES_SEED};
-use crate::state::roles_admin::*;
-use crate::state::roles::*;
+use crate::state::{AccountRoles, RolesAdmin, Role};
 
 #[derive(Accounts)]
 pub struct DropRole<'info> {
