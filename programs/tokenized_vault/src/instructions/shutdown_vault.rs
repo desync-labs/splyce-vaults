@@ -4,6 +4,8 @@ use crate::constants::ROLES_SEED;
 use crate::error::ErrorCode;
 use crate::state::*;
 
+use crate::events::VaultShutDownEvent;
+
 #[derive(Accounts)]
 pub struct ShutdownVault<'info> {
     #[account(mut)]
@@ -24,6 +26,11 @@ pub fn handle_shutdown_vault(ctx: Context<ShutdownVault>) -> Result<()> {
     }
 
     vault.shutdown();
+
+    emit!(VaultShutDownEvent {
+        vault_index: vault.index_buffer,
+        shutdown: true,
+    });
 
     Ok(())
 }
