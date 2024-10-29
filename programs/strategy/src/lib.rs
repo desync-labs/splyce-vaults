@@ -24,7 +24,7 @@ pub struct RegAcc<'info> {
 }
 
 #[program]
-pub mod strategy_program {
+pub mod strategy {
     use super::*;
 
     // the only reason we need this is to keep accounts in the idl file

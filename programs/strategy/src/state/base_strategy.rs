@@ -74,6 +74,7 @@ pub trait Strategy: StrategyDataAccount + StrategyInit + StrategyManagement {
     fn available_deposit(&self) -> u64;
     fn available_withdraw(&self) -> u64;
     fn token_account(&self) -> Pubkey;
+    fn underlying_mint(&self) -> Pubkey;
 
     fn fee_data(&mut self) -> &mut FeeData;
 }

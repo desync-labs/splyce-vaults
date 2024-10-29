@@ -3,15 +3,15 @@ use std::cell::Ref;
 use anchor_lang::prelude::*;
 use anchor_spl::{
     token::Token,
-    token_interface::{Mint, TokenAccount},
+    token_interface::TokenAccount,
 };
 
-use strategy_program::program::StrategyProgram;
+use strategy::program::Strategy;
 
 use crate::events::UpdatedCurrentDebtForStrategyEvent;
 use crate::state::{Vault, AccountRoles};
 use crate::error::ErrorCode;
-use crate::utils::strategy;
+use crate::utils::strategy as strategy_utils;
 use crate::constants::{ROLES_SEED, UNDERLYING_SEED};
 
 #[derive(Accounts)]
@@ -44,7 +44,7 @@ pub struct UpdateStrategyDebt<'info> {
     pub signer: Signer<'info>,
 
     pub token_program: Program<'info, Token>,
-    pub strategy_program: Program<'info, StrategyProgram>
+    pub strategy_program: Program<'info, Strategy>
 }
 
 pub fn handle_update_debt<'a, 'b, 'c, 'info>(
@@ -93,7 +93,7 @@ fn handle_internal<'a, 'b, 'c, 'info>(
 
         let remaining_accounts: Vec<AccountInfo> = ctx.remaining_accounts.to_vec();
 
-        let withdrawn = strategy::withdraw(
+        let withdrawn = strategy_utils::withdraw(
             ctx.accounts.strategy.to_account_info(),
             ctx.accounts.vault.to_account_info(),
             ctx.accounts.strategy_token_account.to_account_info(),
@@ -124,7 +124,7 @@ fn handle_internal<'a, 'b, 'c, 'info>(
             new_debt,
         )?;
 
-        strategy::deposit(
+        strategy_utils::deposit(
             ctx.accounts.strategy.to_account_info(),
             ctx.accounts.vault.to_account_info(),
             ctx.accounts.strategy_token_account.to_account_info(),
@@ -163,7 +163,7 @@ fn get_assets_to_withdraw(
         }
     }
 
-    let withdrawable = strategy::get_max_withdraw(&strategy_acc)?;
+    let withdrawable = strategy_utils::get_max_withdraw(&strategy_acc)?;
     if withdrawable == 0 {
         return Err(ErrorCode::CannotWithdraw.into());
     }
@@ -172,7 +172,7 @@ fn get_assets_to_withdraw(
         assets_to_withdraw = withdrawable;
     }
 
-    if current_debt > strategy::get_total_assets(&strategy_acc)? {
+    if current_debt > strategy_utils::get_total_assets(&strategy_acc)? {
         return Err(ErrorCode::UnrealisedLosses.into());
     }
 
@@ -189,7 +189,7 @@ fn get_assets_deposit<'info>(
         return Err(ErrorCode::DebtHigherThanMaxDebt.into());
     }
 
-    let max_deposit = strategy::get_max_deposit(&strategy_acc)?;
+    let max_deposit = strategy_utils::get_max_deposit(&strategy_acc)?;
     if max_deposit == 0 {
         return Err(ErrorCode::CannotDeposit.into());
     }

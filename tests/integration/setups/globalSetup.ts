@@ -1,6 +1,6 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
-import { StrategyProgram } from "../../../target/types/strategy_program";
+import { Strategy } from "../../../target/types/strategy";
 import { TokenizedVault } from "../../../target/types/tokenized_vault";
 import { airdrop } from "../../utils/helpers";
 
@@ -12,7 +12,7 @@ export let rolesAdmin: anchor.web3.Keypair;
 export const vaultProgram = anchor.workspace
   .TokenizedVault as Program<TokenizedVault>;
 export const strategyProgram = anchor.workspace
-  .StrategyProgram as Program<StrategyProgram>;
+  .Strategy as Program<Strategy>;
 
 export async function mochaGlobalSetup() {
   console.log("-------Global Setup Started-------");

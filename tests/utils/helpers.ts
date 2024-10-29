@@ -2,7 +2,7 @@ import * as anchor from "@coral-xyz/anchor";
 import { TokenizedVault } from "../../target/types/tokenized_vault";
 import { BN, web3 } from "@coral-xyz/anchor";
 import { token } from "@coral-xyz/anchor/dist/cjs/utils";
-import { StrategyProgram } from "../../target/types/strategy_program";
+import { Strategy } from "../../target/types/strategy";
 import { SimpleStrategyConfigSchema } from "./schemas";
 import * as borsh from "borsh";
 
@@ -102,7 +102,7 @@ export const initializeSimpleStrategy = async ({
   index,
   config,
 }: {
-  strategyProgram: anchor.Program<StrategyProgram>;
+  strategyProgram: anchor.Program<Strategy>;
   vault: anchor.web3.PublicKey;
   underlyingMint: anchor.web3.PublicKey;
   signer: anchor.web3.Keypair;

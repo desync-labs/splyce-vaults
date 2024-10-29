@@ -3,11 +3,11 @@ use anchor_spl::{
     token::{self, Burn, Token, Transfer},
     token_interface::{ Mint, TokenAccount },
 };
-use strategy_program::program::StrategyProgram;
+use strategy::program::Strategy;
 
 use crate::events::VaultWithdrawlEvent;
 use crate::state::Vault;
-use crate::utils::strategy;
+use crate::utils::strategy as strategy_helper;
 use crate::error::ErrorCode;
 use crate::constants::{
     UNDERLYING_SEED, 
@@ -36,7 +36,7 @@ pub struct Withdraw<'info> {
     pub user: Signer<'info>,
 
     pub token_program: Program<'info, Token>,
-    pub strategy_program: Program<'info, StrategyProgram>,
+    pub strategy_program: Program<'info, Strategy>,
 }
 
 #[derive(Default, Clone, AnchorSerialize, AnchorDeserialize)]
@@ -160,7 +160,7 @@ fn get_strategies_with_token_acc<'info>(
     for i in 0..accounts_map.len() {
         let strategy_acc_info: &AccountInfo<'info> = &remaining_accounts[accounts_map[i].strategy_acc as usize];
         let token_account_info: &AccountInfo<'info> = &remaining_accounts[accounts_map[i].strategy_token_account as usize];
-        let expected_token_account = strategy::get_token_account_key(&strategy_acc_info)?;
+        let expected_token_account = strategy_helper::get_token_account_key(&strategy_acc_info)?;
 
         if token_account_info.key() != expected_token_account {
             return Err(ErrorCode::InvalidAccountPairs.into());
@@ -207,8 +207,8 @@ fn withdraw_assets<'info>(
             }
 
             let mut to_withdraw = std::cmp::min(assets_needed as u64, current_debt);
-            let strategy_limit = strategy::get_max_withdraw(&strategy_acc)?;
-            let mut unrealised_loss_share = strategy::assess_share_of_unrealised_losses(
+            let strategy_limit = strategy_helper::get_max_withdraw(&strategy_acc)?;
+            let mut unrealised_loss_share = strategy_helper::assess_share_of_unrealised_losses(
                 &strategy_acc,
                 to_withdraw, 
                 current_debt
@@ -238,7 +238,7 @@ fn withdraw_assets<'info>(
                 continue;
             }
 
-            let withdrawn = strategy::withdraw(
+            let withdrawn = strategy_helper::withdraw(
                 strategy_acc.to_account_info(),
                 vault_acc.to_account_info(),
                 token_accounts[i].to_account_info(),

@@ -1,9 +1,9 @@
 use anchor_lang::prelude::*;
-use strategy_program::state::*;
+use strategy::state::*;
 use anchor_spl::token_interface::TokenAccount;
  
-use strategy_program::{self};
-use strategy_program::cpi::accounts::{
+use strategy::{self};
+use strategy::cpi::accounts::{
     Deposit,
     Withdraw
 };
@@ -21,7 +21,7 @@ pub fn deposit<'a>(
     seeds: &[&[u8]],
 ) -> Result<()> {
     // Perform the CPI deposit with pre-extracted data
-    strategy_program::cpi::deposit(
+    strategy::cpi::deposit(
         CpiContext::new_with_signer(
             strategy_program,
             Deposit {
@@ -64,7 +64,7 @@ pub fn withdraw<'a>(
     
     context.remaining_accounts = remaining_accounts;
 
-    strategy_program::cpi::withdraw(context, assets_to_withdraw)?;
+    strategy::cpi::withdraw(context, assets_to_withdraw)?;
 
     vault_token_account.reload()?;
     let post_balance = vault_token_account.amount;

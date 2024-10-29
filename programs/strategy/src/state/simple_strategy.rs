@@ -193,6 +193,10 @@ impl Strategy for SimpleStrategy {
     fn fee_data(&mut self) -> &mut FeeData {
         &mut self.fee_data
     }
+
+    fn underlying_mint(&self) -> Pubkey {
+        self.underlying_mint
+    }
 }
 
 impl StrategyInit for SimpleStrategy {

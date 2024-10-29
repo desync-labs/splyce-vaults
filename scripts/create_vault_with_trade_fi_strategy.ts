@@ -1,7 +1,7 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { TokenizedVault } from "../target/types/tokenized_vault";
-import { StrategyProgram } from "../target/types/strategy_program";
+import { Strategy } from "../target/types/strategy";
 import { BN } from "@coral-xyz/anchor";
 import * as token from "@solana/spl-token";
 import * as borsh from 'borsh';
@@ -24,7 +24,7 @@ async function main() {
     const admin = anchor.web3.Keypair.fromSecretKey(secretKey);
 
     const vaultProgram = anchor.workspace.TokenizedVault as Program<TokenizedVault>;
-    const strategyProgram = anchor.workspace.StrategyProgram as Program<StrategyProgram>;
+    const strategyProgram = anchor.workspace.Strategy as Program<Strategy>;
 
     const underlyingMint = new anchor.web3.PublicKey("4dCLhR7U8PzwXau6qfjr73tKgp5SD42aLbyo3XQNzY4V");
     console.log("Underlying token mint public key:", underlyingMint.toBase58());
