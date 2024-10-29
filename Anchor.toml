@@ -5,15 +5,15 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-strategy_program = "5rQVgdeNp4RMUXjL8B8ksajVNywLoS7rK9e5yD4pi983"
-tokenized_vault = "ATdWqQQrwKbwbGv2zmD2nfcXsmTVA62eXWEtundAdwfE"
-faucet = "84SxMfjJ3xZzZFCEsZSaPJWF7aWQBiyXq4KMaC4k892Y"
+strategy_program = "EDA9ee5UKzdqrHgSd5v64bNnbCae1t7NJfUpvS7DZod"
+tokenized_vault = "8eDcyX8Z8yZXBQsuatwxDC1qzGbuUbP7wGERDBQoPmBH"
+faucet = "GUrM139EUwYkoEWebecqiTLJrvut4mDdHGTu9d87tgQC"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "http://127.0.0.1:8899"
+cluster = "Localnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
