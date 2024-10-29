@@ -79,4 +79,7 @@ pub enum ErrorCode {
 
     #[msg("Vault has debt")]
     VaultHasDebt,
+
+    #[msg("Signer has no access")]
+    AccessDenied,
 }

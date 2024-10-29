@@ -1,5 +1,5 @@
-pub mod strategy;
+pub mod unchecked_strategy;
 pub mod token;
 
-pub use strategy::*;
+pub use unchecked_strategy::*;
 pub use token::*;

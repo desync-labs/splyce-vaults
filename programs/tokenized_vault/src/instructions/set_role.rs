@@ -2,6 +2,7 @@ use anchor_lang::prelude::*;
 
 use crate::constants::{ROLES_ADMIN_ROLE_SEED, ROLES_SEED, DISCRIMINATOR_LEN};
 use crate::state::{AccountRoles, RolesAdmin, Role};
+use crate::error::ErrorCode;
 
 #[derive(Accounts)]
 #[instruction(role: Role, user: Pubkey)]
@@ -21,12 +22,8 @@ pub struct SetRole<'info> {
     #[account(seeds = [ROLES_ADMIN_ROLE_SEED.as_bytes()], bump)]
     pub roles_admin: Account<'info, RolesAdmin>,
 
-    #[account(mut, address = roles_admin.account)]
+    #[account(mut, address = roles_admin.account @ErrorCode::AccessDenied)]
     pub signer: Signer<'info>,
-
-    // /// CHECK: 
-    // #[account()]
-    // pub user: UncheckedAccount<'info>,
 
     pub system_program: Program<'info, System>,
     pub rent: Sysvar<'info, Rent>,

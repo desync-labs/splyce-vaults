@@ -1,5 +1,8 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{self, Burn, Mint, Token, TokenAccount, Transfer};
+use anchor_spl::{
+    token::{self, Burn, Token, Transfer},
+    token_interface::{ Mint, TokenAccount },
+};
 use strategy_program::program::StrategyProgram;
 
 use crate::events::VaultWithdrawlEvent;
@@ -18,16 +21,16 @@ pub struct Withdraw<'info> {
     pub vault: AccountLoader<'info, Vault>,
 
     #[account(mut)]
-    pub user_token_account: Account<'info, TokenAccount>,
+    pub user_token_account: InterfaceAccount<'info, TokenAccount>,
 
     #[account(mut, seeds = [UNDERLYING_SEED.as_bytes(), vault.key().as_ref()], bump)]
-    pub vault_token_account: Account<'info, TokenAccount>,
+    pub vault_token_account: InterfaceAccount<'info, TokenAccount>,
 
     #[account(mut, seeds = [SHARES_SEED.as_bytes(), vault.key().as_ref()], bump)]
-    pub shares_mint: Account<'info, Mint>,
+    pub shares_mint: InterfaceAccount<'info, Mint>,
 
     #[account(mut)]
-    pub user_shares_account: Account<'info, TokenAccount>,
+    pub user_shares_account: InterfaceAccount<'info, TokenAccount>,
 
     #[account(mut)]
     pub user: Signer<'info>,
@@ -178,7 +181,7 @@ fn get_strategies_with_token_acc<'info>(
 }
 
 fn withdraw_assets<'info>(
-    vault_token_account: &mut Account<'info, TokenAccount>,
+    vault_token_account: &mut InterfaceAccount<'info, TokenAccount>,
     token_program: &AccountInfo<'info>,
     strategy_program: &AccountInfo<'info>,
     vault_acc: &AccountLoader<'info, Vault>,

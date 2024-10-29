@@ -20,6 +20,7 @@ use crate::constants::{
     CONFIG_SEED,
 };
 use crate::state::*;
+use crate::error::ErrorCode;
 
 #[derive(Accounts)]
 pub struct InitVaultShares<'info> {
@@ -60,7 +61,7 @@ pub struct InitVaultShares<'info> {
     #[account(seeds = [ROLES_SEED.as_bytes(), signer.key().as_ref()], bump)]
     pub roles: Box<Account<'info, AccountRoles>>,
     
-    #[account(mut, constraint = roles.is_vaults_admin)]
+    #[account(mut, constraint = roles.is_vaults_admin @ErrorCode::AccessDenied)]
     pub signer: Signer<'info>,
 
     #[account(mut, seeds = [CONFIG_SEED.as_bytes()], bump)]

@@ -1,7 +1,10 @@
 use std::cell::Ref;
 
 use anchor_lang::prelude::*;
-use anchor_spl::token::{Token, TokenAccount};
+use anchor_spl::{
+    token::Token,
+    token_interface::{Mint, TokenAccount},
+};
 
 use strategy_program::program::StrategyProgram;
 
@@ -21,21 +24,25 @@ pub struct UpdateStrategyDebt<'info> {
     pub vault: AccountLoader<'info, Vault>,
 
     #[account(mut, seeds = [UNDERLYING_SEED.as_bytes(), vault.key().as_ref()], bump)]
-    pub vault_token_account: Account<'info, TokenAccount>,
+    pub vault_token_account: InterfaceAccount<'info, TokenAccount>,
 
     /// CHECK: Should this be mut?
     #[account(mut, constraint = vault.load()?.is_vault_strategy(strategy.key()))]
-    pub strategy: AccountInfo<'info>,
+    pub strategy: UncheckedAccount<'info>,
 
-    #[account(mut)]
-    pub strategy_token_account: Account<'info, TokenAccount>,
+    #[account(mut, 
+        seeds = [UNDERLYING_SEED.as_bytes(), strategy.key().as_ref()],
+        bump,
+        seeds::program = strategy_program.key(),
+    )]
+    pub strategy_token_account: InterfaceAccount<'info, TokenAccount>,
 
     #[account(seeds = [ROLES_SEED.as_bytes(), signer.key().as_ref()], bump)]
     pub roles: Account<'info, AccountRoles>,
 
-    #[account(mut, constraint = roles.is_vaults_admin)]
+    #[account(mut, constraint = roles.is_vaults_admin @ErrorCode::AccessDenied)]
     pub signer: Signer<'info>,
-    
+
     pub token_program: Program<'info, Token>,
     pub strategy_program: Program<'info, StrategyProgram>
 }

@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 use strategy_program::state::*;
-use anchor_spl::token::TokenAccount;
+use anchor_spl::token_interface::TokenAccount;
  
 use strategy_program::{self};
 use strategy_program::cpi::accounts::{
@@ -41,7 +41,7 @@ pub fn withdraw<'a>(
     strategy: AccountInfo<'a>,
     vault: AccountInfo<'a>,
     underlying_token_account: AccountInfo<'a>,
-    vault_token_account: &mut Account<'a, TokenAccount>,
+    vault_token_account: &mut InterfaceAccount<'a, TokenAccount>,
     token_program: AccountInfo<'a>,
     strategy_program: AccountInfo<'a>,
     assets_to_withdraw: u64,

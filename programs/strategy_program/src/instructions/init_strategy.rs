@@ -3,7 +3,7 @@ use anchor_lang::Discriminator;
 
 use anchor_spl::{
     token::{ Token, TokenAccount},
-    token_interface::Mint as InterfaceMint,
+    token_interface::Mint,
 };
 use crate::constants::UNDERLYING_SEED;
 use crate::state::*;
@@ -36,13 +36,17 @@ pub struct Initialize<'info> {
         token::authority = strategy,
     )]
     pub token_account: Box<Account<'info, TokenAccount>>,
+
     /// CHECK: This should be a vault account
     #[account()]
     pub vault: UncheckedAccount<'info>,
+
     #[account(mut)]
-    pub underlying_mint: Box<InterfaceAccount<'info, InterfaceMint>>,
+    pub underlying_mint: Box<InterfaceAccount<'info, Mint>>,
+
     #[account(mut)]
     pub signer: Signer<'info>,
+
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
     pub rent: Sysvar<'info, Rent>,

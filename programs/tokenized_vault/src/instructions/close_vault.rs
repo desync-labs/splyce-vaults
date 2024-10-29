@@ -12,7 +12,7 @@ pub struct CloseVault<'info> {
     #[account(seeds = [ROLES_SEED.as_bytes(), signer.key().as_ref()], bump)]
     pub roles: Account<'info, AccountRoles>,
 
-    #[account(mut, constraint = roles.is_vaults_admin)]
+    #[account(mut, constraint = roles.is_vaults_admin @ErrorCode::AccessDenied)]
     pub signer: Signer<'info>,
 
     /// CHECK:

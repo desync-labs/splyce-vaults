@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 
 use crate::events::SetPerformanceFeeEvent;
-use crate::utils::strategy;
+use crate::utils::unchecked_strategy::UncheckedStrategy;
 use crate::error::ErrorCode;
 
 #[derive(Accounts)]
@@ -23,7 +23,7 @@ pub struct SetFeeManager<'info> {
 }
 
 pub fn handle_set_performance_fee<'info>(ctx: Context<SetPerformanceFee<'info>>, new_fee: u64) -> Result<()> {
-    let mut strategy = strategy::from_unchecked(&ctx.accounts.strategy)?;
+    let mut strategy = ctx.accounts.strategy.from_unchecked()?;
 
     if *ctx.accounts.signer.key != strategy.manager() {
         return Err(ErrorCode::AccessDenied.into());
@@ -38,11 +38,10 @@ pub fn handle_set_performance_fee<'info>(ctx: Context<SetPerformanceFee<'info>>,
     });
 
     strategy.save_changes(&mut &mut ctx.accounts.strategy.try_borrow_mut_data()?[8..])
-   
 }
 
 pub fn handle_set_fee_manager<'info>(ctx: Context<SetFeeManager<'info>>, recipient: Pubkey) -> Result<()> {
-    let mut strategy = strategy::from_unchecked(&ctx.accounts.strategy)?;
+    let mut strategy = ctx.accounts.strategy.from_unchecked()?;
 
     if *ctx.accounts.signer.key != strategy.manager() {
         return Err(ErrorCode::AccessDenied.into());

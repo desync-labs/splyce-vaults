@@ -1,8 +1,11 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{Token, TokenAccount};
+use anchor_spl::{
+    token::Token,
+    token_interface::TokenAccount,
+};
 
 use crate::error::ErrorCode;
-use crate::utils::strategy;
+use crate::utils::unchecked_strategy::UncheckedStrategy;
 use crate::utils::token;
 use crate::constants::UNDERLYING_SEED;
 
@@ -13,12 +16,16 @@ pub struct WithdrawFee<'info> {
     /// CHECK: can by any strategy
     #[account(mut)]
     pub strategy: UncheckedAccount<'info>,
+
     #[account(mut, seeds = [UNDERLYING_SEED.as_bytes(), strategy.key().as_ref()], bump)]
-    pub underlying_token_account: Account<'info, TokenAccount>,
+    pub underlying_token_account: InterfaceAccount<'info, TokenAccount>,
+    
     #[account(mut)]
     pub signer: Signer<'info>,
+
     #[account(mut)]
-    pub recipient: Account<'info, TokenAccount>,
+    pub recipient: InterfaceAccount<'info, TokenAccount>,
+
     pub token_program: Program<'info, Token>,
 }
 
@@ -26,7 +33,8 @@ pub fn handle_withdraw_fee<'info>(
     ctx: Context<'_, '_, '_, 'info, WithdrawFee<'info>>,
     amount: u64,
 ) -> Result<()> {
-    let mut strategy = strategy::from_unchecked(&ctx.accounts.strategy)?;
+    let mut strategy = ctx.accounts.strategy.from_unchecked()?;
+
     let fee_data = strategy.fee_data();
 
     if *ctx.accounts.signer.key != fee_data.fee_manager() {

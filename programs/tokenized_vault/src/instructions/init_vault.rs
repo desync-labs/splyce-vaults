@@ -13,6 +13,7 @@ use crate::constants::{
     DISCRIMINATOR_LEN,
 };
 use crate::state::{Vault, AccountRoles, Config, VaultConfig};
+use crate::error::ErrorCode;
 
 #[derive(Accounts)]
 pub struct InitVault<'info> {
@@ -47,7 +48,7 @@ pub struct InitVault<'info> {
     #[account(seeds = [CONFIG_SEED.as_bytes()], bump)]
     pub config: Box<Account<'info, Config>>,
     
-    #[account(mut, constraint = roles.is_vaults_admin)]
+    #[account(mut, constraint = roles.is_vaults_admin @ErrorCode::AccessDenied)]
     pub signer: Signer<'info>,
     
     pub token_program: Program<'info, Token>,

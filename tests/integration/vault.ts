@@ -36,7 +36,6 @@ describe("tokenized_vault", () => {
   let adminTokenAccount: web3.PublicKey;
 
   let accountant: web3.PublicKey;
-  let accountantTokenAccount: web3.PublicKey;
   let accountantConfig: web3.PublicKey;
 
   before(async () => {
@@ -88,14 +87,6 @@ describe("tokenized_vault", () => {
     accountant = web3.PublicKey.findProgramAddressSync(
       [
         Buffer.from(new Uint8Array(new BigUint64Array([BigInt(0)]).buffer))
-      ],
-      accountantProgram.programId
-    )[0];
-
-    accountantTokenAccount = web3.PublicKey.findProgramAddressSync(
-      [
-        Buffer.from("token_account"),
-        accountant.toBuffer()
       ],
       accountantProgram.programId
     )[0];
@@ -219,10 +210,10 @@ describe("tokenized_vault", () => {
     console.log("shares inited");
 
     vaultAccount = await vaultProgram.account.vault.fetch(vault);
-    // assert.ok(vaultAccount.underlyingTokenAcc.equals(vaultTokenAccount));
-    // assert.strictEqual(vaultAccount.depositLimit.toString(), '1000000000');
+    assert.ok(vaultAccount.underlyingTokenAcc.equals(vaultTokenAccount));
+    assert.strictEqual(vaultAccount.depositLimit.toString(), '1000000000');
     console.log("sharesBump: ", vaultAccount.sharesBump.toString());
-    // console.log("minUserDeposit: ", vaultAccount.minUserDeposit.toString());
+    console.log("minUserDeposit: ", vaultAccount.minUserDeposit.toString());
   });
 
   it("init accountants", async () => {
@@ -430,14 +421,20 @@ describe("tokenized_vault", () => {
   it("Allocates tokens to the strategy", async () => {
     const provider = AnchorProvider.env();
 
-    console.log("strategyTokenAccount:", strategyTokenAccount.toBase58());
-    console.log("strategy:", strategy.toBase58());
+    let strategyAccount1 = await strategyProgram.account.simpleStrategy.fetch(strategy);
+    console.log("Strategy under:", strategyAccount1.underlyingMint.toBase58());
+
+    let vaultAccount1 = await vaultProgram.account.vault.fetch(vault);
+    console.log("Vault under:", vaultAccount1.underlyingMint.toBase58());
+
+    console.log("under:", underlyingMint.toBase58());
+
+    assert.strictEqual(vaultAccount1.underlyingMint.toBase58(), strategyAccount1.underlyingMint.toBase58());
 
     await vaultProgram.methods.updateDebt(new BN(90))
       .accounts({
         vault,
         strategy,
-        strategyTokenAccount,
         signer: admin.publicKey,
       })
       .signers([admin])
@@ -469,7 +466,6 @@ describe("tokenized_vault", () => {
       .accounts({
         vault,
         strategy,
-        strategyTokenAccount,
         signer: admin.publicKey,
       })
       .signers([admin])
@@ -558,7 +554,7 @@ describe("tokenized_vault", () => {
         .rpc();
       assert.fail("Expected error was not thrown");
     } catch (err) {
-      assert.strictEqual(err.message, "AnchorError occurred. Error Code: AccessDenied. Error Number: 6011. Error Message: Signer has no access.");
+      assert.strictEqual(err.message, "AnchorError caused by account: signer. Error Code: AccessDenied. Error Number: 6011. Error Message: Signer has no access.");
     }
   });
 
@@ -851,7 +847,6 @@ describe("tokenized_vault", () => {
       .accounts({
         vault,
         strategy,
-        strategyTokenAccount,
         signer: admin.publicKey,
       })
       .signers([admin])

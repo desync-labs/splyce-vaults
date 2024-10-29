@@ -9,6 +9,7 @@ use crate::events::StrategyReportedEvent;
 use crate::state::{AccountRoles, Vault};
 use crate::utils::strategy;
 use crate::utils::accountant;
+use crate::error::ErrorCode;
 
 #[derive(Accounts)]
 pub struct ProcessReport<'info> {
@@ -39,7 +40,7 @@ pub struct ProcessReport<'info> {
     )]
     pub accountant_recipient: Box<InterfaceAccount<'info, TokenAccount>>,
 
-    #[account(mut, constraint = roles.is_reporting_manager)]
+    #[account(mut, constraint = roles.is_reporting_manager @ErrorCode::AccessDenied)]
     pub signer: Signer<'info>,
 
     pub token_program: Program<'info, Token>,
