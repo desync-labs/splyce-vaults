@@ -17,7 +17,7 @@ async function main() {
 
         const vaultProgram = anchor.workspace.TokenizedVault as Program<TokenizedVault>;
 
-        const vault_index = 2;
+        const vault_index = 0;
 
         const vault = anchor.web3.PublicKey.findProgramAddressSync(
           [

@@ -27,7 +27,7 @@ pub struct VaultInitEvent {
 
 #[event]
 pub struct VaultAddStrategyEvent {
-    pub vault_index: [u8; 8],
+    pub vault_key: Pubkey, 
     pub strategy_key: Pubkey,
     pub current_debt: u64,
     pub max_debt: u64,
@@ -37,7 +37,7 @@ pub struct VaultAddStrategyEvent {
 
 #[event]
 pub struct VaultDepositEvent {
-    pub vault_index: [u8; 8],
+    pub vault_key: Pubkey, 
     pub total_debt: u64,
     pub total_idle: u64,
     pub total_share: u64,
@@ -53,7 +53,7 @@ pub struct VaultDepositEvent {
 
 #[event]
 pub struct VaultWithdrawlEvent {
-    pub vault_index: [u8; 8],
+    pub vault_key: Pubkey, 
     pub total_idle: u64,
     pub total_share: u64,
     pub assets_to_transfer: u64,
@@ -67,19 +67,19 @@ pub struct VaultWithdrawlEvent {
 
 #[event]
 pub struct VaultUpdateDepositLimitEvent {
-    pub vault_index: [u8; 8],
+    pub vault_key: Pubkey, 
     pub new_limit: u64,
 }
 
 #[event]
 pub struct VaultShutDownEvent {
-    pub vault_index: [u8; 8],
+    pub vault_key: Pubkey, 
     pub shutdown: bool,
 }
 
 #[event]
 pub struct UpdatedCurrentDebtForStrategyEvent {
-    pub vault_index: [u8; 8],
+    pub vault_key: Pubkey, 
     pub strategy_key: Pubkey,
     pub total_idle: u64,
     pub total_debt: u64,
