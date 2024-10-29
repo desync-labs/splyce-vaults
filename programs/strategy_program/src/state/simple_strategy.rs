@@ -67,6 +67,8 @@ impl Strategy for SimpleStrategy {
                 account_key: self.key(),
                 amount: amount,
                 total_assets: self.total_assets,
+                underlying_mint: self.underlying_mint,
+                underlying_token_acc: self.underlying_token_acc,
             }
         );
 
@@ -143,6 +145,8 @@ impl Strategy for SimpleStrategy {
                 account_key: self.key(),
                 amount: amount,
                 total_assets: self.total_assets,
+                underlying_mint: self.underlying_mint,
+                underlying_token_acc: self.underlying_token_acc,
             }
         );
 
