@@ -28,7 +28,7 @@ pub fn handle_shutdown_vault(ctx: Context<ShutdownVault>) -> Result<()> {
     vault.shutdown();
 
     emit!(VaultShutDownEvent {
-        vault_index: vault.index_buffer,
+        vault_key: vault.key,
         shutdown: true,
     });
 
