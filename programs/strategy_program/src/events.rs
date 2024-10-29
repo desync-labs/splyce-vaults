@@ -18,8 +18,6 @@ pub struct StrategyDepositEvent {
     pub account_key: Pubkey,
     pub amount: u64,
     pub total_assets: u64,
-    pub underlying_mint: Pubkey,
-    pub underlying_token_acc: Pubkey,
 }
 
 #[event]
@@ -27,8 +25,6 @@ pub struct StrategyWithdrawEvent {
     pub account_key: Pubkey,
     pub amount: u64,
     pub total_assets: u64,
-    pub underlying_mint: Pubkey,
-    pub underlying_token_acc: Pubkey,
 }
 
 #[event]
