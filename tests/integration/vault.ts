@@ -98,14 +98,13 @@ describe("tokenized_vault", () => {
     console.log("Accountant PDA:", accountant.toBase58());
   });
 
-  it("init role admin", async () => {
-    await vaultProgram.methods.initRoleAdmin()
+  it("initialize", async () => {
+    await vaultProgram.methods.initialize()
       .accounts({
         admin: admin.publicKey,
       })
       .signers([admin])
       .rpc();
-
 
     // check protocol admin
     const rolesAdmin = web3.PublicKey.findProgramAddressSync(
@@ -171,13 +170,6 @@ describe("tokenized_vault", () => {
       [Buffer.from("config")],
       vaultProgram.programId,
     )[0];
-
-    await vaultProgram.methods.initialize()
-      .accounts({
-        admin: admin.publicKey,
-      })
-      .signers([admin])
-      .rpc();
 
     let configAccount = await vaultProgram.account.config.fetch(config);
     assert.strictEqual(configAccount.nextVaultIndex.toString(), '0');
@@ -973,7 +965,7 @@ describe("tokenized_vault", () => {
       .signers([admin])
       .rpc();
 
-      // get admin sol balance
+    // get admin sol balance
     const adminSolBalanceAfter = await provider.connection.getBalance(admin.publicKey);
     console.log("Admin SOL balance after:", adminSolBalanceAfter);
 

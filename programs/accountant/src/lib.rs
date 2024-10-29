@@ -27,7 +27,7 @@ pub mod accountant {
     }
 
     pub fn init(ctx: Context<Initialize>) -> Result<()> {
-        handle_init(ctx)
+        handle_initialize(ctx)
     }
 
     pub fn init_accountant(

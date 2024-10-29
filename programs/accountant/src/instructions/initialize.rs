@@ -21,7 +21,7 @@ pub struct Initialize<'info> {
     pub rent: Sysvar<'info, Rent>,
 }
 
-pub fn handle_init(ctx: Context<Initialize>) -> Result<()> {
+pub fn handle_initialize(ctx: Context<Initialize>) -> Result<()> {
     let mut config = &mut ctx.accounts.config;
     config.admin = ctx.accounts.admin.key();
 
