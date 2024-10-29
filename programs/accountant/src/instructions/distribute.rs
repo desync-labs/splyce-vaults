@@ -4,9 +4,12 @@ use anchor_spl::{
     token::Token,
     token_interface::{Mint, TokenAccount},
 };
+use access_control::{
+    constants::ROLES_SEED,
+    program::AccessControl,
+    state::AccountRoles
+};
 
-use crate::constants::CONFIG_SEED;
-use crate::state::Config;
 use crate::utils::serialization;
 
 #[derive(Accounts)]
@@ -18,11 +21,14 @@ pub struct Distribute<'info> {
     #[account(mut)]
     pub recipient: Box<InterfaceAccount<'info, TokenAccount>>,
 
-    #[account(mut, seeds = [CONFIG_SEED.as_bytes()], bump)]
-    pub config: Account<'info, Config>,
+    #[account(
+        seeds = [ROLES_SEED.as_bytes(), signer.key().as_ref()], 
+        bump,
+        seeds::program = access_control.key()
+    )]
+    pub roles: Account<'info, AccountRoles>,
 
-    /// CHECK:
-    #[account(mut, address = config.admin)]
+    #[account(mut, constraint = roles.only_accountant_admin()?)]
     pub signer: Signer<'info>,
 
     #[account(
@@ -35,6 +41,7 @@ pub struct Distribute<'info> {
     #[account(mut)]
     pub underlying_mint: Box<InterfaceAccount<'info, Mint>>,
 
+    pub access_control: Program<'info, AccessControl>,
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
 }

@@ -7,6 +7,7 @@ skip-lint = false
 [programs.localnet]
 strategy_program = "EDA9ee5UKzdqrHgSd5v64bNnbCae1t7NJfUpvS7DZod"
 tokenized_vault = "8eDcyX8Z8yZXBQsuatwxDC1qzGbuUbP7wGERDBQoPmBH"
+access_control = "BDoMP91kwyaV4Y2dCFJS6dRSGenBQXNkcUfJk1Tw8bpW"
 accountant = "49pfysnCNyz6HrKsTUaKtyp8DPcXQadjkS5qBJPJKEnJ"
 deposit_limit = "HZekas7DsEfpg6JvU9wsGNUSy9E3fu9TGeVerMdvDBwc"
 faucet = "GUrM139EUwYkoEWebecqiTLJrvut4mDdHGTu9d87tgQC"

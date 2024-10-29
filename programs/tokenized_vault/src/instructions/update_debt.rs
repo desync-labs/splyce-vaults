@@ -1,18 +1,22 @@
 use std::cell::Ref;
-
 use anchor_lang::prelude::*;
 use anchor_spl::{
     token::Token,
     token_interface::TokenAccount,
 };
+use access_control::{
+    constants::ROLES_SEED,
+    program::AccessControl,
+    state::AccountRoles
+};
 
 use strategy::program::Strategy;
 
 use crate::events::UpdatedCurrentDebtForStrategyEvent;
-use crate::state::{Vault, AccountRoles};
+use crate::state::Vault;
 use crate::error::ErrorCode;
 use crate::utils::strategy as strategy_utils;
-use crate::constants::{ROLES_SEED, UNDERLYING_SEED};
+use crate::constants::UNDERLYING_SEED;
 
 #[derive(Accounts)]
 #[instruction(new_debt: u64)]
@@ -37,12 +41,17 @@ pub struct UpdateStrategyDebt<'info> {
     )]
     pub strategy_token_account: InterfaceAccount<'info, TokenAccount>,
 
-    #[account(seeds = [ROLES_SEED.as_bytes(), signer.key().as_ref()], bump)]
+    #[account(
+        seeds = [ROLES_SEED.as_bytes(), signer.key().as_ref()], 
+        bump,
+        seeds::program = access_control.key()
+    )]
     pub roles: Account<'info, AccountRoles>,
 
-    #[account(mut, constraint = roles.is_vaults_admin @ErrorCode::AccessDenied)]
+    #[account(mut, constraint = roles.only_vaults_admin()?)]
     pub signer: Signer<'info>,
 
+    pub access_control: Program<'info, AccessControl>,
     pub token_program: Program<'info, Token>,
     pub strategy_program: Program<'info, Strategy>
 }

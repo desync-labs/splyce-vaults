@@ -26,7 +26,7 @@ pub mod accountant {
         Ok(())
     }
 
-    pub fn init(ctx: Context<Initialize>) -> Result<()> {
+    pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
         handle_initialize(ctx)
     }
 
@@ -35,10 +35,6 @@ pub mod accountant {
         accountant_type: AccountantType,
     ) -> Result<()> {
         handle_init_accountant(ctx, accountant_type)
-    }
-
-    pub fn init_token_account(ctx: Context<InitTokenAccount>) -> Result<()> {
-        handle_init_token_acc(ctx)
     }
 
     pub fn distribute(ctx: Context<Distribute>) -> Result<()> {

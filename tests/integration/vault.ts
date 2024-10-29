@@ -1,4 +1,5 @@
 import { Program, AnchorProvider, BN, setProvider, web3, workspace } from "@coral-xyz/anchor";
+import { AccessControl } from "../../target/types/access_control";
 import { Accountant } from "../../target/types/accountant";
 import { Strategy } from "../../target/types/strategy";
 import { TokenizedVault } from "../../target/types/tokenized_vault";
@@ -14,6 +15,7 @@ describe("tokenized_vault", () => {
   // Configure the client to use the local cluster.
   setProvider(AnchorProvider.env());
 
+  const accessControlProgram = workspace.AccessControl as Program<AccessControl>;
   const vaultProgram = workspace.TokenizedVault as Program<TokenizedVault>;
   const strategyProgram = workspace.Strategy as Program<Strategy>;
   const accountantProgram = workspace.Accountant as Program<Accountant>;
@@ -98,8 +100,8 @@ describe("tokenized_vault", () => {
     console.log("Accountant PDA:", accountant.toBase58());
   });
 
-  it("initialize", async () => {
-    await vaultProgram.methods.initialize()
+  it("initialize access control", async () => {
+    await accessControlProgram.methods.initialize()
       .accounts({
         admin: admin.publicKey,
       })
@@ -108,17 +110,34 @@ describe("tokenized_vault", () => {
 
     // check protocol admin
     const rolesAdmin = web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("protocol_admin_role")],
-      vaultProgram.programId,
+      [Buffer.from("roles_admin")],
+      accessControlProgram.programId,
     )[0];
-    const rolesAccount = await vaultProgram.account.rolesAdmin.fetch(rolesAdmin);
+    const rolesAccount = await accessControlProgram.account.rolesAdmin.fetch(rolesAdmin);
     assert.strictEqual(rolesAccount.account.toString(), admin.publicKey.toString());
     console.log("Protocol admin:", rolesAccount.account.toString());
   });
 
-  it("set vault admin and reporting admin", async () => {
+  it("initialize", async () => {
+    await vaultProgram.methods.initialize()
+      .accounts({
+        admin: admin.publicKey,
+      })
+      .signers([admin])
+      .rpc();
+
+    const config = web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("config")],
+      vaultProgram.programId,
+    )[0];
+
+    let configAccount = await vaultProgram.account.config.fetch(config);
+    assert.strictEqual(configAccount.nextVaultIndex.toString(), '0');
+  });
+
+  it("set roles", async () => {
     let vaultsAdmin = { vaultsAdmin: {} };
-    await vaultProgram.methods.setRole(vaultsAdmin, admin.publicKey)
+    await accessControlProgram.methods.setRole(vaultsAdmin, admin.publicKey)
       .accounts({
         signer: admin.publicKey,
       })
@@ -126,7 +145,23 @@ describe("tokenized_vault", () => {
       .rpc();
 
     let reportingManager = { reportingManager: {} };
-    await vaultProgram.methods.setRole(reportingManager, admin.publicKey)
+    await accessControlProgram.methods.setRole(reportingManager, admin.publicKey)
+      .accounts({
+        signer: admin.publicKey,
+      })
+      .signers([admin])
+      .rpc();
+
+    let strategiesManager = { strategiesManager: {} };
+    await accessControlProgram.methods.setRole(strategiesManager, admin.publicKey)
+      .accounts({
+        signer: admin.publicKey,
+      })
+      .signers([admin])
+      .rpc();
+
+    let accountantAdmin = { accountantAdmin: {} };
+    await accessControlProgram.methods.setRole(accountantAdmin, admin.publicKey)
       .accounts({
         signer: admin.publicKey,
       })
@@ -135,12 +170,13 @@ describe("tokenized_vault", () => {
 
     const accountRoles = web3.PublicKey.findProgramAddressSync(
       [Buffer.from("roles"), admin.publicKey.toBuffer()],
-      vaultProgram.programId,
+      accessControlProgram.programId,
     )[0];
-    const rolesAccount = await vaultProgram.account.accountRoles.fetch(accountRoles);
+    const rolesAccount = await accessControlProgram.account.accountRoles.fetch(accountRoles);
 
     assert.isTrue(rolesAccount.isVaultsAdmin);
     assert.isTrue(rolesAccount.isReportingManager);
+    assert.isTrue(rolesAccount.isStrategiesManager);
   });
 
   it("Initializes the vault", async () => {
@@ -166,14 +202,6 @@ describe("tokenized_vault", () => {
       TOKEN_METADATA_PROGRAM_ID
     );
 
-    const config = web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("config")],
-      vaultProgram.programId,
-    )[0];
-
-    let configAccount = await vaultProgram.account.config.fetch(config);
-    assert.strictEqual(configAccount.nextVaultIndex.toString(), '0');
-
     await vaultProgram.methods.initVault(vaultConfig)
       .accounts({
         underlyingMint,
@@ -197,7 +225,11 @@ describe("tokenized_vault", () => {
       .signers([admin])
       .rpc();
 
-    configAccount = await vaultProgram.account.config.fetch(config);
+    const config = web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("config")],
+      vaultProgram.programId,
+    )[0];
+    let configAccount = await vaultProgram.account.config.fetch(config);
     assert.strictEqual(configAccount.nextVaultIndex.toString(), '1');
     console.log("shares inited");
 
@@ -209,15 +241,12 @@ describe("tokenized_vault", () => {
   });
 
   it("init accountants", async () => {
-    await accountantProgram.methods.init()
+    await accountantProgram.methods.initialize()
       .accounts({
         admin: admin.publicKey,
       })
       .signers([admin])
       .rpc();
-
-    const configAcc = await accountantProgram.account.config.fetch(accountantConfig);
-    assert.strictEqual(configAcc.admin.toString(), admin.publicKey.toBase58());
   });
 
   it("generic accountant", async () => {
@@ -230,6 +259,7 @@ describe("tokenized_vault", () => {
     await accountantProgram.methods.initAccountant(accountantType)
       .accounts({
         signer: admin.publicKey,
+        underlyingMint: sharesMint,
       })
       .signers([admin])
       .rpc();
@@ -258,15 +288,6 @@ describe("tokenized_vault", () => {
     assert.strictEqual(genericAccountant.feeRecipient.toString(), feeRecipientSharesAccount.toBase58());
 
     console.log("Fee recipient:", genericAccountant.feeRecipient.toString());
-
-    await accountantProgram.methods.initTokenAccount()
-      .accounts({
-        accountant: accountant,
-        underlyingMint: sharesMint,
-        signer: admin.publicKey,
-      })
-      .signers([admin])
-      .rpc();
   });
 
   it("Initializes the strategy", async () => {

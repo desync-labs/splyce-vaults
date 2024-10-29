@@ -7,7 +7,7 @@ pub mod events;
 
 use anchor_lang::prelude::*;
 
-pub use state::{Role, SharesConfig, VaultConfig};
+pub use state::{SharesConfig, VaultConfig};
 pub use instructions::*;
 
 declare_id!("8eDcyX8Z8yZXBQsuatwxDC1qzGbuUbP7wGERDBQoPmBH");
@@ -26,18 +26,6 @@ pub mod tokenized_vault {
 
     pub fn init_vault_shares(ctx: Context<InitVaultShares>, index: u64, config: Box<SharesConfig>) -> Result<()> {
         handle_init_vault_shares(ctx, index, config)
-    }
-
-    pub fn init_role_admin(ctx: Context<InitializeRoleAdmin>) -> Result<()> {
-        handle_init_role_admin(ctx)
-    }
-
-    pub fn set_role(ctx: Context<SetRole>, role: Role, user: Pubkey) -> Result<()> {
-        handle_set_role(ctx, role, user)
-    }
-
-    pub fn drop_role(ctx: Context<DropRole>, role: Role) -> Result<()> {
-        handle_drop_role(ctx, role)
     }
 
     pub fn deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {

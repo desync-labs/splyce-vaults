@@ -1,4 +1,9 @@
 use anchor_lang::prelude::*;
+use access_control::{
+    constants::ROLES_SEED,
+    program::AccessControl,
+    state::AccountRoles
+};
 
 use anchor_spl::{
     token::Token,
@@ -16,11 +21,9 @@ use crate::constants::{
     VAULT_SEED, 
     SHARES_SEED, 
     SHARES_ACCOUNT_SEED, 
-    ROLES_SEED,
     CONFIG_SEED,
 };
 use crate::state::*;
-use crate::error::ErrorCode;
 
 #[derive(Accounts)]
 pub struct InitVaultShares<'info> {
@@ -58,15 +61,20 @@ pub struct InitVaultShares<'info> {
     )]
     pub shares_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
     
-    #[account(seeds = [ROLES_SEED.as_bytes(), signer.key().as_ref()], bump)]
-    pub roles: Box<Account<'info, AccountRoles>>,
-    
-    #[account(mut, constraint = roles.is_vaults_admin @ErrorCode::AccessDenied)]
+    #[account(
+        seeds = [ROLES_SEED.as_bytes(), signer.key().as_ref()], 
+        bump,
+        seeds::program = access_control.key()
+    )]
+    pub roles: Account<'info, AccountRoles>,
+
+    #[account(mut, constraint = roles.only_vaults_admin()?)]
     pub signer: Signer<'info>,
 
     #[account(mut, seeds = [CONFIG_SEED.as_bytes()], bump)]
     pub config: Box<Account<'info, Config>>,
     
+    pub access_control: Program<'info, AccessControl>,
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
     pub metadata_program: Program<'info, Metadata>,

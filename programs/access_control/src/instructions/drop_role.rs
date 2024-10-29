@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-use crate::constants::{ROLES_ADMIN_ROLE_SEED, ROLES_SEED};
+use crate::constants::{ROLES_ADMIN_SEED, ROLES_SEED};
 use crate::state::{AccountRoles, RolesAdmin, Role};
 
 #[derive(Accounts)]
@@ -15,7 +15,7 @@ pub struct DropRole<'info> {
     )]
     pub roles: Account<'info, AccountRoles>,
 
-    #[account(seeds = [ROLES_ADMIN_ROLE_SEED.as_bytes()], bump)]
+    #[account(seeds = [ROLES_ADMIN_SEED.as_bytes()], bump)]
     pub roles_admin: Account<'info, RolesAdmin>,
 
     #[account(mut, address = roles_admin.account)]

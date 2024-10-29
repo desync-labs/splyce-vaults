@@ -26,3 +26,4 @@ mpl-token-metadata = "4.1.2"
 solana-program = "2.0.3"
 strategy = { path = "../strategy", features=["no-entrypoint", "cpi"] }
 accountant = { path = "../accountant", features=["no-entrypoint", "cpi"] }
+access_control = { path = "../access_control", features=["no-entrypoint", "cpi"] }

@@ -1,6 +1,7 @@
 pub mod deploy_funds;
 pub mod deposit;
 pub mod free_funds;
+pub mod initialize;
 pub mod init_strategy;
 pub mod report;
 pub mod report_loss;
@@ -13,6 +14,7 @@ pub mod withdraw_fee;
 pub use deploy_funds::*;
 pub use deposit::*;
 pub use free_funds::*;
+pub use initialize::*;
 pub use init_strategy::*;
 pub use report::*;
 pub use report_loss::*;

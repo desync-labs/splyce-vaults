@@ -1,17 +1,22 @@
 use anchor_lang::prelude::*;
 use anchor_lang::Discriminator;
-
 use anchor_spl::{
     token::{ Token, TokenAccount},
     token_interface::Mint,
 };
+use access_control::{
+    constants::ROLES_SEED,
+    program::AccessControl,
+    state::AccountRoles
+};
+
 use crate::constants::UNDERLYING_SEED;
 use crate::state::*;
 use crate::error::ErrorCode;
 
 #[derive(Accounts)]
 #[instruction(index: u8, strategy_type: StrategyType)]
-pub struct Initialize<'info> {
+pub struct InitStrategy<'info> {
     /// CHECK: We want to hadle all strategy types here
     #[account(
         init, 
@@ -37,6 +42,13 @@ pub struct Initialize<'info> {
     )]
     pub token_account: Box<Account<'info, TokenAccount>>,
 
+    #[account(
+        seeds = [ROLES_SEED.as_bytes(), signer.key().as_ref()], 
+        bump,
+        seeds::program = access_control.key()
+    )]
+    pub roles: Account<'info, AccountRoles>,
+
     /// CHECK: This should be a vault account
     #[account()]
     pub vault: UncheckedAccount<'info>,
@@ -44,15 +56,16 @@ pub struct Initialize<'info> {
     #[account(mut)]
     pub underlying_mint: Box<InterfaceAccount<'info, Mint>>,
 
-    #[account(mut)]
+    #[account(mut, constraint = roles.only_strategies_manager()?)]
     pub signer: Signer<'info>,
 
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
     pub rent: Sysvar<'info, Rent>,
+    pub access_control: Program<'info, AccessControl>,
 }
 
-pub fn handle_init_strategy(ctx: Context<Initialize>, index: u8, strategy_type: StrategyType, config: Vec<u8>) -> Result<()> {
+pub fn handle_init_strategy(ctx: Context<InitStrategy>, index: u8, strategy_type: StrategyType, config: Vec<u8>) -> Result<()> {
     match strategy_type {
         StrategyType::Simple => {
             return init_strategy_internal::<SimpleStrategy>(ctx, index, config)
@@ -66,7 +79,7 @@ pub fn handle_init_strategy(ctx: Context<Initialize>, index: u8, strategy_type: 
     }
 }
 
-fn init_strategy_internal<T>(ctx: Context<Initialize>, index: u8, config: Vec<u8>) -> Result<()> 
+fn init_strategy_internal<T>(ctx: Context<InitStrategy>, index: u8, config: Vec<u8>) -> Result<()> 
 where 
     T: Strategy + AnchorDeserialize + AnchorSerialize + Discriminator + Default
 {

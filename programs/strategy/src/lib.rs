@@ -32,7 +32,11 @@ pub mod strategy {
         Ok(())
     }
 
-    pub fn init_strategy(ctx: Context<Initialize>, index: u8, strategy_type: StrategyType, config: Vec<u8>) -> Result<()> {
+    pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
+        handle_initialize(ctx)
+    }
+
+    pub fn init_strategy(ctx: Context<InitStrategy>, index: u8, strategy_type: StrategyType, config: Vec<u8>) -> Result<()> {
         handle_init_strategy(ctx, index, strategy_type, config)
     }
 

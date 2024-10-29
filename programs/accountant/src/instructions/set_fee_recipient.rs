@@ -1,8 +1,11 @@
 use anchor_lang::prelude::*;
+use access_control::{
+    constants::ROLES_SEED,
+    program::AccessControl,
+    state::AccountRoles
+};
 
 use crate::utils::serialization;
-use crate::state::Config;
-use crate::constants::CONFIG_SEED;
 
 #[derive(Accounts)]
 pub struct SetFeeRecipient<'info> {
@@ -10,12 +13,17 @@ pub struct SetFeeRecipient<'info> {
     #[account(mut)]
     pub accountant: UncheckedAccount<'info>,
 
-    #[account(mut, seeds = [CONFIG_SEED.as_bytes()], bump)]
-    pub config: Account<'info, Config>,
+    #[account(
+        seeds = [ROLES_SEED.as_bytes(), signer.key().as_ref()], 
+        bump,
+        seeds::program = access_control.key()
+    )]
+    pub roles: Account<'info, AccountRoles>,
 
-    /// CHECK: This should be a vault account
-    #[account(mut, address = config.admin)]
+    #[account(mut, constraint = roles.only_accountant_admin()?)]
     pub signer: Signer<'info>,
+
+    pub access_control: Program<'info, AccessControl>
 }
 
 pub fn handle_set_fee_recipient(

@@ -3,13 +3,18 @@ use anchor_spl::{
     token::Token,
     token_interface::{self as token, Burn, Mint, MintTo, TokenAccount},
 };
+use access_control::{
+    constants::ROLES_SEED,
+    program::AccessControl,
+    state::AccountRoles
+};
 
-use crate::constants::{ MAX_BPS_EXTENDED, ROLES_SEED, SHARES_ACCOUNT_SEED, SHARES_SEED};
+
+use crate::constants::{ MAX_BPS_EXTENDED, SHARES_ACCOUNT_SEED, SHARES_SEED};
 use crate::events::StrategyReportedEvent;
-use crate::state::{AccountRoles, Vault};
+use crate::state::Vault;
 use crate::utils::strategy;
 use crate::utils::accountant;
-use crate::error::ErrorCode;
 
 #[derive(Accounts)]
 pub struct ProcessReport<'info> {
@@ -20,8 +25,12 @@ pub struct ProcessReport<'info> {
     #[account()]
     pub strategy: UncheckedAccount<'info>,
 
-    #[account(seeds = [ROLES_SEED.as_bytes(), signer.key().as_ref()], bump)]
-    pub roles: Box<Account<'info, AccountRoles>>,
+    #[account(
+        seeds = [ROLES_SEED.as_bytes(), signer.key().as_ref()], 
+        bump,
+        seeds::program = access_control.key()
+    )]
+    pub roles: Account<'info, AccountRoles>,
 
     #[account(mut, seeds = [SHARES_SEED.as_bytes(), vault.key().as_ref()], bump)]
     pub shares_mint: Box<InterfaceAccount<'info, Mint>>,
@@ -40,9 +49,10 @@ pub struct ProcessReport<'info> {
     )]
     pub accountant_recipient: Box<InterfaceAccount<'info, TokenAccount>>,
 
-    #[account(mut, constraint = roles.is_reporting_manager @ErrorCode::AccessDenied)]
+    #[account(mut, constraint = roles.only_reporting_manager()?)]
     pub signer: Signer<'info>,
 
+    pub access_control: Program<'info, AccessControl>,
     pub token_program: Program<'info, Token>,
 }
 

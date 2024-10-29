@@ -1,8 +1,12 @@
 use anchor_lang::prelude::*;
+use access_control::{
+    constants::ROLES_SEED,
+    program::AccessControl,
+    state::AccountRoles
+};
 
 use crate::events::StrategyReportedEvent;
-use crate::state::{AccountRoles, Vault};
-use crate::constants::ROLES_SEED;
+use crate::state::Vault;
 use crate::error::ErrorCode;
 
 #[derive(Accounts)]
@@ -10,11 +14,17 @@ pub struct RemoveStrategy<'info> {
     #[account(mut)]
     pub vault: AccountLoader<'info, Vault>,
     
-    #[account(seeds = [ROLES_SEED.as_bytes(), signer.key().as_ref()], bump)]
+    #[account(
+        seeds = [ROLES_SEED.as_bytes(), signer.key().as_ref()], 
+        bump,
+        seeds::program = access_control.key()
+    )]
     pub roles: Account<'info, AccountRoles>,
 
-    #[account(mut, constraint = roles.is_vaults_admin @ErrorCode::AccessDenied)]
+    #[account(mut, constraint = roles.only_vaults_admin()?)]
     pub signer: Signer<'info>,
+
+    pub access_control: Program<'info, AccessControl>
 }
 
 pub fn handle_remove_strategy(ctx: Context<RemoveStrategy>, strategy: Pubkey, force: bool) -> Result<()> {

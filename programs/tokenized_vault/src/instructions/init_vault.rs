@@ -1,4 +1,9 @@
 use anchor_lang::prelude::*;
+use access_control::{
+    constants::ROLES_SEED,
+    program::AccessControl,
+    state::AccountRoles
+};
 
 use anchor_spl::{
     token::Token, 
@@ -9,11 +14,9 @@ use crate::constants::{
     CONFIG_SEED,
     VAULT_SEED, 
     UNDERLYING_SEED, 
-    ROLES_SEED,
     DISCRIMINATOR_LEN,
 };
-use crate::state::{Vault, AccountRoles, Config, VaultConfig};
-use crate::error::ErrorCode;
+use crate::state::{Vault, Config, VaultConfig};
 
 #[derive(Accounts)]
 pub struct InitVault<'info> {
@@ -42,15 +45,20 @@ pub struct InitVault<'info> {
     #[account(mut)]
     pub underlying_mint: Box<InterfaceAccount<'info, Mint>>,
     
-    #[account(seeds = [ROLES_SEED.as_bytes(), signer.key().as_ref()], bump)]
-    pub roles: Box<Account<'info, AccountRoles>>,
+    #[account(
+        seeds = [ROLES_SEED.as_bytes(), signer.key().as_ref()], 
+        bump,
+        seeds::program = access_control.key()
+    )]
+    pub roles: Account<'info, AccountRoles>,
 
     #[account(seeds = [CONFIG_SEED.as_bytes()], bump)]
     pub config: Box<Account<'info, Config>>,
     
-    #[account(mut, constraint = roles.is_vaults_admin @ErrorCode::AccessDenied)]
+    #[account(mut, constraint = roles.only_vaults_admin()?)]
     pub signer: Signer<'info>,
     
+    pub access_control: Program<'info, AccessControl>,
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
     pub rent: Sysvar<'info, Rent>,
