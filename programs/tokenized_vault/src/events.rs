@@ -1,19 +1,27 @@
 use anchor_lang::prelude::*;
 
+#[derive(Debug, AnchorDeserialize, AnchorSerialize)]
+pub struct TokenMetaData {
+    pub name: String,
+    pub symbol: String,
+}
+
+#[derive(Debug, AnchorDeserialize, AnchorSerialize)]
+pub struct TokenData {
+    pub mint: Pubkey,
+    pub account: Pubkey,
+    pub decimals: u8,
+    pub metadata: TokenMetaData,
+}
+
 #[event]
 pub struct VaultInitEvent {
-    pub vault_index: [u8; 8],
-    pub underlying_mint: Pubkey,
-    pub underlying_token_acc: Pubkey,
-    pub underlying_decimals: u8,
-    pub share_mint: Pubkey,
-    pub share_token_acc: Pubkey,
-    pub share_decimals: u8,
+    pub vault_key: Pubkey, 
+    pub underlying_token: TokenData,
+    pub share_token: TokenData,
     pub deposit_limit: u64,
     pub min_user_deposit: u64,
     pub performance_fee: u64,
-    pub vault_pda: Pubkey, 
-    pub index: u8,
 }
 
 
