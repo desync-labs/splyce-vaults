@@ -10,19 +10,19 @@ use access_control::{
     state::AccountRoles
 };
 
-use crate::constants::UNDERLYING_SEED;
+use crate::constants::{CONFIG_SEED, UNDERLYING_SEED};
 use crate::state::*;
 use crate::error::ErrorCode;
 
 #[derive(Accounts)]
-#[instruction(index: u8, strategy_type: StrategyType)]
+#[instruction(strategy_type: StrategyType)]
 pub struct InitStrategy<'info> {
     /// CHECK: We want to hadle all strategy types here
     #[account(
         init, 
         seeds = [
             vault.key().as_ref(),
-            index.to_le_bytes().as_ref()
+            config.next_strategy_index.to_le_bytes().as_ref()
         ], 
         bump,  
         payer = signer, 
@@ -41,6 +41,9 @@ pub struct InitStrategy<'info> {
         token::authority = strategy,
     )]
     pub token_account: Box<Account<'info, TokenAccount>>,
+
+    #[account(seeds = [CONFIG_SEED.as_bytes()], bump)]
+    pub config: Account<'info, Config>,
 
     #[account(
         seeds = [ROLES_SEED.as_bytes(), signer.key().as_ref()], 
@@ -65,13 +68,13 @@ pub struct InitStrategy<'info> {
     pub access_control: Program<'info, AccessControl>,
 }
 
-pub fn handle_init_strategy(ctx: Context<InitStrategy>, index: u8, strategy_type: StrategyType, config: Vec<u8>) -> Result<()> {
+pub fn handle_init_strategy(ctx: Context<InitStrategy>, strategy_type: StrategyType, config: Vec<u8>) -> Result<()> {
     match strategy_type {
         StrategyType::Simple => {
-            return init_strategy_internal::<SimpleStrategy>(ctx, index, config)
+            return init_strategy_internal::<SimpleStrategy>(ctx, config)
         }
         StrategyType::TradeFintech => {
-            return init_strategy_internal::<TradeFintechStrategy>(ctx, index, config)
+            return init_strategy_internal::<TradeFintechStrategy>(ctx, config)
         }
         _ => {
             return Err(ErrorCode::InvalidStrategyData.into())
@@ -79,7 +82,7 @@ pub fn handle_init_strategy(ctx: Context<InitStrategy>, index: u8, strategy_type
     }
 }
 
-fn init_strategy_internal<T>(ctx: Context<InitStrategy>, index: u8, config: Vec<u8>) -> Result<()> 
+fn init_strategy_internal<T>(ctx: Context<InitStrategy>, config: Vec<u8>) -> Result<()> 
 where 
     T: Strategy + AnchorDeserialize + AnchorSerialize + Discriminator + Default
 {
@@ -93,7 +96,7 @@ where
 
     strategy.init(
         ctx.bumps.strategy,
-        index,
+        ctx.accounts.config.next_strategy_index,
         ctx.accounts.vault.key(),
         ctx.accounts.underlying_mint.as_ref(),
         ctx.accounts.token_account.key(),
@@ -103,6 +106,8 @@ where
 
     // Serialize the strategy data into the account
     strategy.save_changes(&mut &mut data[8..])?;
+
+    ctx.accounts.config.next_strategy_index += 1;
 
     Ok(())
 }

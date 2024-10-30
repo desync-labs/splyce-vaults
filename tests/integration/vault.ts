@@ -291,10 +291,20 @@ describe("tokenized_vault", () => {
   });
 
   it("Initializes the strategy", async () => {
+    await strategyProgram.methods.initialize()
+      .accounts({
+        admin: admin.publicKey,
+      })
+      .signers([admin])
+      .rpc();
+
+      console.log("Strategy program initialized");
+
     strategy = web3.PublicKey.findProgramAddressSync(
       [
         vault.toBuffer(),
-        Buffer.from(new Uint8Array([0]))
+        Buffer.from(new Uint8Array(new BigUint64Array([BigInt(0)]).buffer))
+
       ],
       strategyProgram.programId
     )[0];
@@ -313,7 +323,7 @@ describe("tokenized_vault", () => {
     });
 
     const configBytes = Buffer.from(borsh.serialize(SimpleStrategyConfigSchema, config));
-    await strategyProgram.methods.initStrategy(0, strategyType, configBytes)
+    await strategyProgram.methods.initStrategy(strategyType, configBytes)
       .accounts({
         underlyingMint,
         vault,

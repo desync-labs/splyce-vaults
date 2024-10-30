@@ -15,7 +15,7 @@ use crate::instructions::{Report, ReportProfit, ReportLoss, DeployFunds, FreeFun
 pub struct SimpleStrategy {
     /// Bump to identify PDA
     pub bump: [u8; 1],
-    pub index_bytes: [u8; 1],
+    pub index_bytes: [u8; 8],
 
     /// vault
     pub vault: Pubkey,
@@ -203,7 +203,7 @@ impl StrategyInit for SimpleStrategy {
     fn init(
         &mut self,
         bump: u8,
-        index: u8,
+        index: u64,
         vault: Pubkey, 
         underlying_mint: &InterfaceAccount<Mint>, 
         underlying_token_acc: Pubkey, 
