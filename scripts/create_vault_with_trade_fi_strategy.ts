@@ -26,7 +26,7 @@ async function main() {
     const vaultProgram = anchor.workspace.TokenizedVault as Program<TokenizedVault>;
     const strategyProgram = anchor.workspace.StrategyProgram as Program<StrategyProgram>;
 
-    const underlyingMint = new anchor.web3.PublicKey("4dCLhR7U8PzwXau6qfjr73tKgp5SD42aLbyo3XQNzY4V");
+    const underlyingMint = new anchor.web3.PublicKey("6ktEi4XgXUfMhia2DYC6o8yBRUFfbLnuMRRuhxyt8ajV");
     console.log("Underlying token mint public key:", underlyingMint.toBase58());
 
     const vault_index = 2;
