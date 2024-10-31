@@ -5,7 +5,7 @@ use access_control::{
     state::AccountRoles
 };
 
-use crate::error::ErrorCode;
+use crate::errors::ErrorCode;
 use crate::state::Vault;
 
 #[derive(Accounts)]

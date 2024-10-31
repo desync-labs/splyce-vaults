@@ -5,7 +5,7 @@ use crate::constants::{SHARES_SEED, UNDERLYING_SEED};
 
 use crate::events::VaultDepositEvent;
 use crate::state::Vault;
-use crate::error::ErrorCode;
+use crate::errors::ErrorCode;
 use crate::utils::token::transfer_token_to;
 
 #[derive(Accounts)]

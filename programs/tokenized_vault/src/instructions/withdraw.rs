@@ -8,7 +8,7 @@ use strategy::program::Strategy;
 use crate::events::VaultWithdrawlEvent;
 use crate::state::Vault;
 use crate::utils::strategy as strategy_helper;
-use crate::error::ErrorCode;
+use crate::errors::ErrorCode;
 use crate::constants::{
     UNDERLYING_SEED, 
     SHARES_SEED,

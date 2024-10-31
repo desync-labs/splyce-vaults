@@ -10,7 +10,7 @@ use access_control::{
     state::AccountRoles
 };
 
-use crate::utils::serialization;
+use crate::utils::unchecked_accountant::UncheckedAccountant;
 
 #[derive(Accounts)]
 pub struct Distribute<'info> {
@@ -47,7 +47,7 @@ pub struct Distribute<'info> {
 }
 
 pub fn handle_distribute(ctx: Context<Distribute>) -> Result<()> {
-    let mut accountant = serialization::from_unchecked(&ctx.accounts.accountant)?;
+    let mut accountant = &mut ctx.accounts.accountant.from_unchecked()?;
     accountant.distribute(&ctx.accounts)?;
     accountant.save_changes(&mut &mut ctx.accounts.accountant.try_borrow_mut_data()?[8..])
 }

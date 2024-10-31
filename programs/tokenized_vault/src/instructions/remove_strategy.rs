@@ -7,7 +7,7 @@ use access_control::{
 
 use crate::events::StrategyReportedEvent;
 use crate::state::Vault;
-use crate::error::ErrorCode;
+use crate::errors::ErrorCode;
 
 #[derive(Accounts)]
 pub struct RemoveStrategy<'info> {

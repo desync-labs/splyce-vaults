@@ -5,7 +5,7 @@ use access_control::{
     state::AccountRoles
 };
 
-use crate::utils::serialization;
+use crate::utils::unchecked_accountant::UncheckedAccountant;
 
 #[derive(Accounts)]
 pub struct SetFeeRecipient<'info> {
@@ -30,7 +30,7 @@ pub fn handle_set_fee_recipient(
     ctx: Context<SetFeeRecipient>, 
     recipient: Pubkey,
 ) -> Result<()> {
-    let mut accountant = serialization::from_unchecked(&ctx.accounts.accountant)?;
+    let mut accountant = &mut ctx.accounts.accountant.from_unchecked()?;
 
     accountant.set_fee_recipient(recipient)?;
     accountant.save_changes(&mut &mut ctx.accounts.accountant.try_borrow_mut_data()?[8..])

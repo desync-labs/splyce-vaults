@@ -6,7 +6,7 @@ use access_control::{
 };
 
 use crate::events::VaultUpdateDepositLimitEvent;
-use crate::error::ErrorCode;
+use crate::errors::ErrorCode;
 use crate::state::Vault;
 
 #[derive(Accounts)]

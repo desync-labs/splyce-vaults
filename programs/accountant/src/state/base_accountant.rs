@@ -27,14 +27,6 @@ pub enum AccountantType {
 }
 
 impl AccountantType {
-    pub fn from_discriminator(discriminator: &[u8]) -> Option<Self> {
-        if discriminator == GenericAccountant::discriminator() {
-            Some(AccountantType::Generic)
-        } else {
-            None
-        } 
-    }
-
     pub fn space(&self) -> usize {
         match self {
             AccountantType::Generic => DISCRIMINATOR_LEN + GenericAccountant::INIT_SPACE,

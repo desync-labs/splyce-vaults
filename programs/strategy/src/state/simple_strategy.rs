@@ -1,12 +1,12 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface::Mint;
 
-use crate::base_strategy::*;
-use crate::fee_data::*;
+use super::base_strategy::*;
+use super::StrategyType;
+use super::fee_data::*;
+
 use crate::error::ErrorCode;
-use crate::events::StrategyDepositEvent;
-use crate::events::StrategyInitEvent;
-use crate::events::StrategyWithdrawEvent;
+use crate::events::{StrategyDepositEvent, StrategyInitEvent, StrategyWithdrawEvent};
 use crate::utils::token;
 use crate::instructions::{Report, ReportProfit, ReportLoss, DeployFunds, FreeFunds};
 
@@ -49,7 +49,7 @@ impl StrategyManagement for SimpleStrategy {
     }
 }
 
-impl Strategy for SimpleStrategy {
+impl StretegyGetters for SimpleStrategy {
     fn strategy_type(&self) -> StrategyType {
         StrategyType::Simple
     }
@@ -58,6 +58,32 @@ impl Strategy for SimpleStrategy {
         self.vault
     }
 
+    fn total_assets(&self) -> u64 {
+        self.total_assets
+    }
+
+    fn available_deposit(&self) -> u64 {
+        self.deposit_limit - self.total_assets
+    }
+
+    fn available_withdraw(&self) -> u64 {
+        self.deposit_limit
+    }
+
+    fn token_account(&self) -> Pubkey {
+        self.underlying_token_acc
+    }
+
+    fn underlying_mint(&self) -> Pubkey {
+        self.underlying_mint
+    }
+
+    fn fee_data(&mut self) -> &mut FeeData {
+        &mut self.fee_data
+    }
+}
+
+impl Strategy for SimpleStrategy {
     fn deposit(&mut self, amount: u64) -> Result<()> {
         self.total_assets += amount;
         
@@ -162,10 +188,6 @@ impl Strategy for SimpleStrategy {
         Ok(new_total_assets)
     }
 
-    fn token_account(&self) -> Pubkey {
-        self.underlying_token_acc
-    }
-
     fn deploy_funds<'info>(&mut self, _accounts: &DeployFunds<'info>, _remaining: &[AccountInfo<'info>], _amount: u64) -> Result<()> {
         Ok(())
     }
@@ -176,26 +198,6 @@ impl Strategy for SimpleStrategy {
 
     fn set_total_assets(&mut self, total_assets: u64) {
         self.total_assets = total_assets;
-    }
-
-    fn total_assets(&self) -> u64 {
-        self.total_assets
-    }
-
-    fn available_deposit(&self) -> u64 {
-        self.deposit_limit - self.total_assets
-    }
-
-    fn available_withdraw(&self) -> u64 {
-        self.deposit_limit
-    }
-
-    fn fee_data(&mut self) -> &mut FeeData {
-        &mut self.fee_data
-    }
-
-    fn underlying_mint(&self) -> Pubkey {
-        self.underlying_mint
     }
 }
 

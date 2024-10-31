@@ -1,8 +1,9 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface::Mint;
+use accountant::state::Accountant;
 
 use crate::constants::{VAULT_SEED, MAX_BPS, SHARES_SEED, MAX_BPS_EXTENDED};
-use crate::error::ErrorCode;
+use crate::errors::ErrorCode;
 use crate::utils::strategy;
 use crate::events::VaultAddStrategyEvent;
 

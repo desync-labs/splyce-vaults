@@ -1,8 +1,9 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface::Mint;
 
-use crate::base_strategy::*;
-use crate::fee_data::*;
+use super::base_strategy::*;
+use super::StrategyType;
+use super::fee_data::*;
 use crate::error::ErrorCode;
 use crate::events::{StrategyDepositEvent, StrategyInitEvent, StrategyWithdrawEvent};
 use crate::utils::token;
@@ -61,14 +62,6 @@ impl StrategyManagement for TradeFintechStrategy {
 }
 
 impl Strategy for TradeFintechStrategy {
-    fn strategy_type(&self) -> StrategyType {
-        StrategyType::TradeFintech
-    }
-
-    fn vault(&self) -> Pubkey {
-        self.vault
-    }
-
     fn deposit(&mut self, amount: u64) -> Result<()> {
         self.total_assets += amount;
 
@@ -214,9 +207,15 @@ impl Strategy for TradeFintechStrategy {
     fn set_total_assets(&mut self, total_assets: u64) {
         self.total_assets = total_assets;
     }
+}
 
-    fn token_account(&self) -> Pubkey {
-        self.underlying_token_acc
+impl StretegyGetters for TradeFintechStrategy {
+    fn strategy_type(&self) -> StrategyType {
+        StrategyType::TradeFintech
+    }
+
+    fn vault(&self) -> Pubkey {
+        self.vault
     }
 
     fn total_assets(&self) -> u64 {
@@ -250,12 +249,17 @@ impl Strategy for TradeFintechStrategy {
         }
     }
 
-    fn fee_data(&mut self) -> &mut FeeData {
-        &mut self.fee_data
+
+    fn token_account(&self) -> Pubkey {
+        self.underlying_token_acc
     }
 
     fn underlying_mint(&self) -> Pubkey {
         self.underlying_mint
+    }
+
+    fn fee_data(&mut self) -> &mut FeeData {
+        &mut self.fee_data
     }
 }
 

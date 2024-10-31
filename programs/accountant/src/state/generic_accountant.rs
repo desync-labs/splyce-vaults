@@ -1,4 +1,4 @@
-use anchor_lang::prelude::*;
+use anchor_lang::{prelude::*, Discriminator};
 use anchor_spl::token::{self, Transfer};
 
 use crate::state::base_accountant::Accountant;

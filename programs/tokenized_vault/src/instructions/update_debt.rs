@@ -14,7 +14,7 @@ use strategy::program::Strategy;
 
 use crate::events::UpdatedCurrentDebtForStrategyEvent;
 use crate::state::Vault;
-use crate::error::ErrorCode;
+use crate::errors::ErrorCode;
 use crate::utils::strategy as strategy_utils;
 use crate::constants::UNDERLYING_SEED;
 
