@@ -28,6 +28,7 @@ init_trade_fi =  "yarn run init_trade_fi"
 underlying_mint = "yarn run underlying_mint"
 test = "yarn run ts-mocha -r dotenv/config -p ./tsconfig.json -t 2000000 --require './tests/integration/setups/globalSetup.ts' --recursive --reporter mocha-qase-reporter 'tests/integration/**/*.test.ts'"
 dev_test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/integration/vault.ts"
+shutdown_vault = "yarn run shutdown_vault"
 
 [[test.genesis]] 
 address = "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s" 

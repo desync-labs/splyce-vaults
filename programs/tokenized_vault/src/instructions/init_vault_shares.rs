@@ -11,7 +11,7 @@ use anchor_spl::{
     }
 };
 
-use crate::events::VaultInitEvent;
+use crate::events::{TokenData, TokenMetaData,  VaultInitEvent};
 use crate::constants::{
     VAULT_SEED, 
     SHARES_SEED, 
@@ -67,6 +67,9 @@ pub fn handle_init_vault_shares(ctx: Context<InitVaultShares>, _index: u64, conf
     let seeds = &[SHARES_SEED.as_bytes(), vault_key.as_ref(), &[ctx.bumps.shares_mint]];
     let signer = [&seeds[..]];
 
+    let share_token_name = config.name.clone();
+    let share_token_symbol = config.symbol.clone();
+
     let token_data: DataV2 = DataV2 {
         name: config.name,
         symbol: config.symbol,
@@ -100,18 +103,33 @@ pub fn handle_init_vault_shares(ctx: Context<InitVaultShares>, _index: u64, conf
     let vault = &mut ctx.accounts.vault.load_mut()?;
     vault.shares_bump = [ctx.bumps.shares_mint];
 
+    let underlying_token = TokenData{
+        mint: vault.underlying_mint,
+        account: vault.underlying_token_acc,
+        decimals: vault.underlying_decimals,
+        metadata: TokenMetaData {
+            name: "".to_string(),
+            symbol: "".to_string(),
+        }
+    };
+
+    let share_token = TokenData{
+        mint: ctx.accounts.shares_mint.key(),
+        account: ctx.accounts.shares_token_account.key(),
+        decimals: ctx.accounts.shares_mint.decimals,
+        metadata: TokenMetaData {
+            name: share_token_name,
+            symbol: share_token_symbol,
+        }
+    };
+
     emit!(VaultInitEvent {
-        vault_index: vault.index_buffer,
-        underlying_mint: vault.underlying_mint,
-        underlying_token_acc: vault.underlying_token_acc,
-        underlying_decimals: vault.underlying_decimals,
-        share_mint: ctx.accounts.shares_mint.key(),
-        share_token_acc: ctx.accounts.shares_token_account.key(),
-        share_decimals: ctx.accounts.shares_mint.decimals,
+        vault_key,
+        underlying_token,
+        share_token,
         deposit_limit: vault.deposit_limit,
         min_user_deposit: vault.min_user_deposit,
         performance_fee: vault.performance_fee,
-        vault_pda: vault_key,
     });
 
     Ok(())

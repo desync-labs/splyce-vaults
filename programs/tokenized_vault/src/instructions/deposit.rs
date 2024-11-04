@@ -57,7 +57,7 @@ pub fn handle_deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
 
     let vault = ctx.accounts.vault.load()?;
     emit!(VaultDepositEvent {
-        vault_index: vault.index_buffer,
+        vault_key: vault.key,
         total_debt: vault.total_debt,
         total_idle: vault.total_idle,
         total_share: vault.total_shares,
@@ -65,6 +65,8 @@ pub fn handle_deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
         share: shares,
         token_account: ctx.accounts.user_token_account.to_account_info().key(),
         share_account: ctx.accounts.user_shares_account.to_account_info().key(),
+        token_mint: ctx.accounts.vault_token_account.mint,
+        share_mint: ctx.accounts.shares_mint.to_account_info().key(),
         authority: ctx.accounts.user.to_account_info().key(),
     });
 
