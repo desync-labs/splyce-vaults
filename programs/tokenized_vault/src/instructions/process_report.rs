@@ -4,11 +4,10 @@ use anchor_spl::{
     token_interface::{self as token, Burn, Mint, MintTo, TokenAccount},
 };
 use access_control::{
-    constants::ROLES_SEED,
+    constants::USER_ROLE_SEED,
     program::AccessControl,
-    state::AccountRoles
+    state::{UserRole, Role}
 };
-
 
 use crate::constants::{ MAX_BPS_EXTENDED, SHARES_ACCOUNT_SEED, SHARES_SEED};
 use crate::events::StrategyReportedEvent;
@@ -24,13 +23,6 @@ pub struct ProcessReport<'info> {
     /// CHECK: can by any strategy
     #[account()]
     pub strategy: UncheckedAccount<'info>,
-
-    #[account(
-        seeds = [ROLES_SEED.as_bytes(), signer.key().as_ref()], 
-        bump,
-        seeds::program = access_control.key()
-    )]
-    pub roles: Account<'info, AccountRoles>,
 
     #[account(mut, seeds = [SHARES_SEED.as_bytes(), vault.key().as_ref()], bump)]
     pub shares_mint: Box<InterfaceAccount<'info, Mint>>,
@@ -49,7 +41,18 @@ pub struct ProcessReport<'info> {
     )]
     pub accountant_recipient: Box<InterfaceAccount<'info, TokenAccount>>,
 
-    #[account(mut, constraint = roles.only_reporting_manager()?)]
+    #[account(
+        seeds = [
+            USER_ROLE_SEED.as_bytes(), 
+            signer.key().as_ref(),
+            Role::ReportingManager.to_seed().as_ref()
+        ], 
+        bump,
+        seeds::program = access_control.key()
+    )]
+    pub roles: Account<'info, UserRole>,
+
+    #[account(mut, constraint = roles.check_role()?)]
     pub signer: Signer<'info>,
 
     pub access_control: Program<'info, AccessControl>,

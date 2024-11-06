@@ -7,9 +7,20 @@ import * as token from "@solana/spl-token";
 import * as borsh from 'borsh';
 import { assert, expect } from 'chai';
 import { SimpleStrategyConfig, SimpleStrategyConfigSchema } from "../utils/schemas";
+import { PublicKey, Keypair, Transaction, Connection, SystemProgram} from "@solana/web3.js";
 
 const METADATA_SEED = "metadata";
 const TOKEN_METADATA_PROGRAM_ID = new web3.PublicKey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s");
+
+const ROLES = {
+  ROLES_ADMIN: new BN(0),
+  VAULTS_ADMIN: new BN(1),
+  REPORTING_MANAGER: new BN(2),
+  STRATEGIES_MANAGER: new BN(3),
+  ACCOUNTANT_ADMIN: new BN(4),
+  KYC_PROVIDER: new BN(5),
+  KYC_VERIFIED: new BN(6),
+}
 
 describe("tokenized_vault", () => {
   // Configure the client to use the local cluster.
@@ -110,12 +121,16 @@ describe("tokenized_vault", () => {
 
     // check protocol admin
     const rolesAdmin = web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("roles_admin")],
+      [
+        Buffer.from("user_role"),
+        admin.publicKey.toBuffer(),
+        Buffer.from(new Uint8Array(new BigUint64Array([BigInt(0)]).buffer))],
       accessControlProgram.programId,
     )[0];
-    const rolesAccount = await accessControlProgram.account.rolesAdmin.fetch(rolesAdmin);
-    assert.strictEqual(rolesAccount.account.toString(), admin.publicKey.toString());
-    console.log("Protocol admin:", rolesAccount.account.toString());
+
+    const rolesAccount = await accessControlProgram.account.userRole.fetch(rolesAdmin);
+    assert.isTrue(rolesAccount.hasRole);
+    console.log("Protocol admin:", admin.publicKey.toBase58());
   });
 
   it("initialize", async () => {
@@ -135,48 +150,126 @@ describe("tokenized_vault", () => {
     assert.strictEqual(configAccount.nextVaultIndex.toString(), '0');
   });
 
+  it("init roles", async () => {
+    await accessControlProgram.methods.setRoleManager(ROLES.VAULTS_ADMIN, ROLES.ROLES_ADMIN)
+      .accounts({
+        signer: admin.publicKey,
+      })
+      .signers([admin])
+      .rpc();
+
+    await accessControlProgram.methods.setRoleManager(ROLES.STRATEGIES_MANAGER, ROLES.ROLES_ADMIN)
+      .accounts({
+        signer: admin.publicKey,
+      })
+      .signers([admin])
+      .rpc();
+
+    await accessControlProgram.methods.setRoleManager(ROLES.ACCOUNTANT_ADMIN, ROLES.ROLES_ADMIN)
+      .accounts({
+        signer: admin.publicKey,
+      })
+      .signers([admin])
+      .rpc();
+
+
+    await accessControlProgram.methods.setRoleManager(ROLES.REPORTING_MANAGER, ROLES.ROLES_ADMIN)
+      .accounts({
+        signer: admin.publicKey,
+      })
+      .signers([admin])
+      .rpc();
+
+      await accessControlProgram.methods.setRoleManager(ROLES.KYC_PROVIDER, ROLES.ROLES_ADMIN)
+      .accounts({
+        signer: admin.publicKey,
+      })
+      .signers([admin])
+      .rpc();
+
+      await accessControlProgram.methods.setRoleManager(ROLES.KYC_VERIFIED, ROLES.KYC_PROVIDER)
+      .accounts({
+        signer: admin.publicKey,
+      })
+      .signers([admin])
+      .rpc();
+  });
+
   it("set roles", async () => {
-    let vaultsAdmin = { vaultsAdmin: {} };
-    await accessControlProgram.methods.setRole(vaultsAdmin, admin.publicKey)
+    await accessControlProgram.methods.setRole(ROLES.VAULTS_ADMIN, admin.publicKey, true)
       .accounts({
         signer: admin.publicKey,
       })
       .signers([admin])
       .rpc();
 
-    let reportingManager = { reportingManager: {} };
-    await accessControlProgram.methods.setRole(reportingManager, admin.publicKey)
+    await accessControlProgram.methods.setRole(ROLES.REPORTING_MANAGER, admin.publicKey, true)
       .accounts({
         signer: admin.publicKey,
       })
       .signers([admin])
       .rpc();
 
-    let strategiesManager = { strategiesManager: {} };
-    await accessControlProgram.methods.setRole(strategiesManager, admin.publicKey)
+    await accessControlProgram.methods.setRole(ROLES.STRATEGIES_MANAGER, admin.publicKey, true)
       .accounts({
         signer: admin.publicKey,
       })
       .signers([admin])
       .rpc();
 
-    let accountantAdmin = { accountantAdmin: {} };
-    await accessControlProgram.methods.setRole(accountantAdmin, admin.publicKey)
+    await accessControlProgram.methods.setRole(ROLES.ACCOUNTANT_ADMIN, admin.publicKey, true)
       .accounts({
         signer: admin.publicKey,
       })
       .signers([admin])
       .rpc();
 
-    const accountRoles = web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("roles"), admin.publicKey.toBuffer()],
+      await accessControlProgram.methods.setRole(ROLES.KYC_PROVIDER, admin.publicKey, true)
+      .accounts({
+        signer: admin.publicKey,
+      })
+      .signers([admin])
+      .rpc();
+
+      await accessControlProgram.methods.setRole(ROLES.KYC_VERIFIED, user.publicKey, true)
+      .accounts({
+        signer: admin.publicKey,
+      })
+      .signers([admin])
+      .rpc();
+
+    const vaultAdmin = web3.PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("user_role"),
+        admin.publicKey.toBuffer(),
+        Buffer.from(new Uint8Array(new BigUint64Array([BigInt(1)]).buffer))],
       accessControlProgram.programId,
     )[0];
-    const rolesAccount = await accessControlProgram.account.accountRoles.fetch(accountRoles);
 
-    assert.isTrue(rolesAccount.isVaultsAdmin);
-    assert.isTrue(rolesAccount.isReportingManager);
-    assert.isTrue(rolesAccount.isStrategiesManager);
+    let rolesAccount = await accessControlProgram.account.userRole.fetch(vaultAdmin);
+    assert.isTrue(rolesAccount.hasRole);
+
+    const reportingManager = web3.PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("user_role"),
+        admin.publicKey.toBuffer(),
+        Buffer.from(new Uint8Array(new BigUint64Array([BigInt(2)]).buffer))],
+      accessControlProgram.programId,
+    )[0];
+
+    rolesAccount = await accessControlProgram.account.userRole.fetch(reportingManager);
+    assert.isTrue(rolesAccount.hasRole);
+
+    const strategiesManagerRole = web3.PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("user_role"),
+        admin.publicKey.toBuffer(),
+        Buffer.from(new Uint8Array(new BigUint64Array([BigInt(3)]).buffer))],
+      accessControlProgram.programId,
+    )[0];
+
+    rolesAccount = await accessControlProgram.account.userRole.fetch(strategiesManagerRole);
+    assert.isTrue(rolesAccount.hasRole);
   });
 
   it("Initializes the vault", async () => {
@@ -185,6 +278,7 @@ describe("tokenized_vault", () => {
       minUserDeposit: new BN(0),
       accountant: accountant,
       profitMaxUnlockTime: new BN(0),
+      kycVerifiedOnly: true,
     };
 
     const sharesConfig = {
@@ -212,7 +306,6 @@ describe("tokenized_vault", () => {
 
     console.log("vault inited");
     let vaultAccount = await vaultProgram.account.vault.fetch(vault);
-    // assert.ok(vaultAccount.underlyingTokenAcc.equals(vaultTokenAccount));
     assert.strictEqual(vaultAccount.depositLimit.toString(), '1000000000');
     console.log("Vault deposit limit: ", vaultAccount.depositLimit.toString());
     console.log("minUserDeposit: ", vaultAccount.minUserDeposit.toString());
@@ -298,7 +391,7 @@ describe("tokenized_vault", () => {
       .signers([admin])
       .rpc();
 
-      console.log("Strategy program initialized");
+    console.log("Strategy program initialized");
 
     strategy = web3.PublicKey.findProgramAddressSync(
       [
@@ -415,6 +508,14 @@ describe("tokenized_vault", () => {
     await token.mintTo(provider.connection, admin, underlyingMint, userTokenAccount, admin.publicKey, 1000);
     console.log("Minted 1000 tokens to user:", userTokenAccount.toBase58());
 
+    const kycVerified = web3.PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("user_role"),
+        user.publicKey.toBuffer(),
+        Buffer.from(new Uint8Array(new BigUint64Array([BigInt(6)]).buffer))],
+      accessControlProgram.programId,
+    )[0];
+
     await vaultProgram.methods.deposit(new BN(100))
       .accounts({
         vault,
@@ -423,6 +524,9 @@ describe("tokenized_vault", () => {
         userSharesAccount,
       })
       .signers([user])
+      .remainingAccounts([
+        { pubkey: kycVerified, isWritable: false, isSigner: false },
+      ])
       .rpc();
 
     const vaultAccount = await vaultProgram.account.vault.fetch(vault);
@@ -854,6 +958,14 @@ describe("tokenized_vault", () => {
 
     console.log("Minted 1000 tokens to user:", adminTokenAccount.toBase58());
 
+    const kycVerified = web3.PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("user_role"),
+        user.publicKey.toBuffer(),
+        Buffer.from(new Uint8Array(new BigUint64Array([BigInt(6)]).buffer))],
+      accessControlProgram.programId,
+    )[0];
+    
     await vaultProgram.methods.deposit(new BN(100))
       .accounts({
         vault,
@@ -862,6 +974,9 @@ describe("tokenized_vault", () => {
         userSharesAccount,
       })
       .signers([user])
+      .remainingAccounts([
+        { pubkey: kycVerified, isWritable: false, isSigner: false },
+      ])
       .rpc();
 
     let strategyTokenAccountInfo = await token.getAccount(provider.connection, strategyTokenAccount);

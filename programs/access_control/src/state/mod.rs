@@ -1,6 +1,8 @@
 
-pub mod roles;
-pub mod roles_admin;
+pub mod config;
+pub mod role_manager;
+pub mod user_role;
 
-pub use roles::*;
-pub use roles_admin::*;
+pub use config::*;
+pub use user_role::*;
+pub use role_manager::*;

@@ -82,4 +82,7 @@ pub enum ErrorCode {
 
     #[msg("Signer has no access")]
     AccessDenied,
+
+    #[msg("Only KYC verified users can deposit")]
+    KYCRequired,
 }

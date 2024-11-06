@@ -5,9 +5,9 @@ use anchor_spl::{
     token_interface::Mint,
 };
 use access_control::{
-    constants::ROLES_SEED,
+    constants::USER_ROLE_SEED,
     program::AccessControl,
-    state::AccountRoles
+    state::{UserRole, Role}
 };
 
 use crate::constants::{CONFIG_SEED, UNDERLYING_SEED};
@@ -45,13 +45,6 @@ pub struct InitStrategy<'info> {
     #[account(seeds = [CONFIG_SEED.as_bytes()], bump)]
     pub config: Account<'info, Config>,
 
-    #[account(
-        seeds = [ROLES_SEED.as_bytes(), signer.key().as_ref()], 
-        bump,
-        seeds::program = access_control.key()
-    )]
-    pub roles: Account<'info, AccountRoles>,
-
     /// CHECK: This should be a vault account
     #[account()]
     pub vault: UncheckedAccount<'info>,
@@ -59,7 +52,18 @@ pub struct InitStrategy<'info> {
     #[account(mut)]
     pub underlying_mint: Box<InterfaceAccount<'info, Mint>>,
 
-    #[account(mut, constraint = roles.only_strategies_manager()?)]
+    #[account(
+        seeds = [
+            USER_ROLE_SEED.as_bytes(), 
+            signer.key().as_ref(),
+            Role::StrategiesManager.to_seed().as_ref()
+        ], 
+        bump,
+        seeds::program = access_control.key()
+    )]
+    pub roles: Account<'info, UserRole>,
+
+    #[account(mut, constraint = roles.check_role()?)]
     pub signer: Signer<'info>,
 
     pub token_program: Program<'info, Token>,

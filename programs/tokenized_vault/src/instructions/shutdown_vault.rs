@@ -1,8 +1,8 @@
 use anchor_lang::prelude::*;
 use access_control::{
-    constants::ROLES_SEED,
+    constants::USER_ROLE_SEED,
     program::AccessControl,
-    state::AccountRoles
+    state::{UserRole, Role}
 };
 
 use crate::errors::ErrorCode;
@@ -14,13 +14,17 @@ pub struct ShutdownVault<'info> {
     pub vault: AccountLoader<'info, Vault>,
     
     #[account(
-        seeds = [ROLES_SEED.as_bytes(), signer.key().as_ref()], 
+        seeds = [
+            USER_ROLE_SEED.as_bytes(), 
+            signer.key().as_ref(),
+            Role::VaultsAdmin.to_seed().as_ref()
+        ], 
         bump,
         seeds::program = access_control.key()
     )]
-    pub roles: Account<'info, AccountRoles>,
+    pub roles: Account<'info, UserRole>,
 
-    #[account(mut, constraint = roles.only_vaults_admin()?)]
+    #[account(mut, constraint = roles.check_role()?)]
     pub signer: Signer<'info>,
 
     pub access_control: Program<'info, AccessControl>
@@ -29,7 +33,7 @@ pub struct ShutdownVault<'info> {
 pub fn handle_shutdown_vault(ctx: Context<ShutdownVault>) -> Result<()> {
     let vault = &mut ctx.accounts.vault.load_mut()?;
 
-    if vault.is_shutdown == true {
+    if vault.is_shutdown {
         return Err(ErrorCode::VaultShutdown.into());
     }
 

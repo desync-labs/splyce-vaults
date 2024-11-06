@@ -1,8 +1,8 @@
 
-pub mod drop_role;
 pub mod initialize;
 pub mod set_role;
+pub mod set_role_manager;
 
-pub use drop_role::*;
 pub use initialize::*;
 pub use set_role::*;
+pub use set_role_manager::*;

@@ -1,6 +1,5 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface::Mint;
-use accountant::state::Accountant;
 
 use crate::constants::{VAULT_SEED, MAX_BPS, SHARES_SEED, MAX_BPS_EXTENDED};
 use crate::errors::ErrorCode;
@@ -22,7 +21,6 @@ pub struct Vault {
     pub underlying_token_acc: Pubkey,
     pub underlying_decimals: u8,
 
-    // TODO: move fee to accontant
     pub accountant: Pubkey,
 
     pub total_debt: u64,
@@ -33,6 +31,9 @@ pub struct Vault {
     pub min_user_deposit: u64,
 
     pub is_shutdown: bool,
+
+    // only kyc verified users can deposit
+    pub kyc_verified_only: bool,
 
     pub profit_max_unlock_time: u64,
     pub full_profit_unlock_date: u64,
@@ -59,6 +60,7 @@ pub struct VaultConfig {
     pub min_user_deposit: u64,
     pub accountant: Pubkey,
     pub profit_max_unlock_time: u64,
+    pub kyc_verified_only: bool,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
@@ -105,6 +107,7 @@ impl Vault {
         self.deposit_limit = config.deposit_limit;
         self.min_user_deposit = config.min_user_deposit;
         self.profit_max_unlock_time = config.profit_max_unlock_time;
+        self.kyc_verified_only = config.kyc_verified_only;
 
         self.is_shutdown = false;
         self.total_debt = 0;

@@ -1,28 +1,54 @@
 use anchor_lang::prelude::*;
 
-use crate::constants::{ DISCRIMINATOR_LEN, ROLES_ADMIN_SEED};
-use crate::state::roles_admin::RolesAdmin;
+use crate::constants::{DISCRIMINATOR_LEN, ROLE_MANAGER_SEED, USER_ROLE_SEED, CONFIG_SEED};
+use crate::state::{UserRole, RoleManager, Role, Config};
 
 #[derive(Accounts)]
 pub struct Initialize<'info> {
     #[account(
         init, 
-        seeds = [ROLES_ADMIN_SEED.as_bytes()], 
+        seeds = [ROLE_MANAGER_SEED.as_bytes(), Role::RolesAdmin.to_seed().as_ref()],
         bump,  
         payer = admin, 
-        space = DISCRIMINATOR_LEN + RolesAdmin::INIT_SPACE,
+        space = DISCRIMINATOR_LEN + RoleManager::INIT_SPACE,
     )]
-    pub roles_admin: Account<'info, RolesAdmin>,
+    pub role_owners: Account<'info, RoleManager>,
+
+    #[account(
+        init, 
+        seeds = [
+            USER_ROLE_SEED.as_bytes(),
+            admin.key().as_ref(),
+            Role::RolesAdmin.to_seed().as_ref()
+        ], 
+        bump,  
+        payer = admin, 
+        space = DISCRIMINATOR_LEN + UserRole::INIT_SPACE,
+    )]
+    pub roles: Account<'info, UserRole>,
+
+    #[account(
+        init,
+        seeds = [CONFIG_SEED.as_bytes()],
+        bump,
+        payer = admin,
+        space = DISCRIMINATOR_LEN + Config::INIT_SPACE,
+    )]
+    pub config: Account<'info, Config>,
 
     #[account(mut)]
     pub admin: Signer<'info>,
+
     pub system_program: Program<'info, System>,
     pub rent: Sysvar<'info, Rent>,
 }
 
 pub fn handle_initialize(ctx: Context<Initialize>) -> Result<()> {
-    let role = &mut ctx.accounts.roles_admin;
-    role.account = ctx.accounts.admin.key();
+    let config = &mut ctx.accounts.config;
+    config.owner = ctx.accounts.admin.key();
+
+    ctx.accounts.role_owners.manager_role_id = Role::RolesAdmin as u64;
+    ctx.accounts.roles.has_role = true;
 
     Ok(())
 }

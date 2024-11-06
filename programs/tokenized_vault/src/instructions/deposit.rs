@@ -1,5 +1,10 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Mint, MintTo, Token, TokenAccount};
+use access_control::{
+    constants::USER_ROLE_SEED,
+    program::AccessControl,
+    state::{UserRole, Role}
+};
 
 use crate::constants::{SHARES_SEED, UNDERLYING_SEED};
 
@@ -29,10 +34,38 @@ pub struct Deposit<'info> {
     pub user: Signer<'info>,
 
     pub token_program: Program<'info, Token>,
+    pub access_control: Program<'info, AccessControl>,
 }
 
 pub fn handle_deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
-   let shares = handle_deposit_internal(&ctx.accounts.vault, amount)?;
+
+    if ctx.accounts.vault.load()?.kyc_verified_only {
+        let expected_roles_key = Pubkey::find_program_address(
+            &[
+                USER_ROLE_SEED.as_bytes(), 
+                ctx.accounts.user.key().as_ref(), 
+                Role::KYCVerified.to_seed().as_ref()
+                ], 
+                ctx.accounts.access_control.key
+            ).0;
+
+        let roles_acc_info: Option<&AccountInfo> = ctx.remaining_accounts.iter().find(|account| account.key.eq(&expected_roles_key));
+        if roles_acc_info.is_none() {
+            return Err(ErrorCode::KYCRequired.into());
+        }
+
+        let roles_data = roles_acc_info.unwrap().try_borrow_data()?;
+        if roles_data.len() < UserRole::INIT_SPACE + 8 {
+            return Err(ErrorCode::InvalidAccountType.into());
+        }
+        let roles = UserRole::try_from_slice(&roles_data[8..]).map_err(|_| ErrorCode::InvalidAccountType)?;
+
+        if !roles.has_role {
+            return Err(ErrorCode::KYCRequired.into());
+        }
+    }
+
+    let shares = handle_deposit_internal(&ctx.accounts.vault, amount)?;
 
     transfer_token_to(
         ctx.accounts.token_program.to_account_info(), 
@@ -75,7 +108,7 @@ pub fn handle_deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
 fn handle_deposit_internal<'info>(vault_loader: &AccountLoader<'info, Vault>, amount: u64) -> Result<u64> {
     let mut vault = vault_loader.load_mut()?;
     // todo: track min user deposit properly
-    if vault.is_shutdown == true {
+    if vault.is_shutdown {
         return Err(ErrorCode::VaultShutdown.into());
     }
 

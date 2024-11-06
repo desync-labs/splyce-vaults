@@ -6,9 +6,9 @@ use anchor_spl::{
     token_interface::{Mint, TokenAccount},
 };
 use access_control::{
-    constants::ROLES_SEED,
+    constants::USER_ROLE_SEED,
     program::AccessControl,
-    state::AccountRoles
+    state::{Role, UserRole}
 };
 
 use crate::state::*;
@@ -44,14 +44,19 @@ pub struct InitAccountant<'info> {
     pub config: Account<'info, Config>,
 
     #[account(
-        seeds = [ROLES_SEED.as_bytes(), signer.key().as_ref()], 
+        seeds = [
+            USER_ROLE_SEED.as_bytes(), 
+            signer.key().as_ref(),
+            Role::AccountantAdmin.to_seed().as_ref()
+        ], 
         bump,
         seeds::program = access_control.key()
     )]
-    pub roles: Account<'info, AccountRoles>,
+    pub roles: Account<'info, UserRole>,
 
-    #[account(mut, constraint = roles.only_accountant_admin()?)]
+    #[account(mut, constraint = roles.check_role()?)]
     pub signer: Signer<'info>,
+
 
     pub access_control: Program<'info, AccessControl>,
     pub token_program: Program<'info, Token>,

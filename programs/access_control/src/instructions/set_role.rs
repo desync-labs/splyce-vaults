@@ -1,36 +1,58 @@
 use anchor_lang::prelude::*;
+use num_traits::FromPrimitive;
 
-use crate::constants::{ROLES_ADMIN_SEED, ROLES_SEED, DISCRIMINATOR_LEN};
-use crate::state::{AccountRoles, RolesAdmin, Role};
-use crate::error::ErrorCode;
+use crate::constants::{DISCRIMINATOR_LEN, ROLE_MANAGER_SEED, USER_ROLE_SEED};
+use crate::state::{Role, RoleManager, UserRole};
+use crate::errors::ErrorCode;
 
 #[derive(Accounts)]
-#[instruction(role: Role, user: Pubkey)]
+#[instruction(role_id: u64, user: Pubkey, value: bool)]
 pub struct SetRole<'info> {
     #[account(
         init_if_needed, 
         seeds = [
-            ROLES_SEED.as_bytes(),
-            user.as_ref()
+            USER_ROLE_SEED.as_bytes(),
+            user.as_ref(),
+            role_id.to_le_bytes().as_ref()
         ], 
         bump,  
         payer = signer, 
-        space = DISCRIMINATOR_LEN + AccountRoles::INIT_SPACE,
+        space = DISCRIMINATOR_LEN + UserRole::INIT_SPACE,
     )]
-    pub roles: Account<'info, AccountRoles>,
+    pub roles: Account<'info, UserRole>,
 
-    #[account(seeds = [ROLES_ADMIN_SEED.as_bytes()], bump)]
-    pub roles_admin: Account<'info, RolesAdmin>,
+    #[account(seeds = [ROLE_MANAGER_SEED.as_bytes(), role_id.to_le_bytes().as_ref()], bump)]
+    pub role_manager: Account<'info, RoleManager>,
 
-    #[account(mut, address = roles_admin.account @ErrorCode::AccessDenied)]
+    #[account(
+        seeds = [
+            USER_ROLE_SEED.as_bytes(), 
+            signer.key().as_ref(), 
+            role_manager.manager_role_id.to_le_bytes().as_ref()
+        ], 
+        bump
+    )]
+    pub signer_roles: Account<'info, UserRole>,
+
+    #[account(mut)]
     pub signer: Signer<'info>,
 
     pub system_program: Program<'info, System>,
     pub rent: Sysvar<'info, Rent>,
 }
 
-pub fn handle_set_role(ctx: Context<SetRole>, role: Role, user: Pubkey) -> Result<()> {
-    let roles = &mut ctx.accounts.roles;
-    roles.account = user;
-    roles.set_role(role)
-}
+pub fn handle_set_role(ctx: Context<SetRole>, role_id: u64, _user: Pubkey, value: bool) -> Result<()> {
+    let role: Option<Role> = FromPrimitive::from_u64(role_id);
+    if  role == None {
+        return Err(ErrorCode::InvalidRoleId.into());
+    }
+    if role.unwrap() == Role::RolesAdmin {
+        return Err(ErrorCode::CannotSetRoleAdmin.into());
+    }
+
+    let role_manager: Role = FromPrimitive::from_u64(ctx.accounts.role_manager.manager_role_id).unwrap();
+
+    msg!("role_manager: {:?}", role_manager);
+    ctx.accounts.roles.has_role = value;
+    Ok(())
+}  

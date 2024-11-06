@@ -5,9 +5,9 @@ use anchor_spl::{
     token_interface::{Mint, TokenAccount},
 };
 use access_control::{
-    constants::ROLES_SEED,
+    constants::USER_ROLE_SEED,
     program::AccessControl,
-    state::AccountRoles
+    state::{Role, UserRole}
 };
 
 use crate::utils::unchecked_accountant::UncheckedAccountant;
@@ -22,13 +22,17 @@ pub struct Distribute<'info> {
     pub recipient: Box<InterfaceAccount<'info, TokenAccount>>,
 
     #[account(
-        seeds = [ROLES_SEED.as_bytes(), signer.key().as_ref()], 
+        seeds = [
+            USER_ROLE_SEED.as_bytes(), 
+            signer.key().as_ref(),
+            Role::AccountantAdmin.to_seed().as_ref()
+        ], 
         bump,
         seeds::program = access_control.key()
     )]
-    pub roles: Account<'info, AccountRoles>,
+    pub roles: Account<'info, UserRole>,
 
-    #[account(mut, constraint = roles.only_accountant_admin()?)]
+    #[account(mut, constraint = roles.check_role()?)]
     pub signer: Signer<'info>,
 
     #[account(
@@ -47,7 +51,7 @@ pub struct Distribute<'info> {
 }
 
 pub fn handle_distribute(ctx: Context<Distribute>) -> Result<()> {
-    let mut accountant = &mut ctx.accounts.accountant.from_unchecked()?;
+    let accountant = &mut ctx.accounts.accountant.from_unchecked()?;
     accountant.distribute(&ctx.accounts)?;
     accountant.save_changes(&mut &mut ctx.accounts.accountant.try_borrow_mut_data()?[8..])
 }
