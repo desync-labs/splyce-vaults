@@ -8,6 +8,8 @@ use access_control::{
 use crate::errors::ErrorCode;
 use crate::state::Vault;
 
+use crate::events::VaultShutDownEvent;
+
 #[derive(Accounts)]
 pub struct ShutdownVault<'info> {
     #[account(mut)]
@@ -38,6 +40,11 @@ pub fn handle_shutdown_vault(ctx: Context<ShutdownVault>) -> Result<()> {
     }
 
     vault.shutdown();
+
+    emit!(VaultShutDownEvent {
+        vault_key: vault.key,
+        shutdown: true,
+    });
 
     Ok(())
 }

@@ -74,7 +74,7 @@ pub fn handle_update_debt<'a, 'b, 'c, 'info>(
     strategy_data_mut.current_debt = new_debt;
 
     emit!(UpdatedCurrentDebtForStrategyEvent {
-        vault_index: vaut_mut.index_buffer,
+        vault_key: vaut_mut.key,
         strategy_key: ctx.accounts.strategy.key(),
         total_idle: total_idle,
         total_debt: total_debt,

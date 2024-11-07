@@ -227,7 +227,7 @@ impl Vault {
         self.strategies[pos] = strategy_data;
 
         emit!(VaultAddStrategyEvent {
-            vault_index: self.index_buffer,
+            vault_key: self.key,
             strategy_key: strategy,
             current_debt: 0,
             max_debt,

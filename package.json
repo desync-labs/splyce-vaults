@@ -11,7 +11,8 @@
     "init_faucet": "npx ts-node scripts/init_faucet.ts",
     "init_trade_fi": "npx ts-node scripts/create_vault_with_trade_fi_strategy.ts",
     "underlying_mint": "npx ts-node scripts/create-underlying-mint.ts",
-    "initialize": "npx ts-node scripts/initialize.ts"
+    "initialize": "npx ts-node scripts/initialize.ts",
+    "shutdown_vault": "npx ts-node scripts/shutdown_vault.ts"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.30.1",

@@ -15,16 +15,24 @@ const TOKEN_METADATA_PROGRAM_ID = new anchor.web3.PublicKey("metaqbxxUerdq28cj1R
 // Define the config function
 async function main() {
   try {
+    const provider = anchor.AnchorProvider.env();
+    anchor.setProvider(provider);
+
     const secretKeyPath = path.resolve(process.env.HOME, '.config/solana/id.json');
     const secretKeyString = fs.readFileSync(secretKeyPath, 'utf8');
     const secretKey = Uint8Array.from(JSON.parse(secretKeyString));
     const admin = anchor.web3.Keypair.fromSecretKey(secretKey);
 
+    console.log("Admin public key:", admin.publicKey.toBase58());
+
     const vaultProgram = anchor.workspace.TokenizedVault as Program<TokenizedVault>;
     const strategyProgram = anchor.workspace.Strategy as Program<Strategy>;
 
-    const underlyingMint = new anchor.web3.PublicKey("4dCLhR7U8PzwXau6qfjr73tKgp5SD42aLbyo3XQNzY4V");
+    const underlyingMint = new anchor.web3.PublicKey("6ktEi4XgXUfMhia2DYC6o8yBRUFfbLnuMRRuhxyt8ajV");    
     console.log("Underlying token mint public key:", underlyingMint.toBase58());
+
+    const accountant = new anchor.web3.PublicKey("");
+    console.log("Accountant public key:", accountant.toBase58());
 
     let config = anchor.web3.PublicKey.findProgramAddressSync(
       [Buffer.from("config")],
@@ -44,6 +52,8 @@ async function main() {
       vaultProgram.programId
     )[0];
 
+    console.log("Vault:", vault.toBase58());
+
     const sharesMint = anchor.web3.PublicKey.findProgramAddressSync(
       [Buffer.from("shares"), vault.toBuffer()],
       vaultProgram.programId
@@ -52,8 +62,9 @@ async function main() {
     const vaultConfig = {
       depositLimit: new BN(1_000_000_000).mul(new BN(10).pow(new BN(9))),
       minUserDeposit: new BN(0),
-      performanceFee: new BN(1000),
+      accountant: accountant,
       profitMaxUnlockTime: new BN(0),
+      kycVerifiedOnly: false,
     };
 
     const [metadataAddress] = anchor.web3.PublicKey.findProgramAddressSync(
@@ -64,6 +75,9 @@ async function main() {
       ],
       TOKEN_METADATA_PROGRAM_ID
     );
+
+    console.log("metadataAddress:", metadataAddress.toBase58());
+
 
     await vaultProgram.methods.initVault(vaultConfig)
       .accounts({
@@ -107,7 +121,7 @@ async function main() {
     });
 
     const configBytes = Buffer.from(borsh.serialize(SimpleStrategyConfigSchema, strategyConfig));
-    await strategyProgram.methods.initStrategy(0, strategyType, configBytes)
+    await strategyProgram.methods.initStrategy(strategyType, configBytes)
       .accounts({
         vault,
         underlyingMint,
