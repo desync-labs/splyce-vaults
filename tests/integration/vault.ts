@@ -196,42 +196,44 @@ describe("tokenized_vault", () => {
   });
 
   it("set roles", async () => {
-    await accessControlProgram.methods.setRole(ROLES.VAULTS_ADMIN, admin.publicKey, true)
+    console.log("Admin public key:", admin.publicKey.toBase58());
+    await accessControlProgram.methods.setRole(ROLES.VAULTS_ADMIN, admin.publicKey)
       .accounts({
         signer: admin.publicKey,
       })
       .signers([admin])
       .rpc();
 
-    await accessControlProgram.methods.setRole(ROLES.REPORTING_MANAGER, admin.publicKey, true)
+      console.log("Admin public key2:", admin.publicKey.toBase58());
+    await accessControlProgram.methods.setRole(ROLES.REPORTING_MANAGER, admin.publicKey)
       .accounts({
         signer: admin.publicKey,
       })
       .signers([admin])
       .rpc();
 
-    await accessControlProgram.methods.setRole(ROLES.STRATEGIES_MANAGER, admin.publicKey, true)
+    await accessControlProgram.methods.setRole(ROLES.STRATEGIES_MANAGER, admin.publicKey)
       .accounts({
         signer: admin.publicKey,
       })
       .signers([admin])
       .rpc();
 
-    await accessControlProgram.methods.setRole(ROLES.ACCOUNTANT_ADMIN, admin.publicKey, true)
+    await accessControlProgram.methods.setRole(ROLES.ACCOUNTANT_ADMIN, admin.publicKey)
       .accounts({
         signer: admin.publicKey,
       })
       .signers([admin])
       .rpc();
 
-      await accessControlProgram.methods.setRole(ROLES.KYC_PROVIDER, admin.publicKey, true)
+      await accessControlProgram.methods.setRole(ROLES.KYC_PROVIDER, admin.publicKey)
       .accounts({
         signer: admin.publicKey,
       })
       .signers([admin])
       .rpc();
 
-      await accessControlProgram.methods.setRole(ROLES.KYC_VERIFIED, user.publicKey, true)
+      await accessControlProgram.methods.setRole(ROLES.KYC_VERIFIED, user.publicKey)
       .accounts({
         signer: admin.publicKey,
       })

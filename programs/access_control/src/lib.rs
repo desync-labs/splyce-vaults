@@ -17,11 +17,15 @@ pub mod access_control {
         handle_initialize(ctx)
     }
 
-    pub fn set_role(ctx: Context<SetRole>, role_id: u64, user: Pubkey, value: bool) -> Result<()> {
-        handle_set_role(ctx, role_id, user, value)
+    pub fn set_role(ctx: Context<SetRole>, role_id: u64, user: Pubkey) -> Result<()> {
+        handle_set_role(ctx, role_id, user)
     }
 
     pub fn set_role_manager(ctx: Context<SetRoleManager>, role_id: u64, manager_role_id: u64) -> Result<()> {
         handle_set_role_manager(ctx, role_id, manager_role_id)
+    }
+
+    pub fn revoke_role(ctx: Context<RevokeRole>, role_id: u64, user: Pubkey) -> Result<()> {
+        handle_revoke_role(ctx, role_id, user)
     }
 }

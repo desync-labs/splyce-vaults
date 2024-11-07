@@ -6,7 +6,7 @@ use crate::state::{Role, RoleManager, UserRole};
 use crate::errors::ErrorCode;
 
 #[derive(Accounts)]
-#[instruction(role_id: u64, user: Pubkey, value: bool)]
+#[instruction(role_id: u64, user: Pubkey)]
 pub struct SetRole<'info> {
     #[account(
         init_if_needed, 
@@ -34,14 +34,14 @@ pub struct SetRole<'info> {
     )]
     pub signer_roles: Account<'info, UserRole>,
 
-    #[account(mut)]
+    #[account(mut, constraint = signer_roles.check_role()?)]
     pub signer: Signer<'info>,
 
     pub system_program: Program<'info, System>,
     pub rent: Sysvar<'info, Rent>,
 }
 
-pub fn handle_set_role(ctx: Context<SetRole>, role_id: u64, _user: Pubkey, value: bool) -> Result<()> {
+pub fn handle_set_role(ctx: Context<SetRole>, role_id: u64, _user: Pubkey) -> Result<()> {
     let role: Option<Role> = FromPrimitive::from_u64(role_id);
     if  role == None {
         return Err(ErrorCode::InvalidRoleId.into());
@@ -53,6 +53,6 @@ pub fn handle_set_role(ctx: Context<SetRole>, role_id: u64, _user: Pubkey, value
     let role_manager: Role = FromPrimitive::from_u64(ctx.accounts.role_manager.manager_role_id).unwrap();
 
     msg!("role_manager: {:?}", role_manager);
-    ctx.accounts.roles.has_role = value;
+    ctx.accounts.roles.has_role = true;
     Ok(())
 }  
