@@ -69,6 +69,11 @@ pub fn withdraw<'a>(
     Ok(post_balance - pre_balance)
 }
 
+pub fn get_vault(strategy_acc: &AccountInfo) -> Result<Pubkey> {
+    let strategy = deserialize(strategy_acc)?;
+    Ok(strategy.vault())
+}
+
 pub fn get_max_withdraw(strategy_acc: &AccountInfo) -> Result<u64> {
     let strategy = deserialize(strategy_acc)?;
     Ok(strategy.available_withdraw())

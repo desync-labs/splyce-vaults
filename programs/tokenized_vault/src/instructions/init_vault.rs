@@ -10,12 +10,7 @@ use anchor_spl::{
     token_interface::{Mint, TokenAccount},
 };
 
-use crate::constants::{
-    CONFIG_SEED,
-    VAULT_SEED, 
-    UNDERLYING_SEED, 
-    DISCRIMINATOR_LEN,
-};
+use crate::constants::{CONFIG_SEED, VAULT_SEED, UNDERLYING_SEED};
 use crate::state::{Vault, Config, VaultConfig};
 
 #[derive(Accounts)]
@@ -28,7 +23,7 @@ pub struct InitVault<'info> {
         ], 
         bump,  
         payer = signer, 
-        space = DISCRIMINATOR_LEN + Vault::INIT_SPACE,
+        space = Vault::LEN,
     )]
     pub vault: AccountLoader<'info, Vault>,
     

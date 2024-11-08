@@ -42,7 +42,7 @@ pub fn handle_deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
 
     let shares = ctx.accounts.vault.load()?.convert_to_shares(amount);
 
-    token::transfer_token_to(
+    token::transfer(
         ctx.accounts.token_program.to_account_info(),
         ctx.accounts.user_token_account.to_account_info(),
         ctx.accounts.vault_token_account.to_account_info(),

@@ -8,9 +8,6 @@ pub enum ErrorCode {
     #[msg("Zero value")]
     ZeroValue,
 
-    #[msg("Custom error message")]
-    CustomError,
-
     #[msg("Invalid strategy data")]
     InvalidStrategyData,
 
@@ -85,4 +82,7 @@ pub enum ErrorCode {
 
     #[msg("Only KYC verified users can deposit")]
     KYCRequired,
+
+    #[msg("Strategy cannot be added")]
+    InvalidStrategyToAdd,
 }

@@ -107,7 +107,7 @@ impl Strategy for TradeFintechStrategy {
             return Err(ErrorCode::InsufficientFunds.into());
         }
 
-        token::transfer_token_to(
+        token::transfer(
             accounts.token_program.to_account_info(),
             remaining[0].to_account_info(),
             accounts.underlying_token_account.to_account_info(),
@@ -145,7 +145,7 @@ impl Strategy for TradeFintechStrategy {
             return Err(ErrorCode::InsufficientFunds.into());
         }
 
-        token::transfer_token_to(
+        token::transfer(
             accounts.token_program.to_account_info(),
             remaining[0].to_account_info(),
             accounts.underlying_token_account.to_account_info(),
@@ -191,7 +191,7 @@ impl Strategy for TradeFintechStrategy {
         }
 
         let seeds = self.seeds();
-        token::transfer_token_from(
+        token::transfer_with_signer(
             accounts.token_program.to_account_info(),
             accounts.underlying_token_account.to_account_info(),
             remaining[0].to_account_info(),

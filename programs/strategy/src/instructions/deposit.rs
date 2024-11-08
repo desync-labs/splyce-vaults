@@ -5,7 +5,7 @@ use anchor_spl::{
 };
 
 use crate::error::ErrorCode;
-use crate::utils::token::transfer_token_to;
+use crate::utils::token::transfer;
 use crate::utils::unchecked_strategy::UncheckedStrategy;
 use crate::constants::UNDERLYING_SEED;
 
@@ -39,7 +39,7 @@ pub fn handle_deposit<'info>(
         return Err(ErrorCode::MaxDepositReached.into());
     }
 
-    transfer_token_to(
+    transfer(
         ctx.accounts.token_program.to_account_info(),
         ctx.accounts.vault_token_account.to_account_info(), 
         ctx.accounts.underlying_token_account.to_account_info(), 

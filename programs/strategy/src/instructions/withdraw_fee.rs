@@ -60,7 +60,7 @@ pub fn handle_withdraw_fee<'info>(
     strategy.withdraw_fees(amount)?;
     strategy.save_changes(&mut &mut ctx.accounts.strategy.try_borrow_mut_data()?[8..])?;
 
-    token::transfer_token_from(
+    token::transfer_with_signer(
         ctx.accounts.token_program.to_account_info(), 
         ctx.accounts.underlying_token_account.to_account_info(), 
         ctx.accounts.recipient.to_account_info(), 

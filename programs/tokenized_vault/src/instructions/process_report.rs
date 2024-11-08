@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::{
     token::Token,
-    token_interface::{self as token, Burn, Mint, MintTo, TokenAccount},
+    token_interface::{ Mint, TokenAccount},
 };
 use access_control::{
     constants::USER_ROLE_SEED,
@@ -9,11 +9,10 @@ use access_control::{
     state::{UserRole, Role}
 };
 
-use crate::constants::{ MAX_BPS_EXTENDED, SHARES_ACCOUNT_SEED, SHARES_SEED};
+use crate::constants::{ MAX_BPS_EXTENDED, SHARES_ACCOUNT_SEED, SHARES_SEED, STRATEGY_DATA_SEED};
 use crate::events::StrategyReportedEvent;
-use crate::state::Vault;
-use crate::utils::strategy;
-use crate::utils::accountant;
+use crate::state::{Vault, StrategyData};
+use crate::utils::{accountant, strategy, token};
 
 #[derive(Accounts)]
 pub struct ProcessReport<'info> {
@@ -23,6 +22,17 @@ pub struct ProcessReport<'info> {
     /// CHECK: can by any strategy
     #[account()]
     pub strategy: UncheckedAccount<'info>,
+
+    #[account(
+        mut,
+        seeds = [
+            STRATEGY_DATA_SEED.as_bytes(),
+            vault.key().as_ref(),
+            strategy.key().as_ref()
+        ],
+        bump,
+    )]
+    pub strategy_data: Account<'info, StrategyData>,
 
     #[account(mut, seeds = [SHARES_SEED.as_bytes(), vault.key().as_ref()], bump)]
     pub shares_mint: Box<InterfaceAccount<'info, Mint>>,
@@ -70,7 +80,7 @@ pub fn handle_process_report(ctx: Context<ProcessReport>) -> Result<()> {
     burn_unlocked_shares(&ctx)?;
     ctx.accounts.vault_shares_token_account.reload()?;
 
-    let current_debt = get_current_strategy_debt(&ctx.accounts.vault, strategy.key())?;
+    let current_debt = ctx.accounts.strategy_data.current_debt;
 
     if strategy_assets > current_debt {
         profit = strategy_assets - current_debt;
@@ -79,8 +89,6 @@ pub fn handle_process_report(ctx: Context<ProcessReport>) -> Result<()> {
 
         handle_profit(&ctx, profit, total_fees)?;
 
-        msg!("Issuing fee shares");
-        msg!("Fee shares: {}", fee_shares);
         if fee_shares > 0 {
             issue_fee_shares(&ctx, fee_shares)?;
         }
@@ -89,10 +97,7 @@ pub fn handle_process_report(ctx: Context<ProcessReport>) -> Result<()> {
         handle_loss(&ctx, loss)?;
     }
 
-    ctx.accounts
-        .vault
-        .load_mut()?
-        .update_strategy_current_debt(strategy.key(), strategy_assets)?;
+    ctx.accounts.strategy_data.update_strategy_current_debt(strategy_assets)?;
 
     emit!(StrategyReportedEvent {
         strategy_key: strategy.key(),
@@ -111,16 +116,12 @@ fn issue_fee_shares(ctx: &Context<ProcessReport>, fee_shares: u64) -> Result<u64
     let vault = &mut ctx.accounts.vault.load_mut()?;
 
     token::mint_to(
-        CpiContext::new_with_signer(
-            ctx.accounts.token_program.to_account_info(),
-            MintTo {
-                mint: ctx.accounts.shares_mint.to_account_info(),
-                to: ctx.accounts.accountant_recipient.to_account_info(),
-                authority: ctx.accounts.shares_mint.to_account_info(),
-            },
-            &[&vault.seeds_shares()],
-        ),
+        ctx.accounts.token_program.to_account_info(),
+        ctx.accounts.shares_mint.to_account_info(),
+        ctx.accounts.accountant_recipient.to_account_info(),
+        ctx.accounts.shares_mint.to_account_info(),
         fee_shares,
+        &vault.seeds_shares()
     )?;
 
     vault.total_shares += fee_shares;
@@ -167,17 +168,14 @@ fn handle_profit(ctx: &Context<ProcessReport>, profit: u64, fees: u64) -> Result
 
         // mint shares to lock
         token::mint_to(
-            CpiContext::new_with_signer(
-                ctx.accounts.token_program.to_account_info(),
-                MintTo {
-                    mint: ctx.accounts.shares_mint.to_account_info(),
-                    to: ctx.accounts.vault_shares_token_account.to_account_info(),
-                    authority: ctx.accounts.shares_mint.to_account_info(),
-                },
-                &[&vault.seeds_shares()],
-            ),
+            ctx.accounts.token_program.to_account_info(),
+            ctx.accounts.shares_mint.to_account_info(),
+            ctx.accounts.vault_shares_token_account.to_account_info(),
+            ctx.accounts.shares_mint.to_account_info(),
             shares_to_lock,
+            &vault.seeds_shares()
         )?;
+    
     }
 
     vault.total_debt += profit;
@@ -190,17 +188,13 @@ fn handle_loss(ctx: &Context<ProcessReport>, loss: u64) -> Result<()> {
     let loss_shares = ctx.accounts.vault.load()?.convert_to_shares(loss);
     let shares_to_burn = std::cmp::min(ctx.accounts.vault_shares_token_account.amount, loss_shares);
 
-    token::burn(
-        CpiContext::new_with_signer(
-            ctx.accounts.token_program.to_account_info(),
-            Burn {
-                mint: ctx.accounts.shares_mint.to_account_info(),
-                from: ctx.accounts.vault_shares_token_account.to_account_info(),
-                authority: ctx.accounts.vault.to_account_info(),
-            },
-            &[&ctx.accounts.vault.load()?.seeds()],
-        ),
+    token::burn_with_signer(
+        ctx.accounts.token_program.to_account_info(),
+        ctx.accounts.shares_mint.to_account_info(),
+        ctx.accounts.vault_shares_token_account.to_account_info(),
+        ctx.accounts.vault.to_account_info(),
         shares_to_burn,
+        &ctx.accounts.vault.load()?.seeds(),
     )?;
 
     let vault = &mut ctx.accounts.vault.load_mut()?;
@@ -221,18 +215,15 @@ fn burn_unlocked_shares(ctx: &Context<ProcessReport>) -> Result<()> {
     }
 
     // Burn the shares unlocked.
-    token::burn(
-        CpiContext::new_with_signer(
-            ctx.accounts.token_program.to_account_info(),
-            Burn {
-                mint: ctx.accounts.shares_mint.to_account_info(),
-                from: ctx.accounts.vault_shares_token_account.to_account_info(),
-                authority: ctx.accounts.vault.to_account_info(),
-            },
-            &[&ctx.accounts.vault.load()?.seeds()],
-        ),
+    token::burn_with_signer(
+        ctx.accounts.token_program.to_account_info(),
+        ctx.accounts.shares_mint.to_account_info(),
+        ctx.accounts.vault_shares_token_account.to_account_info(),
+        ctx.accounts.vault.to_account_info(),
         shares_to_burn,
+        &ctx.accounts.vault.load()?.seeds(),
     )?;
+
 
     let mut vault = ctx.accounts.vault.load_mut()?;
     vault.total_shares -= shares_to_burn;
@@ -261,13 +252,4 @@ fn get_shares_to_burn(vault_loader: &AccountLoader<Vault>, total_locked: u64) ->
 
 fn get_timestamp() -> Result<u64> {
     Ok(Clock::get()?.unix_timestamp as u64)
-}
-
-fn get_current_strategy_debt(
-    vault_loader: &AccountLoader<Vault>,
-    strategy_key: Pubkey,
-) -> Result<u64> {
-    let vault = vault_loader.load()?;
-    let strategy_data = vault.get_strategy_data(strategy_key)?;
-    Ok(strategy_data.current_debt)
 }

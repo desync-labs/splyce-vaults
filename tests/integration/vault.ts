@@ -7,7 +7,6 @@ import * as token from "@solana/spl-token";
 import * as borsh from 'borsh';
 import { assert, expect } from 'chai';
 import { SimpleStrategyConfig, SimpleStrategyConfigSchema } from "../utils/schemas";
-import { PublicKey, Keypair, Transaction, Connection, SystemProgram} from "@solana/web3.js";
 
 const METADATA_SEED = "metadata";
 const TOKEN_METADATA_PROGRAM_ID = new web3.PublicKey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s");
@@ -494,8 +493,13 @@ describe("tokenized_vault", () => {
       .rpc();
 
     // get the vault strategies
-    const vaultAccount = await vaultProgram.account.vault.fetch(vault);
-    assert.ok(vaultAccount.strategies[0].key.equals(strategy));
+    const strategyData = web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("strategy_data"), vault.toBuffer(), strategy.toBuffer()],
+      vaultProgram.programId,
+    )[0];
+
+    const strategyDataAccount = await vaultProgram.account.strategyData.fetchNullable(strategyData);
+    assert.isNotNull(strategyDataAccount);
   });
 
   it("Deposits tokens into the vault", async () => {
@@ -582,8 +586,14 @@ describe("tokenized_vault", () => {
     assert.strictEqual(strategyAccount.totalAssets.toString(), '90');
 
     // check strategy debt
+    const strategyData = web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("strategy_data"), vault.toBuffer(), strategy.toBuffer()],
+      vaultProgram.programId,
+    )[0];
+    const strategyDataAccount = await vaultProgram.account.strategyData.fetch(strategyData);
     const vaultAccount = await vaultProgram.account.vault.fetch(vault);
-    assert.strictEqual(vaultAccount.strategies[0].currentDebt.toString(), '90');
+
+    assert.strictEqual(strategyDataAccount.currentDebt.toString(), '90');
     assert.strictEqual(vaultAccount.totalDebt.toString(), '90');
     assert.strictEqual(vaultAccount.totalIdle.toString(), '10');
   });
@@ -613,8 +623,14 @@ describe("tokenized_vault", () => {
     assert.strictEqual(strategyAccount.totalAssets.toString(), '80');
 
     // check strategy debt
+    const strategyData = web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("strategy_data"), vault.toBuffer(), strategy.toBuffer()],
+      vaultProgram.programId,
+    )[0];
+    const strategyDataAccount = await vaultProgram.account.strategyData.fetch(strategyData);
     const vaultAccount = await vaultProgram.account.vault.fetch(vault);
-    assert.strictEqual(vaultAccount.strategies[0].currentDebt.toString(), '80');
+    
+    assert.strictEqual(strategyDataAccount.currentDebt.toString(), '80');
     assert.strictEqual(vaultAccount.totalDebt.toString(), '80');
     assert.strictEqual(vaultAccount.totalIdle.toString(), '20');
   });
@@ -633,9 +649,15 @@ describe("tokenized_vault", () => {
         {
           strategyAcc: new BN(0),
           strategyTokenAccount: new BN(1),
-          remainingAccountsToStrategies: [new BN(0)],
+          strategyData: new BN(2),
+          remainingAccounts: [new BN(0)],
         }]
     };
+
+    const strategyData = web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("strategy_data"), vault.toBuffer(), strategy.toBuffer()],
+      vaultProgram.programId,
+    )[0];
 
     await vaultProgram.methods.redeem(new BN(30), new BN(10000), remainingAccountsMap)
       .accounts({
@@ -647,6 +669,8 @@ describe("tokenized_vault", () => {
       .remainingAccounts([
         { pubkey: strategy, isWritable: true, isSigner: false },
         { pubkey: strategyTokenAccount, isWritable: true, isSigner: false },
+        { pubkey: strategyData, isWritable: true, isSigner: false },
+
       ])
       .signers([user])
       .rpc();
@@ -716,9 +740,15 @@ describe("tokenized_vault", () => {
         {
           strategyAcc: new BN(0),
           strategyTokenAccount: new BN(1),
-          remainingAccountsToStrategies: [new BN(0)],
+          strategyData: new BN(2),
+          remainingAccounts: [new BN(0)],
         }]
     };
+
+    const strategyData = web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("strategy_data"), vault.toBuffer(), strategy.toBuffer()],
+      vaultProgram.programId,
+    )[0];
 
     await vaultProgram.methods.redeem(shares, new BN(0), remainingAccountsMap)
       .accounts({
@@ -730,6 +760,7 @@ describe("tokenized_vault", () => {
       .remainingAccounts([
         { pubkey: strategy, isWritable: true, isSigner: false },
         { pubkey: strategyTokenAccount, isWritable: true, isSigner: false },
+        { pubkey: strategyData, isWritable: true, isSigner: false },
       ])
       .signers([newOwner])
       .rpc();
@@ -796,9 +827,15 @@ describe("tokenized_vault", () => {
         {
           strategyAcc: new BN(0),
           strategyTokenAccount: new BN(1),
-          remainingAccountsToStrategies: [new BN(0)],
+          strategyData: new BN(2),
+          remainingAccounts: [new BN(0)],
         }]
     };
+
+    const strategyData = web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("strategy_data"), vault.toBuffer(), strategy.toBuffer()],
+      vaultProgram.programId,
+    )[0];
 
     await vaultProgram.methods.redeem(new BN(10), new BN(0), remainingAccountsMap)
       .accounts({
@@ -810,6 +847,7 @@ describe("tokenized_vault", () => {
       .remainingAccounts([
         { pubkey: strategy, isWritable: true, isSigner: false },
         { pubkey: strategyTokenAccount, isWritable: true, isSigner: false },
+        { pubkey: strategyData, isWritable: true, isSigner: false },
       ])
       .signers([user])
       .rpc();
@@ -850,6 +888,7 @@ describe("tokenized_vault", () => {
       .remainingAccounts([
         { pubkey: strategy, isWritable: true, isSigner: false },
         { pubkey: strategyTokenAccount, isWritable: true, isSigner: false },
+        { pubkey: strategyData, isWritable: true, isSigner: false },
       ])
       .signers([feeRecipient])
       .rpc();
@@ -1029,12 +1068,18 @@ describe("tokenized_vault", () => {
 
 
   it("remove strategy with debt", async () => {
+    const strategyData = web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("strategy_data"), vault.toBuffer(), strategy.toBuffer()],
+      vaultProgram.programId,
+    )[0];
 
     try {
       await vaultProgram.methods.removeStrategy(strategy, false)
         .accounts({
+          strategyData,
           vault,
           signer: admin.publicKey,
+          recipient: admin.publicKey,
         })
         .signers([admin])
         .rpc();
@@ -1045,17 +1090,25 @@ describe("tokenized_vault", () => {
   });
 
   it("remove strategy with debt - force", async () => {
+    const strategyData = web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("strategy_data"), vault.toBuffer(), strategy.toBuffer()],
+      vaultProgram.programId,
+    )[0];
+
     await vaultProgram.methods.removeStrategy(strategy, true)
       .accounts({
+        strategyData,
         vault,
         signer: admin.publicKey,
+        recipient: admin.publicKey,
       })
       .signers([admin])
       .rpc();
 
     // shpuld be default value
     const vaultAccount = await vaultProgram.account.vault.fetch(vault);
-    assert.strictEqual(vaultAccount.strategies[0].key.toString(), '11111111111111111111111111111111');
+    const strategyDataAccount = await vaultProgram.account.strategyData.fetchNullable(strategyData);
+    assert.isNull(strategyDataAccount);
   });
 
   it("remove strategy - no debt", async () => {
@@ -1068,21 +1121,28 @@ describe("tokenized_vault", () => {
       .signers([admin])
       .rpc();
 
+      const strategyData = web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("strategy_data"), vault.toBuffer(), strategy.toBuffer()],
+        vaultProgram.programId,
+      )[0];
+
     // get the vault strategies
-    let vaultAccount = await vaultProgram.account.vault.fetch(vault);
-    assert.ok(vaultAccount.strategies[0].key.equals(strategy));
+    let strategyDataAccount = await vaultProgram.account.strategyData.fetchNullable(strategyData);
+    assert.isNotNull(strategyDataAccount);
 
     await vaultProgram.methods.removeStrategy(strategy, false)
       .accounts({
+        strategyData,
         vault,
         signer: admin.publicKey,
+        recipient: admin.publicKey,
       })
       .signers([admin])
       .rpc();
 
     // shpuld be default value
-    vaultAccount = await vaultProgram.account.vault.fetch(vault);
-    assert.strictEqual(vaultAccount.strategies[0].key.toString(), '11111111111111111111111111111111');
+    strategyDataAccount = await vaultProgram.account.strategyData.fetchNullable(strategyData);
+    assert.isNull(strategyDataAccount);
   });
 
   it("shutdown vault", async () => {

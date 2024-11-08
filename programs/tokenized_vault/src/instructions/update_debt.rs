@@ -13,10 +13,10 @@ use access_control::{
 use strategy::program::Strategy;
 
 use crate::events::UpdatedCurrentDebtForStrategyEvent;
-use crate::state::Vault;
+use crate::state::{StrategyData, Vault};
 use crate::errors::ErrorCode;
 use crate::utils::strategy as strategy_utils;
-use crate::constants::UNDERLYING_SEED;
+use crate::constants::{STRATEGY_DATA_SEED, UNDERLYING_SEED};
 
 #[derive(Accounts)]
 #[instruction(new_debt: u64)]
@@ -31,8 +31,19 @@ pub struct UpdateStrategyDebt<'info> {
     pub vault_token_account: InterfaceAccount<'info, TokenAccount>,
 
     /// CHECK: Should this be mut?
-    #[account(mut, constraint = vault.load()?.is_vault_strategy(strategy.key()))]
+    #[account(mut)]
     pub strategy: UncheckedAccount<'info>,
+
+    #[account(
+        mut,
+        seeds = [
+            STRATEGY_DATA_SEED.as_bytes(),
+            vault.key().as_ref(),
+            strategy.key().as_ref()
+        ],
+        bump,
+    )]
+    pub strategy_data: Account<'info, StrategyData>,
 
     #[account(mut, 
         seeds = [UNDERLYING_SEED.as_bytes(), strategy.key().as_ref()],
@@ -70,8 +81,7 @@ pub fn handle_update_debt<'a, 'b, 'c, 'info>(
     vaut_mut.total_idle = total_idle;
     vaut_mut.total_debt = total_debt;
 
-    let strategy_data_mut = vaut_mut.get_strategy_data_mut(ctx.accounts.strategy.key())?;
-    strategy_data_mut.current_debt = new_debt;
+    ctx.accounts.strategy_data.update_strategy_current_debt(new_debt)?;
 
     emit!(UpdatedCurrentDebtForStrategyEvent {
         vault_key: vaut_mut.key,
@@ -90,7 +100,7 @@ fn handle_internal<'a, 'b, 'c, 'info>(
 ) -> Result<(u64, u64, u64)> {
     let vault = ctx.accounts.vault.load()?;
     let vault_seeds: &[&[u8]] = &vault.seeds();
-    let current_debt = vault.get_strategy_data(ctx.accounts.strategy.key())?.current_debt;
+    let current_debt = ctx.accounts.strategy_data.current_debt;
 
     if new_debt == current_debt {
         return Err(ErrorCode::SameDebt.into());
@@ -133,6 +143,7 @@ fn handle_internal<'a, 'b, 'c, 'info>(
         let assets_to_deposit = get_assets_deposit(
             &vault,
             ctx.accounts.strategy.to_account_info(),
+            &ctx.accounts.strategy_data,
             current_debt,
             new_debt,
         )?;
@@ -195,10 +206,11 @@ fn get_assets_to_withdraw(
 fn get_assets_deposit<'info>(
     vault: &Ref<Vault>,
     strategy_acc: AccountInfo,
+    strategy_data: &StrategyData,
     current_debt: u64,
     new_debt: u64,
 ) -> Result<u64> { 
-    if new_debt > vault.get_strategy_data(strategy_acc.key())?.max_debt {
+    if new_debt > strategy_data.max_debt {
         return Err(ErrorCode::DebtHigherThanMaxDebt.into());
     }
 

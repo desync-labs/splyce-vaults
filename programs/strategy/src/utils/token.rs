@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Transfer};
 
-pub fn transfer_token_from<'a>(
+pub fn transfer_with_signer<'a>(
     token_program: AccountInfo<'a>,
     from: AccountInfo<'a>,
     to: AccountInfo<'a>,
@@ -23,13 +23,13 @@ pub fn transfer_token_from<'a>(
     )
 }
 
-pub fn transfer_token_to<'a>(
+pub fn transfer<'a>(
     token_program: AccountInfo<'a>,
     from: AccountInfo<'a>,
     to: AccountInfo<'a>,
     authority: AccountInfo<'a>,
     amount: u64,
-) -> Result<()> {
+) -> Result<()> {   
     token::transfer(
         CpiContext::new(
             token_program,

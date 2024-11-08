@@ -6,13 +6,16 @@ use access_control::{
 };
 
 use crate::events::StrategyReportedEvent;
-use crate::state::Vault;
+use crate::state::{StrategyData, Vault};
 use crate::errors::ErrorCode;
 
 #[derive(Accounts)]
 pub struct RemoveStrategy<'info> {
     #[account(mut)]
     pub vault: AccountLoader<'info, Vault>,
+    
+    #[account(mut, close = recipient)]
+    pub strategy_data: Account<'info, StrategyData>,
     
     #[account(
         seeds = [
@@ -28,12 +31,16 @@ pub struct RemoveStrategy<'info> {
     #[account(mut, constraint = roles.check_role()?)]
     pub signer: Signer<'info>,
 
+    /// CHECK:
+    #[account(mut)]
+    pub recipient: UncheckedAccount<'info>,
+
     pub access_control: Program<'info, AccessControl>
 }
 
 pub fn handle_remove_strategy(ctx: Context<RemoveStrategy>, strategy: Pubkey, force: bool) -> Result<()> {
     let vault = &mut ctx.accounts.vault.load_mut()?;
-    let strategy_data = vault.get_strategy_data(strategy)?;
+    let strategy_data = &mut ctx.accounts.strategy_data;
 
     let mut loss: u64 = 0;
 
@@ -44,8 +51,6 @@ pub fn handle_remove_strategy(ctx: Context<RemoveStrategy>, strategy: Pubkey, fo
         loss = strategy_data.current_debt;
         vault.total_debt -= loss;
     }
-
-    vault.remove_strategy(strategy)?;
 
     emit!(StrategyReportedEvent {
         strategy_key: strategy,
