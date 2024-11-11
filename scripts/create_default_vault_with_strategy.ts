@@ -1,7 +1,7 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { TokenizedVault } from "../target/types/tokenized_vault";
-import { StrategyProgram } from "../target/types/strategy_program";
+import { Strategy } from "../target/types/strategy";
 import { BN } from "@coral-xyz/anchor";
 import * as token from "@solana/spl-token";
 import * as borsh from 'borsh';
@@ -26,12 +26,23 @@ async function main() {
     console.log("Admin public key:", admin.publicKey.toBase58());
 
     const vaultProgram = anchor.workspace.TokenizedVault as Program<TokenizedVault>;
-    const strategyProgram = anchor.workspace.StrategyProgram as Program<StrategyProgram>;
+    const strategyProgram = anchor.workspace.Strategy as Program<Strategy>;
 
-    const underlyingMint = new anchor.web3.PublicKey("6ktEi4XgXUfMhia2DYC6o8yBRUFfbLnuMRRuhxyt8ajV");
+    const underlyingMint = new anchor.web3.PublicKey("6ktEi4XgXUfMhia2DYC6o8yBRUFfbLnuMRRuhxyt8ajV");    
     console.log("Underlying token mint public key:", underlyingMint.toBase58());
 
-    const vault_index = 1;
+    const accountant = new anchor.web3.PublicKey("");
+    console.log("Accountant public key:", accountant.toBase58());
+
+    let config = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("config")],
+      vaultProgram.programId
+    )[0];
+
+    let configAccount = await vaultProgram.account.config.fetch(config);
+
+    const vault_index = configAccount.nextVaultIndex.toNumber();
+    console.log("Vault index:", vault_index);
 
     const vault = anchor.web3.PublicKey.findProgramAddressSync(
       [
@@ -51,8 +62,9 @@ async function main() {
     const vaultConfig = {
       depositLimit: new BN(1_000_000_000).mul(new BN(10).pow(new BN(9))),
       minUserDeposit: new BN(0),
-      performanceFee: new BN(1000),
+      accountant: accountant,
       profitMaxUnlockTime: new BN(0),
+      kycVerifiedOnly: false,
     };
 
     const [metadataAddress] = anchor.web3.PublicKey.findProgramAddressSync(
@@ -67,7 +79,7 @@ async function main() {
     console.log("metadataAddress:", metadataAddress.toBase58());
 
 
-    await vaultProgram.methods.initVault(new BN(vault_index), vaultConfig)
+    await vaultProgram.methods.initVault(vaultConfig)
       .accounts({
         underlyingMint,
         signer: admin.publicKey,
@@ -109,7 +121,7 @@ async function main() {
     });
 
     const configBytes = Buffer.from(borsh.serialize(SimpleStrategyConfigSchema, strategyConfig));
-    await strategyProgram.methods.initStrategy(0, strategyType, configBytes)
+    await strategyProgram.methods.initStrategy(strategyType, configBytes)
       .accounts({
         vault,
         underlyingMint,

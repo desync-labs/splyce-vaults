@@ -1,5 +1,5 @@
 pub mod constants;
-pub mod error;
+pub mod errors;
 pub mod instructions;
 pub mod state;
 pub mod utils;
@@ -7,8 +7,7 @@ pub mod events;
 
 use anchor_lang::prelude::*;
 
-pub use constants::*;
-pub use state::*;
+pub use state::{SharesConfig, VaultConfig};
 pub use instructions::*;
 
 declare_id!("8eDcyX8Z8yZXBQsuatwxDC1qzGbuUbP7wGERDBQoPmBH");
@@ -17,24 +16,16 @@ declare_id!("8eDcyX8Z8yZXBQsuatwxDC1qzGbuUbP7wGERDBQoPmBH");
 pub mod tokenized_vault {
     use super::*;
 
-    pub fn init_vault(ctx: Context<InitVault>, index: u64, config: Box<VaultConfig>) -> Result<()> {
-        handle_init_vault(ctx, index, config)
+    pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
+        handle_initialize(ctx)
+    }
+
+    pub fn init_vault(ctx: Context<InitVault>, config: Box<VaultConfig>) -> Result<()> {
+        handle_init_vault(ctx, config)
     }
 
     pub fn init_vault_shares(ctx: Context<InitVaultShares>, index: u64, config: Box<SharesConfig>) -> Result<()> {
         handle_init_vault_shares(ctx, index, config)
-    }
-
-    pub fn init_role_admin(ctx: Context<InitializeRoleAdmin>) -> Result<()> {
-        handle_init_role_admin(ctx)
-    }
-
-    pub fn set_role(ctx: Context<SetRole>, role: Role, user: Pubkey) -> Result<()> {
-        handle_set_role(ctx, role, user)
-    }
-
-    pub fn drop_role(ctx: Context<DropRole>, role: Role) -> Result<()> {
-        handle_drop_role(ctx, role)
     }
 
     pub fn deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
@@ -86,5 +77,9 @@ pub mod tokenized_vault {
 
     pub fn shutdown_vault(ctx: Context<ShutdownVault>) -> Result<()> {
         handle_shutdown_vault(ctx)
+    }
+
+    pub fn close_vault(ctx: Context<CloseVault>) -> Result<()> {
+        handle_close_vault(ctx)
     }
 }

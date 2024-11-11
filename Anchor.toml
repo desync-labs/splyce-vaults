@@ -7,6 +7,9 @@ skip-lint = false
 [programs.localnet]
 strategy_program = "EDA9ee5UKzdqrHgSd5v64bNnbCae1t7NJfUpvS7DZod"
 tokenized_vault = "8eDcyX8Z8yZXBQsuatwxDC1qzGbuUbP7wGERDBQoPmBH"
+access_control = "BDoMP91kwyaV4Y2dCFJS6dRSGenBQXNkcUfJk1Tw8bpW"
+accountant = "49pfysnCNyz6HrKsTUaKtyp8DPcXQadjkS5qBJPJKEnJ"
+deposit_limit = "HZekas7DsEfpg6JvU9wsGNUSy9E3fu9TGeVerMdvDBwc"
 faucet = "GUrM139EUwYkoEWebecqiTLJrvut4mDdHGTu9d87tgQC"
 
 [registry]
@@ -26,6 +29,7 @@ init_faucet = "yarn run init_faucet"
 process_report = "yarn run process_report"
 init_trade_fi =  "yarn run init_trade_fi"
 underlying_mint = "yarn run underlying_mint"
+initialize = "yarn run initialize"
 test = "yarn run ts-mocha -r dotenv/config -p ./tsconfig.json -t 2000000 --require './tests/integration/setups/globalSetup.ts' --recursive --reporter mocha-qase-reporter 'tests/integration/**/*.test.ts'"
 dev_test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/integration/vault.ts"
 shutdown_vault = "yarn run shutdown_vault"

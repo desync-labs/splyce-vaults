@@ -1,7 +1,7 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { TokenizedVault } from "../target/types/tokenized_vault";
-import { StrategyProgram } from "../target/types/strategy_program";
+import { Strategy } from "../target/types/strategy";
 import { BN } from "@coral-xyz/anchor";
 import * as token from "@solana/spl-token";
 import * as borsh from 'borsh';
@@ -24,12 +24,20 @@ async function main() {
     const admin = anchor.web3.Keypair.fromSecretKey(secretKey);
 
     const vaultProgram = anchor.workspace.TokenizedVault as Program<TokenizedVault>;
-    const strategyProgram = anchor.workspace.StrategyProgram as Program<StrategyProgram>;
+    const strategyProgram = anchor.workspace.Strategy as Program<Strategy>;
 
     const underlyingMint = new anchor.web3.PublicKey("6ktEi4XgXUfMhia2DYC6o8yBRUFfbLnuMRRuhxyt8ajV");
     console.log("Underlying token mint public key:", underlyingMint.toBase58());
 
-    const vault_index = 2;
+    let config = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("config")],
+      vaultProgram.programId
+    )[0];
+
+    let configAccount = await vaultProgram.account.config.fetch(config);
+
+    const vault_index = configAccount.nextVaultIndex.toNumber();
+    console.log("Vault index:", vault_index);
 
     const vault = anchor.web3.PublicKey.findProgramAddressSync(
       [
