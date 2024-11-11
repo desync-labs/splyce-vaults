@@ -103,6 +103,8 @@ pub fn handle_withdraw<'info>(
         }
     }
 
+    ctx.accounts.vault.load_mut()?.handle_withdraw(assets_to_transfer, shares_to_burn);
+
     token::burn(
         ctx.accounts.token_program.to_account_info(),
         ctx.accounts.shares_mint.to_account_info(),
@@ -120,8 +122,7 @@ pub fn handle_withdraw<'info>(
         &ctx.accounts.vault.load()?.seeds()
     )?;
 
-    let mut vault = ctx.accounts.vault.load_mut()?;
-    vault.handle_withdraw(assets_to_transfer, shares_to_burn);
+    let vault = ctx.accounts.vault.load()?;
 
     emit!(VaultWithdrawlEvent {
         vault_key: vault.key,
