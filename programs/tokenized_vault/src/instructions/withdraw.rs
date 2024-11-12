@@ -247,8 +247,6 @@ fn withdraw_assets<'info>(
 
         for i in 0..strategies.len() {
             let strategy_acc = &strategies[i].strategy_acc;
-            // let strategy_data = &strategies[i].strategy_data.deserialize()?;
-            
             let mut current_debt = strategies[i].strategy_data.current_debt();
 
             let mut to_withdraw = std::cmp::min(assets_needed as u64, current_debt);
