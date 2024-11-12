@@ -62,9 +62,6 @@ pub enum ErrorCode {
     #[msg("Exceed withdraw limit")]
     ExceedWithdrawLimit,
 
-    #[msg("Invalid strategy / token account pairs")]
-    InvalidAccountPairs,
-
     #[msg("Loss is too high")]
     TooMuchLoss,
 

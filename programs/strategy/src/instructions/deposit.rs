@@ -39,14 +39,14 @@ pub fn handle_deposit<'info>(
         return Err(ErrorCode::MaxDepositReached.into());
     }
 
+    strategy.deposit(amount)?;
+    strategy.save_changes(&mut &mut ctx.accounts.strategy.try_borrow_mut_data()?[8..])?;
+
     transfer(
         ctx.accounts.token_program.to_account_info(),
         ctx.accounts.vault_token_account.to_account_info(), 
         ctx.accounts.underlying_token_account.to_account_info(), 
         ctx.accounts.signer.to_account_info(), 
         amount
-    )?;
-
-    strategy.deposit(amount)?;
-    strategy.save_changes(&mut &mut ctx.accounts.strategy.try_borrow_mut_data()?[8..])
+    )
 }

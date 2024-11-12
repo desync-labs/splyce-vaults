@@ -4,11 +4,12 @@ use access_control::{
     program::AccessControl,
    state::{UserRole, Role}
 };
+use strategy::program::Strategy;
 
 use crate::errors::ErrorCode;
 use crate::constants::STRATEGY_DATA_SEED;
 use crate::state::{ StrategyData, Vault};
-use crate::utils::strategy;
+use crate::utils::strategy as strategy_utils;
 
 #[derive(Accounts)]
 pub struct AddStrategy<'info> {
@@ -29,7 +30,7 @@ pub struct AddStrategy<'info> {
     pub vault: AccountLoader<'info, Vault>,
 
     /// CHECK: can be any strategy
-    #[account()]
+    #[account(constraint = *strategy.owner == strategy_program.key())]
     pub strategy: UncheckedAccount<'info>,
 
     #[account(
@@ -47,11 +48,12 @@ pub struct AddStrategy<'info> {
     pub signer: Signer<'info>,
 
     pub access_control: Program<'info, AccessControl>,
-    pub system_program: Program<'info, System>
+    pub system_program: Program<'info, System>,
+    pub strategy_program: Program<'info, Strategy>,
 }
 
 pub fn handle_add_strategy(ctx: Context<AddStrategy>, max_debt: u64) -> Result<()> {
-    let strategy_vault = strategy::get_vault(&ctx.accounts.strategy.to_account_info())?;
+    let strategy_vault = strategy_utils::get_vault(&ctx.accounts.strategy.to_account_info())?;
 
     if strategy_vault != *ctx.accounts.vault.to_account_info().key {
         return Err(ErrorCode::InvalidStrategyToAdd.into());

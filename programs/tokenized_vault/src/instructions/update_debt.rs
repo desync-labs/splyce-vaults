@@ -77,14 +77,14 @@ pub fn handle_update_debt<'a, 'b, 'c, 'info>(
 ) -> Result<()> {
     let (total_idle, total_debt, new_debt) = handle_internal(&mut ctx, new_debt)?;
 
-    let vaut_mut = &mut ctx.accounts.vault.load_mut()?;
-    vaut_mut.total_idle = total_idle;
-    vaut_mut.total_debt = total_debt;
+    let vault_mut = &mut ctx.accounts.vault.load_mut()?;
+    vault_mut.total_idle = total_idle;
+    vault_mut.total_debt = total_debt;
 
     ctx.accounts.strategy_data.update_strategy_current_debt(new_debt)?;
 
     emit!(UpdatedCurrentDebtForStrategyEvent {
-        vault_key: vaut_mut.key,
+        vault_key: vault_mut.key,
         strategy_key: ctx.accounts.strategy.key(),
         total_idle: total_idle,
         total_debt: total_debt,
