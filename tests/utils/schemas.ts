@@ -98,3 +98,42 @@ export const TradeFintechConfigSchema = new Map([
         },
     ],
 ]);
+
+// Orca Strategy Config
+export class OrcaStrategyConfig {
+    depositLimit: BN;
+    depositPeriodEnds: BN;
+    lockPeriodEnds: BN;
+    performanceFee: BN;
+    feeManager: Buffer;
+
+    constructor(fields: { 
+        depositLimit: BN, 
+        depositPeriodEnds: BN, 
+        lockPeriodEnds: BN, 
+        performanceFee: BN, 
+        feeManager: anchor.web3.PublicKey 
+    }) {
+        this.depositLimit = fields.depositLimit;
+        this.depositPeriodEnds = fields.depositPeriodEnds;
+        this.lockPeriodEnds = fields.lockPeriodEnds;
+        this.performanceFee = fields.performanceFee;
+        this.feeManager = fields.feeManager.toBuffer();
+    }
+}
+
+export const OrcaStrategyConfigSchema = new Map([
+    [
+        OrcaStrategyConfig,
+        {
+            kind: 'struct',
+            fields: [
+                ['depositLimit', 'u64'],
+                ['depositPeriodEnds', 'u64'],
+                ['lockPeriodEnds', 'u64'],
+                ['performanceFee', 'u64'],
+                ['feeManager', [32]],
+            ],
+        },
+    ],
+]);

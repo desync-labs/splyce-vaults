@@ -4,6 +4,7 @@ use crate::constants::DISCRIMINATOR_LEN;
 use crate::state::{
     simple_strategy::SimpleStrategy,
     trade_fintech_srategy::TradeFintechStrategy,
+    orca_strategy::OrcaStrategy,
 };
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
@@ -14,6 +15,7 @@ pub enum StrategyType {
     Lending,
     Liquidation,
     Investor,
+    Orca,
 }
 
 impl StrategyType {
@@ -25,6 +27,7 @@ impl StrategyType {
             StrategyType::Lending => 0,
             StrategyType::Liquidation => 0,
             StrategyType::Investor => 0,
+            StrategyType::Orca => DISCRIMINATOR_LEN + OrcaStrategy::INIT_SPACE,
         }
     }
 }

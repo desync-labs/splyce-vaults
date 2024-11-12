@@ -49,7 +49,7 @@ impl StrategyManagement for SimpleStrategy {
     }
 }
 
-impl StretegyGetters for SimpleStrategy {
+impl StrategyGetters for SimpleStrategy {
     fn strategy_type(&self) -> StrategyType {
         StrategyType::Simple
     }

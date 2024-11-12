@@ -12,7 +12,9 @@
     "init_trade_fi": "npx ts-node scripts/create_vault_with_trade_fi_strategy.ts",
     "underlying_mint": "npx ts-node scripts/create-underlying-mint.ts",
     "initialize": "npx ts-node scripts/initialize.ts",
-    "shutdown_vault": "npx ts-node scripts/shutdown_vault.ts"
+    "shutdown_vault": "npx ts-node scripts/shutdown_vault.ts",
+    "init_orca_strategy": "npx ts-node scripts/orca/init_orca_strategy.ts",
+    "allocate_and_swap": "npx ts-node scripts/orca/allocate_and_swap.ts"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.30.1",

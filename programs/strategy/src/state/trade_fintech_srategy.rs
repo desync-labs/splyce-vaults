@@ -209,7 +209,7 @@ impl Strategy for TradeFintechStrategy {
     }
 }
 
-impl StretegyGetters for TradeFintechStrategy {
+impl StrategyGetters for TradeFintechStrategy {
     fn strategy_type(&self) -> StrategyType {
         StrategyType::TradeFintech
     }

@@ -60,6 +60,11 @@ pub fn deserialize(strategy: &AccountInfo) -> Result<Box<dyn Strategy>> {
                 .map_err(|_| ErrorCode::InvalidStrategyData)?;
             Ok(Box::new(strategy))
         }
+        OrcaStrategy::DISCRIMINATOR => {
+            let strategy = OrcaStrategy::try_from_slice(&strategy_data[8..])
+                .map_err(|_| ErrorCode::InvalidStrategyData)?;
+            Ok(Box::new(strategy))
+        }
         _ => {
             msg!("Invalid discriminator");
             Err(ErrorCode::InvalidStrategyData.into())
