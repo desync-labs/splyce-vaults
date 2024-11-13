@@ -1,6 +1,5 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{self, Token, TokenAccount};
-use whirlpool_cpi::{self, state::*, util::unpack::unpack_tick_array, program::Whirlpool as WhirlpoolProgram};
+use whirlpool_cpi::{ self };
 
 pub fn orca_swap_handler<'a>(
     whirlpool_program: &AccountInfo<'a>,

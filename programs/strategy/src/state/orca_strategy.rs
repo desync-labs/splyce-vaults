@@ -5,7 +5,8 @@ use super::base_strategy::*;
 use super::StrategyType;
 use super::fee_data::*;
 use crate::error::ErrorCode;
-use crate::utils::{token, orca_swap_handler};
+use crate::events::{StrategyDepositEvent, AMMStrategyInitEvent, StrategyWithdrawEvent};
+use crate::utils::{orca_swap_handler};
 use crate::instructions::{Report, ReportProfit, ReportLoss, DeployFunds, FreeFunds};
 
 #[account]
@@ -44,12 +45,6 @@ pub enum OrcaStrategyErrorCode {
     Error1,
     #[msg("Not enough accounts")]
     NotEnoughAccounts,
-    #[msg("Insufficient funds")]
-    InsufficientFunds, //just a placeholder for now
-    #[msg("Lock period has not ended")]
-    LockPeriodNotEnded, //just a placeholder for now
-    #[msg("Deposit period has not ended")]
-    DepositPeriodNotEnded, //just a placeholder for now
     #[msg("Invalid account")]
     InvalidAccount,
 }
@@ -68,26 +63,52 @@ impl StrategyManagement for OrcaStrategy {
 impl Strategy for OrcaStrategy {
     fn deposit(&mut self, amount: u64) -> Result<()> {
         self.total_assets += amount;
+
+        emit!(
+            StrategyDepositEvent 
+            {
+                account_key: self.key(),
+                amount: amount,
+                total_assets: self.total_assets,
+            }
+        );
+
         Ok(())
     }
 
     fn withdraw(&mut self, amount: u64) -> Result<()> {
         self.total_assets -= amount;
+
+        emit!(
+            StrategyWithdrawEvent 
+            {
+                account_key: self.key(),
+                amount: amount,
+                total_assets: self.total_assets,
+            }
+        );
+
         Ok(())
     }
-
+    //There is no fees to withdraw for this strategy
+    #[allow(unused_variables)]
     fn withdraw_fees(&mut self, amount: u64) -> Result<()> {
         Ok(())
     }
 
+    //Reporting profit is not suitable for this strategy since ETF or IndexFund’s return varies depending on how we set the start, length and the end of a window.
+    #[allow(unused_variables)]
     fn report_profit<'info>(&mut self, accounts: &ReportProfit<'info>, remaining: &[AccountInfo<'info>], profit: u64) -> Result<()> {
         Ok(())
     }
 
+    //Reporting loss is not suitable for this strategy since ETF or IndexFund’s return varies depending on how we set the start, length and the end of a window.
+    #[allow(unused_variables)]
     fn report_loss<'info>(&mut self, accounts: &ReportLoss<'info>, remaining: &[AccountInfo<'info>],  loss: u64) -> Result<()> {
         Ok(())
     }
 
+    #[allow(unused_variables)]
     fn harvest_and_report<'info>(&mut self, accounts: &Report<'info>, _remaining: &[AccountInfo<'info>]) -> Result<u64> {
         if accounts.underlying_token_account.key() != self.underlying_token_acc {
             return Err(ErrorCode::InvalidAccount.into());
@@ -96,6 +117,7 @@ impl Strategy for OrcaStrategy {
         Ok(new_total_assets)
     }
 
+    //Free fund swaps asset to underlying token
     fn free_funds<'info>(&mut self, _accounts: &FreeFunds<'info>, _remaining: &[AccountInfo<'info>], _amount: u64) -> Result<()> {
         // Verify we have enough remaining accounts
         if _remaining.len() < 9 {
@@ -138,6 +160,7 @@ impl Strategy for OrcaStrategy {
         Ok(())
     }
 
+    //Deploy funds swaps underlying token to asset
     fn deploy_funds<'info>(&mut self, accounts: &DeployFunds<'info>, remaining: &[AccountInfo<'info>], amount: u64) -> Result<()> {
         // Verify we have enough remaining accounts
         if remaining.len() < 9 {
@@ -247,6 +270,18 @@ impl StrategyInit for OrcaStrategy {
             performance_fee: config.performance_fee,
             fee_balance: 0,
         };
+
+        emit!(
+            AMMStrategyInitEvent 
+            {
+                account_key: self.key(),
+                strategy_type: String::from("trade-fintech"),
+                vault: self.vault,
+                underlying_mint: self.underlying_mint,
+                underlying_token_acc: self.underlying_token_acc,
+                undelying_decimals: self.underlying_decimals,
+                deposit_limit: self.deposit_limit,
+            });
 
         Ok(())
     }

@@ -14,6 +14,17 @@ pub struct StrategyInitEvent {
 }
 
 #[event]
+pub struct AMMStrategyInitEvent {
+    pub account_key: Pubkey,
+    pub strategy_type: String,
+    pub vault: Pubkey,
+    pub underlying_mint: Pubkey,
+    pub underlying_token_acc: Pubkey,
+    pub undelying_decimals: u8,
+    pub deposit_limit: u64,
+}
+
+#[event]
 pub struct StrategyDepositEvent {
     pub account_key: Pubkey,
     pub amount: u64,
