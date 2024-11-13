@@ -1,22 +1,33 @@
 use anchor_lang::prelude::*;
 
+#[derive(Debug, AnchorDeserialize, AnchorSerialize)]
+pub struct TokenMetaData {
+    pub name: String,
+    pub symbol: String,
+}
+
+#[derive(Debug, AnchorDeserialize, AnchorSerialize)]
+pub struct TokenData {
+    pub mint: Pubkey,
+    pub account: Pubkey,
+    pub decimals: u8,
+    pub metadata: TokenMetaData,
+}
+
 #[event]
 pub struct VaultInitEvent {
-    pub vault_index: [u8; 8],
-    pub underlying_mint: Pubkey,
-    pub underlying_token_acc: Pubkey,
-    pub underlying_decimals: u8,
-    pub share_mint: Pubkey,
-    pub share_token_acc: Pubkey,
-    pub share_decimals: u8,
+    pub vault_key: Pubkey, 
+    pub underlying_token: TokenData,
+    pub share_token: TokenData,
     pub deposit_limit: u64,
     pub min_user_deposit: u64,
     pub performance_fee: u64,
 }
 
+
 #[event]
 pub struct VaultAddStrategyEvent {
-    pub vault_index: [u8; 8],
+    pub vault_key: Pubkey, 
     pub strategy_key: Pubkey,
     pub current_debt: u64,
     pub max_debt: u64,
@@ -26,7 +37,7 @@ pub struct VaultAddStrategyEvent {
 
 #[event]
 pub struct VaultDepositEvent {
-    pub vault_index: [u8; 8],
+    pub vault_key: Pubkey, 
     pub total_debt: u64,
     pub total_idle: u64,
     pub total_share: u64,
@@ -34,31 +45,41 @@ pub struct VaultDepositEvent {
     pub share: u64,
     pub token_account: Pubkey,
     pub share_account: Pubkey,
+    pub token_mint: Pubkey,
+    pub share_mint: Pubkey,
     pub authority: Pubkey,
 }
 
 
 #[event]
 pub struct VaultWithdrawlEvent {
-    pub vault_index: [u8; 8],
+    pub vault_key: Pubkey, 
     pub total_idle: u64,
     pub total_share: u64,
     pub assets_to_transfer: u64,
     pub shares_to_burn: u64,
     pub token_account: Pubkey,
     pub share_account: Pubkey,
+    pub token_mint: Pubkey,
+    pub share_mint: Pubkey,
     pub authority: Pubkey,
 }
 
 #[event]
 pub struct VaultUpdateDepositLimitEvent {
-    pub vault_index: [u8; 8],
+    pub vault_key: Pubkey, 
     pub new_limit: u64,
 }
 
 #[event]
+pub struct VaultShutDownEvent {
+    pub vault_key: Pubkey, 
+    pub shutdown: bool,
+}
+
+#[event]
 pub struct UpdatedCurrentDebtForStrategyEvent {
-    pub vault_index: [u8; 8],
+    pub vault_key: Pubkey, 
     pub strategy_key: Pubkey,
     pub total_idle: u64,
     pub total_debt: u64,

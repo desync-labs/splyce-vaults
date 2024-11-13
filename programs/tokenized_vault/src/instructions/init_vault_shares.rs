@@ -1,4 +1,9 @@
 use anchor_lang::prelude::*;
+use access_control::{
+    constants::USER_ROLE_SEED,
+    program::AccessControl,
+    state::{Role, UserRole}
+};
 
 use anchor_spl::{
     token::Token,
@@ -11,19 +16,25 @@ use anchor_spl::{
     }
 };
 
-use crate::events::VaultInitEvent;
+use crate::events::{TokenData, TokenMetaData,  VaultInitEvent};
 use crate::constants::{
     VAULT_SEED, 
     SHARES_SEED, 
     SHARES_ACCOUNT_SEED, 
-    ROLES_SEED,
+    CONFIG_SEED,
 };
 use crate::state::*;
 
 #[derive(Accounts)]
-#[instruction(index: u64)]
 pub struct InitVaultShares<'info> {
-    #[account(mut, seeds = [VAULT_SEED.as_bytes(), index.to_le_bytes().as_ref()], bump)]
+    #[account(
+        mut, 
+        seeds = [
+        VAULT_SEED.as_bytes(), 
+        config.next_vault_index.to_le_bytes().as_ref()
+        ], 
+        bump
+    )]
     pub vault: AccountLoader<'info, Vault>,
     
     #[account(
@@ -50,12 +61,24 @@ pub struct InitVaultShares<'info> {
     )]
     pub shares_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
     
-    #[account(seeds = [ROLES_SEED.as_bytes(), signer.key().as_ref()], bump)]
-    pub roles: Box<Account<'info, AccountRoles>>,
-    
-    #[account(mut, constraint = roles.is_vaults_admin)]
+    #[account(
+        seeds = [
+            USER_ROLE_SEED.as_bytes(), 
+            signer.key().as_ref(),
+            Role::VaultsAdmin.to_seed().as_ref()
+        ], 
+        bump,
+        seeds::program = access_control.key()
+    )]
+    pub roles: Account<'info, UserRole>,
+
+    #[account(mut, constraint = roles.check_role()?)]
     pub signer: Signer<'info>,
+
+    #[account(mut, seeds = [CONFIG_SEED.as_bytes()], bump)]
+    pub config: Box<Account<'info, Config>>,
     
+    pub access_control: Program<'info, AccessControl>,
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
     pub metadata_program: Program<'info, Metadata>,
@@ -66,6 +89,9 @@ pub fn handle_init_vault_shares(ctx: Context<InitVaultShares>, _index: u64, conf
     let vault_key = ctx.accounts.vault.key();
     let seeds = &[SHARES_SEED.as_bytes(), vault_key.as_ref(), &[ctx.bumps.shares_mint]];
     let signer = [&seeds[..]];
+
+    let share_token_name = config.name.clone();
+    let share_token_symbol = config.symbol.clone();
 
     let token_data: DataV2 = DataV2 {
         name: config.name,
@@ -100,17 +126,36 @@ pub fn handle_init_vault_shares(ctx: Context<InitVaultShares>, _index: u64, conf
     let vault = &mut ctx.accounts.vault.load_mut()?;
     vault.shares_bump = [ctx.bumps.shares_mint];
 
+    ctx.accounts.config.next_vault_index += 1;
+
+    let underlying_token = TokenData{
+        mint: vault.underlying_mint,
+        account: vault.underlying_token_acc,
+        decimals: vault.underlying_decimals,
+        metadata: TokenMetaData {
+            name: "".to_string(),
+            symbol: "".to_string(),
+        }
+    };
+
+    let share_token = TokenData{
+        mint: ctx.accounts.shares_mint.key(),
+        account: ctx.accounts.shares_token_account.key(),
+        decimals: ctx.accounts.shares_mint.decimals,
+        metadata: TokenMetaData {
+            name: share_token_name,
+            symbol: share_token_symbol,
+        }
+    };
+
     emit!(VaultInitEvent {
-        vault_index: vault.index_buffer,
-        underlying_mint: vault.underlying_mint,
-        underlying_token_acc: vault.underlying_token_acc,
-        underlying_decimals: vault.underlying_decimals,
-        share_mint: ctx.accounts.shares_mint.key(),
-        share_token_acc: ctx.accounts.shares_token_account.key(),
-        share_decimals: ctx.accounts.shares_mint.decimals,
+        vault_key,
+        underlying_token,
+        share_token,
         deposit_limit: vault.deposit_limit,
         min_user_deposit: vault.min_user_deposit,
-        performance_fee: vault.performance_fee,
+        // todo: add actual performance_fee from accountant or remove it
+        performance_fee: 0,
     });
 
     Ok(())

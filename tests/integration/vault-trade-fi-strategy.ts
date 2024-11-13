@@ -1,5 +1,5 @@
 import { Program, AnchorProvider, BN, setProvider, web3, workspace } from "@coral-xyz/anchor";
-import { StrategyProgram } from "../../target/types/strategy_program";
+import { Strategy } from "../../target/types/strategy";
 import { TokenizedVault } from "../../target/types/tokenized_vault";
 import * as token from "@solana/spl-token";
 import * as borsh from 'borsh';
@@ -14,7 +14,7 @@ describe("tokenized_vault with trade-fi strategy", () => {
   setProvider(AnchorProvider.env());
 
   const vaultProgram = workspace.TokenizedVault as Program<TokenizedVault>;
-  const strategyProgram = workspace.StrategyProgram as Program<StrategyProgram>;
+  const strategyProgram = workspace.Strategy as Program<Strategy>;
 
   let vault: web3.PublicKey;
   let sharesMint: web3.PublicKey;
