@@ -9,7 +9,7 @@ pub mod utils;
 use crate::instructions::*;
 use crate::state::*;
 
-declare_id!("JDy5fpSAWgUppoc9NjfGg5uz89y6dY2jpVY2qEFjtEje");
+declare_id!("EW2Smhz9LnL4ARk2pU8hGwRfoHp6rgssohjbfNwtLaN4");
 
 #[derive(Accounts)]
 pub struct RegAcc<'info> {

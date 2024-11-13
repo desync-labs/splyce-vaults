@@ -179,8 +179,6 @@ async function main() {
       vaultProgram.programId
     )[0];
     
-    // Continue with the rest of your vault initialization code...
-
     // 8. Derive Metadata PDA for Vault Shares
     const [metadataAddress] = anchor.web3.PublicKey.findProgramAddressSync(
       [
@@ -242,7 +240,9 @@ async function main() {
 
     // 14. Initialize Strategy
     const [strategy] = anchor.web3.PublicKey.findProgramAddressSync(
-      [vault.toBuffer(), new BN(0).toArrayLike(Buffer, 'le', 1)],
+      [vault.toBuffer(), 
+        new BN(0).toArrayLike(Buffer, 'le', 8)
+      ],
       strategyProgram.programId
     );
     console.log("Strategy PDA:", strategy.toBase58());
@@ -266,6 +266,17 @@ async function main() {
       accessControlProgram.programId
     );
 
+    // Initialize Strategy Program
+    console.log("Initializing Strategy Program Config...");
+    await strategyProgram.methods.initialize()
+      .accounts({
+        admin: admin.publicKey,
+      })
+      .signers([admin])
+      .rpc();
+    console.log("Strategy Program Config initialized.");
+
+    // Initialize Strategy Program Config
     await strategyProgram.methods.initStrategy(strategyType, configBytes)
       .accounts({
         underlyingMint,
@@ -286,6 +297,7 @@ async function main() {
       .signers([admin])
       .rpc();
     console.log("Strategy added to Vault.");
+    
 
     // 16. Final Logs
     console.log("Initialization complete!");
