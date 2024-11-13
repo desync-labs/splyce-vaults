@@ -227,7 +227,7 @@ async function main() {
     // 12. Define Strategy Configuration
     const strategyType = { orca: {} };
     const strategyConfig = new OrcaStrategyConfig({
-      depositLimit: new BN(1_000_000),
+      depositLimit: new BN(1_000_000_000),
       depositPeriodEnds: new BN(Math.floor(Date.now() / 1000) + (365 * 24 * 60 * 60)), // 1 year from now
       lockPeriodEnds: new BN(Math.floor(Date.now() / 1000) + (7 * 24 * 60 * 60)), // 1 week from now
       performanceFee: new BN(50),

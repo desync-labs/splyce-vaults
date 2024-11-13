@@ -5,20 +5,20 @@ resolution = true
 skip-lint = false
 
 [programs.devnet]
-access_control = "9FgAtEJUimwUmNwtY7CZRXTTj3vodx5DKSfi5zjHyPDd"
-accountant = "EW2Smhz9LnL4ARk2pU8hGwRfoHp6rgssohjbfNwtLaN4"
-deposit_limit = "A9UGcMArUNTjnfLeWtn37JKCLyd8GZqfTwYxwkR7LiUN"
-faucet = "37mXbGw4CjxyrezBwBRJF8ySfgNQcgEt194u5iB5NwKe"
+access_control = "AXYJw1NbZq44Cyw8dXy4T1W64XUZY5Mi32yQX5EARNgG"
+accountant = "2XDmmWeWKWRMVrf5M3cFVcZqTV2RWeMFddqd1URS5Xsp"
+deposit_limit = "Dp4rU1YLRF6fjANr78N7iCGWFKTAd6U9ZimxkRSPNYky"
+faucet = "ASjRxfStLBnLqzzTtGsKKAwU9thWo1yDsX3nkzv2Tjk1"
 strategy_program = "EDA9ee5UKzdqrHgSd5v64bNnbCae1t7NJfUpvS7DZod"
-tokenized_vault = "GBx5wdZC864c4KKr7JhY6nK4KPFNCo77XyHqUGMMzcff"
+tokenized_vault = "HnXAEZjZNLZB9BS1k2k9vBDeGCxjyAiPspxkhRXoxx2d"
 
 [programs.localnet]
-access_control = "9FgAtEJUimwUmNwtY7CZRXTTj3vodx5DKSfi5zjHyPDd"
-accountant = "EW2Smhz9LnL4ARk2pU8hGwRfoHp6rgssohjbfNwtLaN4"
-deposit_limit = "A9UGcMArUNTjnfLeWtn37JKCLyd8GZqfTwYxwkR7LiUN"
-faucet = "37mXbGw4CjxyrezBwBRJF8ySfgNQcgEt194u5iB5NwKe"
+access_control = "AXYJw1NbZq44Cyw8dXy4T1W64XUZY5Mi32yQX5EARNgG"
+accountant = "2XDmmWeWKWRMVrf5M3cFVcZqTV2RWeMFddqd1URS5Xsp"
+deposit_limit = "Dp4rU1YLRF6fjANr78N7iCGWFKTAd6U9ZimxkRSPNYky"
+faucet = "ASjRxfStLBnLqzzTtGsKKAwU9thWo1yDsX3nkzv2Tjk1"
 strategy_program = "EDA9ee5UKzdqrHgSd5v64bNnbCae1t7NJfUpvS7DZod"
-tokenized_vault = "GBx5wdZC864c4KKr7JhY6nK4KPFNCo77XyHqUGMMzcff"
+tokenized_vault = "HnXAEZjZNLZB9BS1k2k9vBDeGCxjyAiPspxkhRXoxx2d"
 
 [registry]
 url = "https://api.apr.dev"
