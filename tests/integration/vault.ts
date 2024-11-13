@@ -779,7 +779,7 @@ describe("tokenized_vault", () => {
 
     adminTokenAccount = await token.createAccount(provider.connection, admin, underlyingMint, admin.publicKey);
 
-    // 60 tokens profit for the srategy
+    // 60 tokens profit for the strategy
     await token.mintTo(provider.connection, admin, underlyingMint, adminTokenAccount, admin.publicKey, 60);
 
     // check total shares before report
