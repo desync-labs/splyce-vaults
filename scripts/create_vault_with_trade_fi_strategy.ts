@@ -32,7 +32,7 @@ async function main() {
     const accessControlProgram = anchor.workspace.AccessControl as Program<AccessControl>;
     const accountantProgram = anchor.workspace.Accountant as Program<Accountant>;
 
-    const underlyingMint = new anchor.web3.PublicKey("6ktEi4XgXUfMhia2DYC6o8yBRUFfbLnuMRRuhxyt8ajV");
+    const underlyingMint = new anchor.web3.PublicKey("CWduyZkkj34f5YntKwD7NjkHaRt7kfiScopgEqu9RR6W");
     console.log("Underlying token mint public key:", underlyingMint.toBase58());
 
     const accountant = anchor.web3.PublicKey.findProgramAddressSync(
@@ -158,9 +158,9 @@ async function main() {
     const strategyConfig = new TradeFintechConfig({
       depositLimit: new BN(1000),
       // deposit ends in 1 minute, epoch time in seconds
-      depositPeriodEnds: new BN(Date.now() / 1000 + 60 * 30),
+      depositPeriodEnds: new BN(1732147199),//Date.now() / 1000 + 60 * 30),
       // lock period ends in 2 minute
-      lockPeriodEnds: new BN(Date.now() / 1000 + 2 * 60 * 30),
+      lockPeriodEnds: new BN(1732233599),//Date.now() / 1000 + 2 * 60 * 30),
       performanceFee: new BN(1),
       feeManager: admin.publicKey
     });

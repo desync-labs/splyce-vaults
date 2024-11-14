@@ -32,7 +32,7 @@ async function main() {
     const accessControlProgram = anchor.workspace.AccessControl as Program<AccessControl>;
     const accountantProgram = anchor.workspace.Accountant as Program<Accountant>;
 
-    const underlyingMint = new anchor.web3.PublicKey("6ktEi4XgXUfMhia2DYC6o8yBRUFfbLnuMRRuhxyt8ajV");    
+    const underlyingMint = new anchor.web3.PublicKey("CWduyZkkj34f5YntKwD7NjkHaRt7kfiScopgEqu9RR6W");    
     console.log("Underlying token mint public key:", underlyingMint.toBase58());
 
     const accountant = anchor.web3.PublicKey.findProgramAddressSync(
