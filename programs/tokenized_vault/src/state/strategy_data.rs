@@ -7,7 +7,6 @@ use crate::events::VaultAddStrategyEvent;
 #[account]
 #[derive(Default, Debug, InitSpace)]
 pub struct StrategyData {
-    pub key: Pubkey,
     pub current_debt: u64,
     pub max_debt: u64,
     pub last_update: i64,
@@ -48,14 +47,13 @@ impl<'a> StrategyDataAccInfo for AccountInfo<'a> {
 impl StrategyData {
     pub const LEN: usize = DISCRIMINATOR_LEN + StrategyData::INIT_SPACE;
 
-    pub fn init(&mut self, strategy: Pubkey, max_debt: u64) -> Result<()> {
-        self.key = strategy;
+    pub fn init(&mut self, vault_key: Pubkey, strategy_key: Pubkey, max_debt: u64) -> Result<()> {
         self.max_debt = max_debt;
         self.last_update = 0;
 
         emit!(VaultAddStrategyEvent {
-            vault_key: self.key,
-            strategy_key: strategy,
+            vault_key: vault_key,
+            strategy_key: strategy_key,
             current_debt: 0,
             max_debt,
             last_update: 0,

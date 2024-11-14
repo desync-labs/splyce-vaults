@@ -31,7 +31,7 @@ pub trait StrategyManagement {
     fn set_manager(&mut self, manager: Pubkey) -> Result<()>;
 }
 
-pub trait StretegyGetters {
+pub trait StrategyGetters {
     fn fee_data(&mut self) -> &mut FeeData;
     fn strategy_type(&self) -> StrategyType;
     fn vault(&self) -> Pubkey;
@@ -47,7 +47,7 @@ pub trait Strategy:
     StrategyDataAccount + 
     StrategyInit + 
     StrategyManagement + 
-    StretegyGetters 
+    StrategyGetters 
 {   
     // setters 
     fn deposit(&mut self, amount: u64) -> Result<()>;

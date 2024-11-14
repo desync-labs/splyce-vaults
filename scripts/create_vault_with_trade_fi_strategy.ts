@@ -2,7 +2,6 @@ import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { TokenizedVault } from "../target/types/tokenized_vault";
 import { Strategy } from "../target/types/strategy";
-import { AccessControl } from "../target/types/access_control";
 import { Accountant } from "../target/types/accountant";
 import { BN } from "@coral-xyz/anchor";
 import * as token from "@solana/spl-token";
@@ -29,7 +28,6 @@ async function main() {
 
     const vaultProgram = anchor.workspace.TokenizedVault as Program<TokenizedVault>;
     const strategyProgram = anchor.workspace.Strategy as Program<Strategy>;
-    const accessControlProgram = anchor.workspace.AccessControl as Program<AccessControl>;
     const accountantProgram = anchor.workspace.Accountant as Program<Accountant>;
 
     const underlyingMint = new anchor.web3.PublicKey("CWduyZkkj34f5YntKwD7NjkHaRt7kfiScopgEqu9RR6W");

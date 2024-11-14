@@ -3,7 +3,7 @@ use crate::constants::DISCRIMINATOR_LEN;
 
 use crate::state::{
     simple_strategy::SimpleStrategy,
-    trade_fintech_srategy::TradeFintechStrategy,
+    trade_fintech_strategy::TradeFintechStrategy,
 };
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
