@@ -462,7 +462,7 @@ describe("tokenized_vault", () => {
         .rpc();
       assert.fail("Expected error was not thrown");
     } catch (err) {
-      assert.strictEqual(err.message, "AnchorError occurred. Error Code: AccessDenied. Error Number: 6011. Error Message: Signer has no access.");
+      assert.strictEqual(err.message, "AnchorError occurred. Error Code: AccessDenied. Error Number: 6006. Error Message: Signer has no access.");
     }
   });
 
@@ -707,7 +707,7 @@ describe("tokenized_vault", () => {
         .rpc();
       assert.fail("Expected error was not thrown");
     } catch (err) {
-      assert.strictEqual(err.message, "AnchorError caused by account: signer. Error Code: AccessDenied. Error Number: 6011. Error Message: Signer has no access.");
+      assert.strictEqual(err.message, "AnchorError caused by account: signer. Error Code: AccessDenied. Error Number: 6006. Error Message: Signer has no access.");
     }
   });
 
@@ -922,11 +922,11 @@ describe("tokenized_vault", () => {
         .rpc();
       assert.fail("Expected error was not thrown");
     } catch (err) {
-      assert.strictEqual(err.message, "AnchorError occurred. Error Code: AccessDenied. Error Number: 6011. Error Message: Signer has no access.");
+      assert.strictEqual(err.message, "AnchorError occurred. Error Code: AccessDenied. Error Number: 6006. Error Message: Signer has no access.");
     }
   });
 
-  it("set deposit limit", async () => {
+  it("set deposit limit and min user deposit", async () => {
     const newDepositLimit = new BN(2000);
 
     await vaultProgram.methods.setDepositLimit(newDepositLimit)
@@ -937,8 +937,19 @@ describe("tokenized_vault", () => {
       .signers([admin])
       .rpc();
 
-    const vaultAccount = await vaultProgram.account.vault.fetch(vault);
+    let vaultAccount = await vaultProgram.account.vault.fetch(vault);
     assert.strictEqual(vaultAccount.depositLimit.toString(), newDepositLimit.toString());
+
+    await vaultProgram.methods.setMinUserDeposit(new BN(100))
+      .accounts({
+        vault,
+        signer: admin.publicKey,
+      })
+      .signers([admin])
+      .rpc();
+
+      vaultAccount = await vaultProgram.account.vault.fetch(vault);
+      assert.strictEqual(vaultAccount.minUserDeposit.toString(), '100');
   });
 
   it("set deposit limit - unauthorized", async () => {

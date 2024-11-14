@@ -30,7 +30,7 @@ pub struct AddStrategy<'info> {
     pub vault: AccountLoader<'info, Vault>,
 
     /// CHECK: can be any strategy
-    #[account(constraint = *strategy.owner == strategy_program.key())]
+    #[account(constraint = strategy.owner == strategy_program.key)]
     pub strategy: UncheckedAccount<'info>,
 
     #[account(
@@ -55,10 +55,10 @@ pub struct AddStrategy<'info> {
 pub fn handle_add_strategy(ctx: Context<AddStrategy>, max_debt: u64) -> Result<()> {
     let strategy_vault = strategy_utils::get_vault(&ctx.accounts.strategy.to_account_info())?;
 
-    if strategy_vault != *ctx.accounts.vault.to_account_info().key {
+    if strategy_vault != ctx.accounts.vault.key() {
         return Err(ErrorCode::InvalidStrategyToAdd.into());
     }
 
     let strategy_data = &mut ctx.accounts.strategy_data;
-    strategy_data.init(ctx.accounts.strategy.key(), max_debt)
+    strategy_data.init(ctx.accounts.vault.key(), ctx.accounts.strategy.key(), max_debt)
 }

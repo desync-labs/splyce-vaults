@@ -10,7 +10,7 @@ use crate::errors::ErrorCode;
 use crate::state::Vault;
 
 #[derive(Accounts)]
-pub struct SetDepositLimit<'info> {
+pub struct SetVaultProperty<'info> {
     #[account(mut)]
     pub vault: AccountLoader<'info, Vault>,
 
@@ -31,7 +31,7 @@ pub struct SetDepositLimit<'info> {
     pub access_control: Program<'info, AccessControl>
 }
 
-pub fn handle_set_deposit_limit(ctx: Context<SetDepositLimit>, amount: u64) -> Result<()> {
+pub fn handle_set_deposit_limit(ctx: Context<SetVaultProperty>, amount: u64) -> Result<()> {
     let vault = &mut ctx.accounts.vault.load_mut()?;
 
     if vault.is_shutdown {
@@ -44,6 +44,42 @@ pub fn handle_set_deposit_limit(ctx: Context<SetDepositLimit>, amount: u64) -> R
         vault_key: vault.key,
         new_limit: amount,
     });
+
+    Ok(())
+}
+
+pub fn handle_set_min_user_deposit(ctx: Context<SetVaultProperty>, value: u64) -> Result<()> {
+    let vault = &mut ctx.accounts.vault.load_mut()?;
+
+    if vault.is_shutdown {
+        return Err(ErrorCode::VaultShutdown.into());
+    }
+
+    vault.min_user_deposit = value;
+
+    Ok(())
+}
+
+pub fn handle_set_profit_max_unlock_time(ctx: Context<SetVaultProperty>, value: u64) -> Result<()> {
+    let vault = &mut ctx.accounts.vault.load_mut()?;
+
+    if vault.is_shutdown {
+        return Err(ErrorCode::VaultShutdown.into());
+    }
+
+    vault.profit_max_unlock_time = value;
+
+    Ok(())
+}
+
+pub fn handle_set_min_total_idle(ctx: Context<SetVaultProperty>, value: u64) -> Result<()> {
+    let vault = &mut ctx.accounts.vault.load_mut()?;
+
+    if vault.is_shutdown {
+        return Err(ErrorCode::VaultShutdown.into());
+    }
+
+    vault.minimum_total_idle = value;
 
     Ok(())
 }
