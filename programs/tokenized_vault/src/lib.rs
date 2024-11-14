@@ -67,8 +67,20 @@ pub mod tokenized_vault {
         handle_update_debt(ctx, amount)
     }
 
-    pub fn set_deposit_limit(ctx: Context<SetDepositLimit>, limit: u64) -> Result<()> {
+    pub fn set_deposit_limit(ctx: Context<SetVaultProperty>, limit: u64) -> Result<()> {
         handle_set_deposit_limit(ctx, limit)
+    }
+
+    pub fn set_min_user_deposit(ctx: Context<SetVaultProperty>, value: u64) -> Result<()> {
+        handle_set_min_user_deposit(ctx, value)
+    }
+
+    pub fn set_profit_max_unlock_time(ctx: Context<SetVaultProperty>, value: u64) -> Result<()> {
+        handle_set_profit_max_unlock_time(ctx, value)
+    }
+
+    pub fn set_min_total_idle(ctx: Context<SetVaultProperty>, value: u64) -> Result<()> {
+        handle_set_min_total_idle(ctx, value)
     }
 
     pub fn process_report(ctx: Context<ProcessReport>) -> Result<()> {

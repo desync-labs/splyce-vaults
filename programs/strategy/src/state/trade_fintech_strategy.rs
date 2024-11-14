@@ -21,7 +21,7 @@ pub struct TradeFintechStrategy {
     pub manager: Pubkey,
     pub underlying_mint: Pubkey,
     pub underlying_token_acc: Pubkey,
-    pub undelying_decimals: u8,
+    pub underlying_decimals: u8,
 
     pub total_invested: u64,
     pub total_assets: u64,
@@ -209,7 +209,7 @@ impl Strategy for TradeFintechStrategy {
     }
 }
 
-impl StretegyGetters for TradeFintechStrategy {
+impl StrategyGetters for TradeFintechStrategy {
     fn strategy_type(&self) -> StrategyType {
         StrategyType::TradeFintech
     }
@@ -280,7 +280,7 @@ impl StrategyInit for TradeFintechStrategy {
         self.index_bytes = index.to_le_bytes();
         self.vault = vault;
         self.underlying_mint = underlying_mint.key();
-        self.undelying_decimals = underlying_mint.decimals;
+        self.underlying_decimals = underlying_mint.decimals;
         self.underlying_token_acc = underlying_token_acc;
         self.deposit_limit = config.deposit_limit;
         self.deposit_period_ends = config.deposit_period_ends;
@@ -302,7 +302,7 @@ impl StrategyInit for TradeFintechStrategy {
                 vault: self.vault,
                 underlying_mint: self.underlying_mint,
                 underlying_token_acc: self.underlying_token_acc,
-                undelying_decimals: self.undelying_decimals,
+                underlying_decimals: self.underlying_decimals,
                 deposit_limit: self.deposit_limit,
                 deposit_period_ends: self.deposit_period_ends,
                 lock_period_ends: self.lock_period_ends,
