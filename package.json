@@ -14,7 +14,8 @@
     "initialize": "npx ts-node scripts/initialize.ts",
     "shutdown_vault": "npx ts-node scripts/shutdown_vault.ts",
     "init_orca_strategy": "npx ts-node scripts/orca/init_orca_strategy.ts",
-    "allocate_and_swap": "npx ts-node scripts/orca/allocate_and_swap.ts"
+    "allocate_and_swap": "npx ts-node scripts/orca/allocate_and_swap.ts",
+    "swap_second_asset": "npx ts-node scripts/orca/swap_second_asset.ts"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.30.1",
