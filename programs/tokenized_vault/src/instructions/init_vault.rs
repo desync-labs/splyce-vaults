@@ -1,30 +1,29 @@
 use anchor_lang::prelude::*;
+use access_control::{
+    constants::USER_ROLE_SEED,
+    program::AccessControl,
+    state::{UserRole, Role}
+};
 
 use anchor_spl::{
     token::Token, 
     token_interface::{Mint, TokenAccount},
 };
 
-use crate::constants::{
-    VAULT_SEED, 
-    UNDERLYING_SEED, 
-    ROLES_SEED,
-    DISCRIMINATOR_LEN,
-};
-use crate::state::*;
+use crate::constants::{CONFIG_SEED, VAULT_SEED, UNDERLYING_SEED};
+use crate::state::{Vault, Config, VaultConfig};
 
 #[derive(Accounts)]
-#[instruction(index: u64)]
 pub struct InitVault<'info> {
     #[account(
         init, 
         seeds = [
             VAULT_SEED.as_bytes(), 
-            index.to_le_bytes().as_ref()
+            config.next_vault_index.to_le_bytes().as_ref()
         ], 
         bump,  
         payer = signer, 
-        space = DISCRIMINATOR_LEN + Vault::INIT_SPACE,
+        space = Vault::LEN,
     )]
     pub vault: AccountLoader<'info, Vault>,
     
@@ -41,28 +40,38 @@ pub struct InitVault<'info> {
     #[account(mut)]
     pub underlying_mint: Box<InterfaceAccount<'info, Mint>>,
     
-    #[account(seeds = [ROLES_SEED.as_bytes(), signer.key().as_ref()], bump)]
-    pub roles: Box<Account<'info, AccountRoles>>,
-    
-    #[account(mut, constraint = roles.is_vaults_admin)]
+    #[account(seeds = [CONFIG_SEED.as_bytes()], bump)]
+    pub config: Box<Account<'info, Config>>,
+
+    #[account(
+        seeds = [
+            USER_ROLE_SEED.as_bytes(), 
+            signer.key().as_ref(),
+            Role::VaultsAdmin.to_seed().as_ref()
+        ], 
+        bump,
+        seeds::program = access_control.key()
+    )]
+    pub roles: Account<'info, UserRole>,
+
+    #[account(mut, constraint = roles.check_role()?)]
     pub signer: Signer<'info>,
     
+    pub access_control: Program<'info, AccessControl>,
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
     pub rent: Sysvar<'info, Rent>,
 }
 
-pub fn handle_init_vault(ctx: Context<InitVault>, index: u64, config: Box<VaultConfig>) -> Result<()> {
+pub fn handle_init_vault(ctx: Context<InitVault>, config: Box<VaultConfig>) -> Result<()> {
     ctx.accounts.vault.load_init()?.init(
-        index,
+        ctx.accounts.config.next_vault_index,
         ctx.bumps.vault,
         ctx.accounts.vault.key(),
         ctx.accounts.underlying_mint.as_ref(),
         ctx.accounts.underlying_token_account.key(),
         config.as_ref()
-    )?;
-
-    Ok(())
+    )
 }
 
 

@@ -1,14 +1,11 @@
 use anchor_lang::prelude::*;
-use strategy_program::state::*;
-use anchor_spl::token::TokenAccount;
+use anchor_spl::token_interface::TokenAccount;
  
-use strategy_program::{self};
-use strategy_program::cpi::accounts::{
+use strategy::utils::deserialize;
+use strategy::cpi::accounts::{
     Deposit,
     Withdraw
 };
-
-use crate::error::ErrorCode::*;
 
 pub fn deposit<'a>(
     strategy: AccountInfo<'a>,
@@ -21,7 +18,7 @@ pub fn deposit<'a>(
     seeds: &[&[u8]],
 ) -> Result<()> {
     // Perform the CPI deposit with pre-extracted data
-    strategy_program::cpi::deposit(
+    strategy::cpi::deposit(
         CpiContext::new_with_signer(
             strategy_program,
             Deposit {
@@ -41,7 +38,7 @@ pub fn withdraw<'a>(
     strategy: AccountInfo<'a>,
     vault: AccountInfo<'a>,
     underlying_token_account: AccountInfo<'a>,
-    vault_token_account: &mut Account<'a, TokenAccount>,
+    vault_token_account: &mut InterfaceAccount<'a, TokenAccount>,
     token_program: AccountInfo<'a>,
     strategy_program: AccountInfo<'a>,
     assets_to_withdraw: u64,
@@ -64,12 +61,17 @@ pub fn withdraw<'a>(
     
     context.remaining_accounts = remaining_accounts;
 
-    strategy_program::cpi::withdraw(context, assets_to_withdraw)?;
+    strategy::cpi::withdraw(context, assets_to_withdraw)?;
 
     vault_token_account.reload()?;
     let post_balance = vault_token_account.amount;
 
     Ok(post_balance - pre_balance)
+}
+
+pub fn get_vault(strategy_acc: &AccountInfo) -> Result<Pubkey> {
+    let strategy = deserialize(strategy_acc)?;
+    Ok(strategy.vault())
 }
 
 pub fn get_max_withdraw(strategy_acc: &AccountInfo) -> Result<u64> {
@@ -106,32 +108,4 @@ pub fn assess_share_of_unrealised_losses(
     let losses_user_share = assets_needed - numerator / strategy_current_debt;
 
     Ok(losses_user_share)
-}
-
-pub fn deserialize(strategy_acc: &AccountInfo) -> Result<Box<dyn Strategy>> {
-    let strategy_data = strategy_acc.try_borrow_data()?;
-    let discriminator = get_discriminator(strategy_acc)?;
-
-    match StrategyType::from_discriminator(&discriminator) {
-        Some(StrategyType::Simple) => {
-            let strategy = SimpleStrategy::try_from_slice(&strategy_data[8..])
-                .map_err(|_| InvalidStrategyData)?;
-            Ok(Box::new(strategy))
-        }
-        Some(StrategyType::TradeFintech) => {
-            let strategy = TradeFintechStrategy::try_from_slice(&strategy_data[8..])
-                .map_err(|_| InvalidStrategyData)?;
-            Ok(Box::new(strategy))
-        }
-        _ => {
-            msg!("Invalid discriminator");
-            Err(InvalidStrategyData.into())
-        }
-    }
-}
-
-fn get_discriminator(acc_info: &AccountInfo) -> Result<[u8; 8]> {
-    let data = acc_info.try_borrow_data()?;
-    let discriminator = data[0..8].try_into().map_err(|_| InvalidStrategyData)?;
-    Ok(discriminator)
 }

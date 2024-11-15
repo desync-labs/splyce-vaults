@@ -1,15 +1,22 @@
 use std::cell::Ref;
-
 use anchor_lang::prelude::*;
-use anchor_spl::token::{Token, TokenAccount};
+use anchor_spl::{
+    token::Token,
+    token_interface::TokenAccount,
+};
+use access_control::{
+    constants::USER_ROLE_SEED,
+    program::AccessControl,
+    state::{UserRole, Role}
+};
 
-use strategy_program::program::StrategyProgram;
+use strategy::program::Strategy;
 
 use crate::events::UpdatedCurrentDebtForStrategyEvent;
-use crate::state::*;
-use crate::error::ErrorCode;
-use crate::utils::strategy;
-use crate::constants::{ROLES_SEED, UNDERLYING_SEED};
+use crate::state::{StrategyData, Vault};
+use crate::errors::ErrorCode;
+use crate::utils::strategy as strategy_utils;
+use crate::constants::{STRATEGY_DATA_SEED, UNDERLYING_SEED};
 
 #[derive(Accounts)]
 #[instruction(new_debt: u64)]
@@ -21,23 +28,47 @@ pub struct UpdateStrategyDebt<'info> {
     pub vault: AccountLoader<'info, Vault>,
 
     #[account(mut, seeds = [UNDERLYING_SEED.as_bytes(), vault.key().as_ref()], bump)]
-    pub vault_token_account: Account<'info, TokenAccount>,
+    pub vault_token_account: InterfaceAccount<'info, TokenAccount>,
 
     /// CHECK: Should this be mut?
-    #[account(mut, constraint = vault.load()?.is_vault_strategy(strategy.key()))]
-    pub strategy: AccountInfo<'info>,
-
     #[account(mut)]
-    pub strategy_token_account: Account<'info, TokenAccount>,
+    pub strategy: UncheckedAccount<'info>,
 
-    #[account(seeds = [ROLES_SEED.as_bytes(), signer.key().as_ref()], bump)]
-    pub roles: Account<'info, AccountRoles>,
+    #[account(
+        mut,
+        seeds = [
+            STRATEGY_DATA_SEED.as_bytes(),
+            vault.key().as_ref(),
+            strategy.key().as_ref()
+        ],
+        bump,
+    )]
+    pub strategy_data: Account<'info, StrategyData>,
 
-    #[account(mut, constraint = roles.is_vaults_admin)]
+    #[account(mut, 
+        seeds = [UNDERLYING_SEED.as_bytes(), strategy.key().as_ref()],
+        bump,
+        seeds::program = strategy_program.key(),
+    )]
+    pub strategy_token_account: InterfaceAccount<'info, TokenAccount>,
+
+    #[account(
+        seeds = [
+            USER_ROLE_SEED.as_bytes(), 
+            signer.key().as_ref(),
+            Role::VaultsAdmin.to_seed().as_ref()
+        ], 
+        bump,
+        seeds::program = access_control.key()
+    )]
+    pub roles: Account<'info, UserRole>,
+
+    #[account(mut, constraint = roles.check_role()?)]
     pub signer: Signer<'info>,
-    
+
+    pub access_control: Program<'info, AccessControl>,
     pub token_program: Program<'info, Token>,
-    pub strategy_program: Program<'info, StrategyProgram>
+    pub strategy_program: Program<'info, Strategy>
 }
 
 pub fn handle_update_debt<'a, 'b, 'c, 'info>(
@@ -46,15 +77,14 @@ pub fn handle_update_debt<'a, 'b, 'c, 'info>(
 ) -> Result<()> {
     let (total_idle, total_debt, new_debt) = handle_internal(&mut ctx, new_debt)?;
 
-    let vaut_mut = &mut ctx.accounts.vault.load_mut()?;
-    vaut_mut.total_idle = total_idle;
-    vaut_mut.total_debt = total_debt;
+    let vault_mut = &mut ctx.accounts.vault.load_mut()?;
+    vault_mut.total_idle = total_idle;
+    vault_mut.total_debt = total_debt;
 
-    let strategy_data_mut = vaut_mut.get_strategy_data_mut(ctx.accounts.strategy.key())?;
-    strategy_data_mut.current_debt = new_debt;
+    ctx.accounts.strategy_data.update_strategy_current_debt(new_debt)?;
 
     emit!(UpdatedCurrentDebtForStrategyEvent {
-        vault_key: vaut_mut.key,
+        vault_key: vault_mut.key,
         strategy_key: ctx.accounts.strategy.key(),
         total_idle: total_idle,
         total_debt: total_debt,
@@ -70,7 +100,7 @@ fn handle_internal<'a, 'b, 'c, 'info>(
 ) -> Result<(u64, u64, u64)> {
     let vault = ctx.accounts.vault.load()?;
     let vault_seeds: &[&[u8]] = &vault.seeds();
-    let current_debt = vault.get_strategy_data(ctx.accounts.strategy.key())?.current_debt;
+    let current_debt = ctx.accounts.strategy_data.current_debt;
 
     if new_debt == current_debt {
         return Err(ErrorCode::SameDebt.into());
@@ -86,7 +116,7 @@ fn handle_internal<'a, 'b, 'c, 'info>(
 
         let remaining_accounts: Vec<AccountInfo> = ctx.remaining_accounts.to_vec();
 
-        let withdrawn = strategy::withdraw(
+        let withdrawn = strategy_utils::withdraw(
             ctx.accounts.strategy.to_account_info(),
             ctx.accounts.vault.to_account_info(),
             ctx.accounts.strategy_token_account.to_account_info(),
@@ -113,11 +143,12 @@ fn handle_internal<'a, 'b, 'c, 'info>(
         let assets_to_deposit = get_assets_deposit(
             &vault,
             ctx.accounts.strategy.to_account_info(),
+            &ctx.accounts.strategy_data,
             current_debt,
             new_debt,
         )?;
 
-        strategy::deposit(
+        strategy_utils::deposit(
             ctx.accounts.strategy.to_account_info(),
             ctx.accounts.vault.to_account_info(),
             ctx.accounts.strategy_token_account.to_account_info(),
@@ -156,7 +187,7 @@ fn get_assets_to_withdraw(
         }
     }
 
-    let withdrawable = strategy::get_max_withdraw(&strategy_acc)?;
+    let withdrawable = strategy_utils::get_max_withdraw(&strategy_acc)?;
     if withdrawable == 0 {
         return Err(ErrorCode::CannotWithdraw.into());
     }
@@ -165,7 +196,7 @@ fn get_assets_to_withdraw(
         assets_to_withdraw = withdrawable;
     }
 
-    if current_debt > strategy::get_total_assets(&strategy_acc)? {
+    if current_debt > strategy_utils::get_total_assets(&strategy_acc)? {
         return Err(ErrorCode::UnrealisedLosses.into());
     }
 
@@ -175,14 +206,15 @@ fn get_assets_to_withdraw(
 fn get_assets_deposit<'info>(
     vault: &Ref<Vault>,
     strategy_acc: AccountInfo,
+    strategy_data: &StrategyData,
     current_debt: u64,
     new_debt: u64,
 ) -> Result<u64> { 
-    if new_debt > vault.get_strategy_data(strategy_acc.key())?.max_debt {
+    if new_debt > strategy_data.max_debt {
         return Err(ErrorCode::DebtHigherThanMaxDebt.into());
     }
 
-    let max_deposit = strategy::get_max_deposit(&strategy_acc)?;
+    let max_deposit = strategy_utils::get_max_deposit(&strategy_acc)?;
     if max_deposit == 0 {
         return Err(ErrorCode::CannotDeposit.into());
     }

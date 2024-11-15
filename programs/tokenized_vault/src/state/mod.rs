@@ -1,7 +1,7 @@
-pub mod roles;
-pub mod roles_admin;
+pub mod config;
 pub mod vault;
+pub mod strategy_data;
 
-pub use roles::*;
-pub use roles_admin::*;
+pub use config::*;
 pub use vault::*;
+pub use strategy_data::*;

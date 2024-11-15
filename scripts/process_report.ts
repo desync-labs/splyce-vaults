@@ -4,7 +4,7 @@ import { TokenizedVault } from "../target/types/tokenized_vault";
 import * as fs from 'fs'; // Import fs module
 import * as path from 'path'; // Import path module
 import { BN } from "@coral-xyz/anchor";
-import { StrategyProgram } from "../target/types/strategy_program";
+import { Strategy } from "../target/types/strategy";
 import * as token from "@solana/spl-token";
 
 // Define the config function
@@ -24,7 +24,7 @@ async function main() {
     
 
         const vaultProgram = anchor.workspace.TokenizedVault as Program<TokenizedVault>;
-        const strategyProgram = anchor.workspace.TokenizedVault as Program<StrategyProgram>;
+        const strategyProgram = anchor.workspace.TokenizedVault as Program<Strategy>;
 
         let vault = anchor.web3.PublicKey.findProgramAddressSync(
             [
