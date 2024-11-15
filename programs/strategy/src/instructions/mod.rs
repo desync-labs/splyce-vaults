@@ -10,6 +10,7 @@ pub mod setters;
 pub mod transfer_management;
 pub mod withdraw;
 pub mod withdraw_fee;
+pub mod init_token_account;
 
 pub use deploy_funds::*;
 pub use deposit::*;
@@ -23,3 +24,4 @@ pub use setters::*;
 pub use transfer_management::*;
 pub use withdraw::*;
 pub use withdraw_fee::*;
+pub use init_token_account::*;
