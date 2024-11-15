@@ -30,8 +30,8 @@ pub struct InitVaultShares<'info> {
     #[account(
         mut, 
         seeds = [
-        VAULT_SEED.as_bytes(), 
-        config.next_vault_index.to_le_bytes().as_ref()
+            VAULT_SEED.as_bytes(), 
+            config.next_vault_index.to_le_bytes().as_ref()
         ], 
         bump
     )]

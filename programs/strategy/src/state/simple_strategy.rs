@@ -24,7 +24,7 @@ pub struct SimpleStrategy {
     pub underlying_token_acc: Pubkey,
 
     // this value mast be u64 because of the borsh serialization
-    pub undelying_decimals: u8,
+    pub underlying_decimals: u8,
     pub total_assets: u64,
     pub deposit_limit: u64,
 
@@ -218,7 +218,7 @@ impl StrategyInit for SimpleStrategy {
         self.index_bytes = index.to_le_bytes();
         self.vault = vault;
         self.underlying_mint = underlying_mint.key();
-        self.undelying_decimals = underlying_mint.decimals;
+        self.underlying_decimals = underlying_mint.decimals;
         self.underlying_token_acc = underlying_token_acc;
         self.deposit_limit = config.deposit_limit;
         self.total_assets = 0;
@@ -237,7 +237,7 @@ impl StrategyInit for SimpleStrategy {
                 vault: self.vault,
                 underlying_mint: self.underlying_mint,
                 underlying_token_acc: self.underlying_token_acc,
-                undelying_decimals: self.undelying_decimals,
+                underlying_decimals: self.underlying_decimals,
                 deposit_limit: self.deposit_limit,
                 deposit_period_ends: 0,
                 lock_period_ends: 0,

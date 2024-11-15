@@ -7,7 +7,7 @@ pub struct StrategyInitEvent {
     pub vault: Pubkey,
     pub underlying_mint: Pubkey,
     pub underlying_token_acc: Pubkey,
-    pub undelying_decimals: u8,
+    pub underlying_decimals: u8,
     pub deposit_limit: u64,
     pub deposit_period_ends: i64,
     pub lock_period_ends: i64,

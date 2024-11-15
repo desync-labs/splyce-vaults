@@ -5,7 +5,6 @@ use crate::state::{
     simple_strategy::SimpleStrategy,
     trade_fintech_srategy::TradeFintechStrategy,
     orca_strategy::OrcaStrategy,
-};
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
 pub enum StrategyType {
