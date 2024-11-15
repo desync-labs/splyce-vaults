@@ -249,34 +249,16 @@ async function main() {
     // 3. Deploy Funds in the Orca Strategy
     // ============================
     console.log("Deploying funds in the Orca Strategy...");
-    const strategyWSOLAccount = Keypair.generate();
-    console.log("Strategy WSOL token account address:", strategyWSOLAccount.publicKey.toBase58());
+    const strategyWSOLAccount = PublicKey.findProgramAddressSync(
+      [
+        WSOL_MINT.toBuffer(),      // asset_mint.key().to_bytes()
+        strategy.toBuffer(),       // strategy.key().as_ref()
+      ],
+      strategyProgram.programId
+    )[0];
 
-    // Calculate the required lamports for rent exemption
-    const rentExemption = await provider.connection.getMinimumBalanceForRentExemption(165);
-    
-    // Create the account
-    const createAccountIx = SystemProgram.createAccount({
-      fromPubkey: admin.publicKey,
-      newAccountPubkey: strategyWSOLAccount.publicKey,
-      space: 165, // Size for token account
-      lamports: rentExemption,
-      programId: TOKEN_PROGRAM_ID,
-    });
-    
-    // Initialize it as a token account
-    const initAccountIx = createInitializeAccountInstruction(
-      strategyWSOLAccount.publicKey,
-      WSOL_MINT,
-      strategy // Strategy PDA is the owner
-    );
-    
-    // Send transaction with the new Keypair as a signer
-    const tx = new Transaction().add(createAccountIx, initAccountIx);
-    await provider.sendAndConfirm(tx, [admin, strategyWSOLAccount]);
-    
-    // Log the newly created account's public key
-    console.log("Strategy WSOL token account created successfully:", strategyWSOLAccount.publicKey.toBase58())
+    console.log("Strategy WSOL token account address:", strategyWSOLAccount.toBase58());
+
     // Prepare remaining accounts as per swap.ts
     const remainingAccountsForDeployFunds = [
       {
@@ -290,7 +272,7 @@ async function main() {
         isSigner: false,
       },
       {
-        pubkey: strategyWSOLAccount.publicKey,      // token_owner_account_a (index 2)
+        pubkey: strategyWSOLAccount,      // token_owner_account_a (index 2)
         isWritable: true,
         isSigner: false,
       },
@@ -344,7 +326,7 @@ async function main() {
     console.log("Strategy devUSDC account balance before deploying funds:", strategyDevUSDCBalanceBeforeDeploy.value.uiAmount);
 
     //check the balance of WSOL in the strategy token account before deploying funds
-    const strategyWSOLAccountBalanceBeforeDeploy = await provider.connection.getTokenAccountBalance(strategyWSOLAccount.publicKey);
+    const strategyWSOLAccountBalanceBeforeDeploy = await provider.connection.getTokenAccountBalance(strategyWSOLAccount);
     console.log("Strategy WSOL account balance before deploying funds:", strategyWSOLAccountBalanceBeforeDeploy.value.uiAmount);
 
     const deployAmount = new BN(1).mul(new BN(10).pow(new BN(6))); // 1 WSOL
@@ -365,7 +347,7 @@ async function main() {
     console.log("Strategy devUSDC account balance after deploying funds:", strategyDevUSDCBalanceAfterDeploy.value.uiAmount);
 
     //check the balance of WSOL in the strategy token account after deploying funds
-    const strategyWSOLAccountBalanceAfterDeploy = await provider.connection.getTokenAccountBalance(strategyWSOLAccount.publicKey);
+    const strategyWSOLAccountBalanceAfterDeploy = await provider.connection.getTokenAccountBalance(strategyWSOLAccount);
     console.log("Strategy WSOL account balance after deploying funds:", strategyWSOLAccountBalanceAfterDeploy.value.uiAmount);
 
     //now we need to test free_funds and it happens via redeem fn in the vault program
@@ -384,7 +366,7 @@ async function main() {
         isSigner: false,
       },
       {
-        pubkey: strategyWSOLAccount.publicKey,      // token_owner_account_a (index 2)
+        pubkey: strategyWSOLAccount,      // token_owner_account_a (index 2)
         isWritable: true,
         isSigner: false,
       },
