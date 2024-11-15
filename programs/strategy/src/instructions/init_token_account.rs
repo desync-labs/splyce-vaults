@@ -1,5 +1,4 @@
 use anchor_lang::prelude::*;
-use anchor_lang::Discriminator;
 use anchor_spl::{
     token::{ Token, TokenAccount},
     token_interface::Mint,
@@ -10,8 +9,6 @@ use access_control::{
     state::{UserRole, Role}
 };
 
-use crate::state::*;
-use crate::error::ErrorCode;
 use crate::ID;
 
 //This instruction initializes a token account for the strategy
@@ -21,7 +18,7 @@ pub struct InitTokenAccount<'info> {
     #[account(
         init, 
         seeds = [
-            asset_mint.key().as_bytes(),
+            &asset_mint.key().to_bytes(),
             strategy.key().as_ref(),
         ], 
         bump, 
@@ -31,6 +28,7 @@ pub struct InitTokenAccount<'info> {
     )]
     pub token_account: Box<Account<'info, TokenAccount>>,
 
+    /// CHECK: can be any strategy
     #[account(owner = ID)]
     pub strategy: UncheckedAccount<'info>,
 
@@ -55,7 +53,6 @@ pub struct InitTokenAccount<'info> {
     pub system_program: Program<'info, System>,
     pub rent: Sysvar<'info, Rent>,
     pub access_control: Program<'info, AccessControl>,
-    pub strategy_program: Program<'info, Strategy>,
 }
 
 pub fn handle_init_token_account(_ctx: Context<InitTokenAccount>) -> Result<()> {

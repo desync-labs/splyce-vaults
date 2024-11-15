@@ -19,7 +19,7 @@ pub struct ProcessReport<'info> {
     #[account(mut)]
     pub vault: AccountLoader<'info, Vault>,
 
-    /// CHECK: can by any strategy
+    /// CHECK: can be any strategy
     #[account()]
     pub strategy: UncheckedAccount<'info>,
 

@@ -11,7 +11,7 @@ use crate::constants::UNDERLYING_SEED;
 
 #[derive(Accounts)]
 pub struct Deposit<'info> {
-    /// CHECK: can by any strategy
+    /// CHECK: can be any strategy
     #[account(mut)]
     pub strategy: UncheckedAccount<'info>,
 
