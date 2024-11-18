@@ -34,7 +34,7 @@ interface Vault {
   currentTokenBalance: number;
 }
 
-describe.only("Standard Vault: Withdrawal Tests", () => {
+describe("Standard Vault: Withdrawal Tests", () => {
   let vaultsAndReportingAdmin: anchor.web3.Keypair;
   let underlyingMint: anchor.web3.PublicKey;
   let underlyingMintOwner: anchor.web3.Keypair;
