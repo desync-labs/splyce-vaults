@@ -6,7 +6,7 @@ use crate::error::ErrorCode;
 
 #[derive(Accounts)]
 pub struct SetPerformanceFee<'info> {
-    /// CHECK: can by any strategy
+    /// CHECK: can be any strategy
     #[account(mut)]
     pub strategy: UncheckedAccount<'info>,
     #[account(mut)]
@@ -15,7 +15,7 @@ pub struct SetPerformanceFee<'info> {
 
 #[derive(Accounts)]
 pub struct SetFeeManager<'info> {
-    /// CHECK: can by any strategy
+    /// CHECK: can be any strategy
     #[account(mut)]
     pub strategy: UncheckedAccount<'info>,
     #[account(mut)]
