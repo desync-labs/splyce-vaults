@@ -232,6 +232,7 @@ async function main() {
       lockPeriodEnds: new BN(Math.floor(Date.now() / 1000) + (7 * 24 * 60 * 60)), // 1 week from now
       performanceFee: new BN(50),
       feeManager: admin.publicKey,
+      deployFundsDirection: false,
     });
 
     // 13. Serialize Strategy Configuration

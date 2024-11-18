@@ -28,6 +28,7 @@ pub struct OrcaStrategy {
     pub deposit_limit: u64,
 
     pub fee_data: FeeData,
+    pub deploy_funds_direction: bool, // if true, deploy funds swap with b_to_a, otherwise a_to_b and free funds swap in opposite direction
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
@@ -37,6 +38,7 @@ pub struct OrcaStrategyConfig {
     pub lock_period_ends: i64,
     pub performance_fee: u64,
     pub fee_manager: Pubkey,
+    pub deploy_funds_direction: bool,
 }
 
 #[error_code]
@@ -154,7 +156,7 @@ impl Strategy for OrcaStrategy {
             0,                // other_amount_threshold (minimum amount to receive)
             0,                // sqrt_price_limit (0 = no limit)
             true,             // amount_specified_is_input
-            true,            // a_to_b (true for WSOL -> devUSDC, which is a_to_b)
+            !self.deploy_funds_direction,            // a_to_b (true for WSOL -> devUSDC, which is a_to_b)
         )?;
 
         Ok(())
@@ -197,7 +199,7 @@ impl Strategy for OrcaStrategy {
             0,                // other_amount_threshold (minimum amount to receive)
             0,                // sqrt_price_limit (0 = no limit)
             true,             // amount_specified_is_input
-            false,            // a_to_b (false for devUSDC -> WSOL, which is b_to_a)
+            self.deploy_funds_direction,            // a_to_b (false for devUSDC -> WSOL, which is b_to_a)
         )?;
 
         Ok(())
@@ -250,7 +252,7 @@ impl StrategyInit for OrcaStrategy {
         vault: Pubkey, 
         underlying_mint: &InterfaceAccount<Mint>, 
         underlying_token_acc: Pubkey, 
-        config_bytes: Vec<u8>
+        config_bytes: Vec<u8>,
     ) -> Result<()> {
         let config: OrcaStrategyConfig = OrcaStrategyConfig::try_from_slice(&config_bytes)
         .map_err(|_| ErrorCode::InvalidStrategyConfig)?;
@@ -270,6 +272,7 @@ impl StrategyInit for OrcaStrategy {
             performance_fee: config.performance_fee,
             fee_balance: 0,
         };
+        self.deploy_funds_direction = config.deploy_funds_direction;
 
         emit!(
             AMMStrategyInitEvent 
@@ -281,6 +284,7 @@ impl StrategyInit for OrcaStrategy {
                 underlying_token_acc: self.underlying_token_acc,
                 undelying_decimals: self.underlying_decimals,
                 deposit_limit: self.deposit_limit,
+                deploy_funds_direction: self.deploy_funds_direction,
             });
 
         Ok(())
