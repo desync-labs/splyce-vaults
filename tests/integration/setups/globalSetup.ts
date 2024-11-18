@@ -39,13 +39,16 @@ export async function mochaGlobalSetup() {
     .signers([superAdmin])
     .rpc();
 
-  const roleManagerRolesAdminRole = anchor.web3.PublicKey.findProgramAddressSync(
-    [
-      Buffer.from("role_manager"),
-      ROLES_BUFFER.ROLES_ADMIN,
-    ],
+  const config = anchor.web3.PublicKey.findProgramAddressSync(
+    [Buffer.from("config")],
     accessControlProgram.programId
   )[0];
+
+  const roleManagerRolesAdminRole =
+    anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("role_manager"), ROLES_BUFFER.ROLES_ADMIN],
+      accessControlProgram.programId
+    )[0];
 
   const superAdminRolesAdminRole = anchor.web3.PublicKey.findProgramAddressSync(
     [
@@ -56,17 +59,25 @@ export async function mochaGlobalSetup() {
     accessControlProgram.programId
   )[0];
 
-  const roleManageRolesAdminRoleAccount = await accessControlProgram.account.roleManager.fetch(
-    roleManagerRolesAdminRole
-  );
+  const configAccount = await accessControlProgram.account.config.fetch(config);
 
-  const superAdminRolesAdminRoleAccount = await accessControlProgram.account.userRole.fetch(
-    superAdminRolesAdminRole
-  );
+  const roleManageRolesAdminRoleAccount =
+    await accessControlProgram.account.roleManager.fetch(
+      roleManagerRolesAdminRole
+    );
 
-  assert.equal(roleManageRolesAdminRoleAccount.managerRoleId, ROLES.ROLES_ADMIN);
+  const superAdminRolesAdminRoleAccount =
+    await accessControlProgram.account.userRole.fetch(superAdminRolesAdminRole);
+
+  assert.equal(configAccount.owner.toString(), superAdmin.publicKey.toString());
+  assert.equal(
+    Number(roleManageRolesAdminRoleAccount.managerRoleId),
+    Number(ROLES.ROLES_ADMIN)
+  );
   assert.isTrue(superAdminRolesAdminRoleAccount.hasRole);
 
-  console.log("Access Control program and Super Admin initialized successfully");
+  console.log(
+    "Access Control program and Super Admin initialized successfully"
+  );
   console.log("-------Global Setup Finished-------");
 }
