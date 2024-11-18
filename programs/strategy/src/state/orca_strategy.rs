@@ -8,6 +8,7 @@ use crate::error::ErrorCode;
 use crate::events::{StrategyDepositEvent, AMMStrategyInitEvent, StrategyWithdrawEvent};
 use crate::utils::{orca_swap_handler};
 use crate::instructions::{Report, ReportProfit, ReportLoss, DeployFunds, FreeFunds};
+use crate::constants::{AMOUNT_SPECIFIED_IS_INPUT, REMAINING_ACCOUNTS_MIN, MAX_SQRT_PRICE_X64, MIN_SQRT_PRICE_X64};
 
 #[account]
 #[derive(Default, Debug, InitSpace)]
@@ -29,7 +30,7 @@ pub struct OrcaStrategy {
 
     pub fee_data: FeeData,
     pub deploy_funds_direction: bool, // if true, deploy funds swap with b_to_a, otherwise a_to_b and free funds swap in opposite direction
-}
+}   
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
 pub struct OrcaStrategyConfig {
@@ -120,28 +121,28 @@ impl Strategy for OrcaStrategy {
     }
 
     //Free fund swaps asset to underlying token
-    fn free_funds<'info>(&mut self, _accounts: &FreeFunds<'info>, _remaining: &[AccountInfo<'info>], _amount: u64) -> Result<()> {
+    fn free_funds<'info>(&mut self, accounts: &FreeFunds<'info>, remaining: &[AccountInfo<'info>], amount: u64) -> Result<()> {
         // Verify we have enough remaining accounts
-        if _remaining.len() < 9 {
+        if remaining.len() < REMAINING_ACCOUNTS_MIN {
             return Err(OrcaStrategyErrorCode::NotEnoughAccounts.into());
         }
 
         // Extract accounts from remaining array
-        let whirlpool_program = &_remaining[0];
-        let whirlpool = &_remaining[1];
-        let token_owner_account_a = &_remaining[2];
-        let token_vault_a = &_remaining[3];
-        let token_owner_account_b = &_remaining[4];
-        let token_vault_b = &_remaining[5];
-        let tick_array_0 = &_remaining[6];
-        let tick_array_1 = &_remaining[7];
-        let tick_array_2 = &_remaining[8];
-        let oracle = &_remaining[9];
+        let whirlpool_program = &remaining[0];
+        let whirlpool = &remaining[1];
+        let token_owner_account_a = &remaining[2];
+        let token_vault_a = &remaining[3];
+        let token_owner_account_b = &remaining[4];
+        let token_vault_b = &remaining[5];
+        let tick_array_0 = &remaining[6];
+        let tick_array_1 = &remaining[7];
+        let tick_array_2 = &remaining[8];
+        let oracle = &remaining[9];
 
         orca_swap_handler(
             whirlpool_program,
-            &_accounts.token_program,
-            &_accounts.strategy,  // strategy account is the authority
+            &accounts.token_program,
+            &accounts.strategy,  // strategy account is the authority
             whirlpool,
             token_owner_account_a,
             token_vault_a,
@@ -152,10 +153,10 @@ impl Strategy for OrcaStrategy {
             tick_array_2,
             oracle,
             &[&self.seeds()],  // PDA seeds for signing
-            _amount,            // Amount to swap
-            0,                // other_amount_threshold (minimum amount to receive)
-            0,                // sqrt_price_limit (0 = no limit)
-            true,             // amount_specified_is_input
+            amount,            // Amount to swap
+            u64::MAX,         // other_amount_threshold (maximum amount to receive)
+            if !self.deploy_funds_direction { MAX_SQRT_PRICE_X64 } else { MIN_SQRT_PRICE_X64 },  // sqrt_price_limit for A->B (true) = MIN, B->A (false) = MAX
+            !AMOUNT_SPECIFIED_IS_INPUT,             // !amount_specified_is_input, here it should be false
             !self.deploy_funds_direction,            // a_to_b (true for WSOL -> devUSDC, which is a_to_b)
         )?;
 
@@ -198,7 +199,7 @@ impl Strategy for OrcaStrategy {
             amount,            // Amount to swap
             0,                // other_amount_threshold (minimum amount to receive)
             0,                // sqrt_price_limit (0 = no limit)
-            true,             // amount_specified_is_input
+            AMOUNT_SPECIFIED_IS_INPUT,             // amount_specified_is_input, here it should be true
             self.deploy_funds_direction,            // a_to_b (false for devUSDC -> WSOL, which is b_to_a)
         )?;
 

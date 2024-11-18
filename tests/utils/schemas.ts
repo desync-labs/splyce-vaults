@@ -114,7 +114,8 @@ export class OrcaStrategyConfig {
         lockPeriodEnds: BN,
         performanceFee: BN,
         feeManager: anchor.web3.PublicKey,
-        deployFundsDirection: boolean
+        deployFundsDirection: boolean,
+        amountSpecifiedIsInput: boolean
     }) {
         this.depositLimit = fields.depositLimit;
         this.depositPeriodEnds = fields.depositPeriodEnds;

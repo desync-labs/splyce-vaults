@@ -9,6 +9,8 @@ use access_control::{
     state::{UserRole, Role}
 };
 
+use crate::constants::TOKEN_ACCOUNT_SEED;
+
 use crate::ID;
 
 //This instruction initializes a token account for the strategy
@@ -18,6 +20,7 @@ pub struct InitTokenAccount<'info> {
     #[account(
         init, 
         seeds = [
+            TOKEN_ACCOUNT_SEED.as_bytes(),
             &asset_mint.key().to_bytes(),
             strategy.key().as_ref(),
         ], 

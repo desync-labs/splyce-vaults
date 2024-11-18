@@ -249,8 +249,11 @@ async function main() {
     // 3. Deploy Funds in the Orca Strategy
     // ============================
     console.log("Deploying funds in the Orca Strategy...");
+    const TOKEN_ACCOUNT_SEED = "token_account";
+
     const strategyWSOLAccount = PublicKey.findProgramAddressSync(
       [
+        Buffer.from(TOKEN_ACCOUNT_SEED),    // TOKEN_ACCOUNT_SEED.as_bytes()
         WSOL_MINT.toBuffer(),      // asset_mint.key().to_bytes()
         strategy.toBuffer(),       // strategy.key().as_ref()
       ],
