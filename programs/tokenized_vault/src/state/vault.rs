@@ -25,6 +25,7 @@ pub struct Vault {
     pub total_idle: u64,
     pub deposit_limit: u64,
     pub min_user_deposit: u64,
+    pub strategies_amount: u64,
 
     pub is_shutdown: bool,
 
