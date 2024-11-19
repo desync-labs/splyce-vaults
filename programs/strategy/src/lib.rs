@@ -79,4 +79,8 @@ pub mod strategy {
     pub fn deploy_funds<'info>(ctx:  Context<'_, '_, '_, 'info, DeployFunds<'info>>, amount: u64) -> Result<()> {
         handle_deploy_funds(ctx, amount)
     }
+
+    pub fn free_funds<'info>(ctx:  Context<'_, '_, '_, 'info, FreeFunds<'info>>, amount: u64) -> Result<()> {
+        handle_free_funds(ctx, amount)
+    }
 }

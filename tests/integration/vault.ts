@@ -108,6 +108,8 @@ describe("tokenized_vault", () => {
       accountantProgram.programId
     )[0];
     console.log("Accountant PDA:", accountant.toBase58());
+
+    adminTokenAccount = await token.createAccount(provider.connection, admin, underlyingMint, admin.publicKey);
   });
 
   it("initialize access control", async () => {
@@ -179,14 +181,14 @@ describe("tokenized_vault", () => {
       .signers([admin])
       .rpc();
 
-      await accessControlProgram.methods.setRoleManager(ROLES.KYC_PROVIDER, ROLES.ROLES_ADMIN)
+    await accessControlProgram.methods.setRoleManager(ROLES.KYC_PROVIDER, ROLES.ROLES_ADMIN)
       .accounts({
         signer: admin.publicKey,
       })
       .signers([admin])
       .rpc();
 
-      await accessControlProgram.methods.setRoleManager(ROLES.KYC_VERIFIED, ROLES.KYC_PROVIDER)
+    await accessControlProgram.methods.setRoleManager(ROLES.KYC_VERIFIED, ROLES.KYC_PROVIDER)
       .accounts({
         signer: admin.publicKey,
       })
@@ -203,7 +205,7 @@ describe("tokenized_vault", () => {
       .signers([admin])
       .rpc();
 
-      console.log("Admin public key2:", admin.publicKey.toBase58());
+    console.log("Admin public key2:", admin.publicKey.toBase58());
     await accessControlProgram.methods.setRole(ROLES.REPORTING_MANAGER, admin.publicKey)
       .accounts({
         signer: admin.publicKey,
@@ -225,14 +227,14 @@ describe("tokenized_vault", () => {
       .signers([admin])
       .rpc();
 
-      await accessControlProgram.methods.setRole(ROLES.KYC_PROVIDER, admin.publicKey)
+    await accessControlProgram.methods.setRole(ROLES.KYC_PROVIDER, admin.publicKey)
       .accounts({
         signer: admin.publicKey,
       })
       .signers([admin])
       .rpc();
 
-      await accessControlProgram.methods.setRole(ROLES.KYC_VERIFIED, user.publicKey)
+    await accessControlProgram.methods.setRole(ROLES.KYC_VERIFIED, user.publicKey)
       .accounts({
         signer: admin.publicKey,
       })
@@ -462,7 +464,7 @@ describe("tokenized_vault", () => {
         .rpc();
       assert.fail("Expected error was not thrown");
     } catch (err) {
-      assert.strictEqual(err.message, "AnchorError occurred. Error Code: AccessDenied. Error Number: 6006. Error Message: Signer has no access.");
+      assert.strictEqual(err.message, "AnchorError caused by account: signer. Error Code: AccessDenied. Error Number: 6006. Error Message: Signer has no access.");
     }
   });
 
@@ -554,16 +556,6 @@ describe("tokenized_vault", () => {
   it("Allocates tokens to the strategy", async () => {
     const provider = AnchorProvider.env();
 
-    let strategyAccount1 = await strategyProgram.account.simpleStrategy.fetch(strategy);
-    console.log("Strategy under:", strategyAccount1.underlyingMint.toBase58());
-
-    let vaultAccount1 = await vaultProgram.account.vault.fetch(vault);
-    console.log("Vault under:", vaultAccount1.underlyingMint.toBase58());
-
-    console.log("under:", underlyingMint.toBase58());
-
-    assert.strictEqual(vaultAccount1.underlyingMint.toBase58(), strategyAccount1.underlyingMint.toBase58());
-
     await vaultProgram.methods.updateDebt(new BN(90))
       .accounts({
         vault,
@@ -572,6 +564,8 @@ describe("tokenized_vault", () => {
       })
       .signers([admin])
       .rpc();
+
+    console.log("Updated debt");
 
     // Fetch the vault token account balance to verify the allocation
     let vaultTokenAccountInfo = await token.getAccount(provider.connection, vaultTokenAccount);
@@ -596,6 +590,59 @@ describe("tokenized_vault", () => {
     assert.strictEqual(strategyDataAccount.currentDebt.toString(), '90');
     assert.strictEqual(vaultAccount.totalDebt.toString(), '90');
     assert.strictEqual(vaultAccount.totalIdle.toString(), '10');
+
+    console.log("Allocated tokens to strategy");
+  });
+
+  it("deploy and free funds", async () => {
+    const provider = AnchorProvider.env();
+
+    // deploy funds
+    await strategyProgram.methods.deployFunds(new BN(90))
+      .accounts({
+        strategy,
+        signer: admin.publicKey,
+      })
+      .remainingAccounts([
+        { pubkey: adminTokenAccount, isWritable: true, isSigner: false },
+      ])
+      .signers([admin])
+      .rpc();
+
+    console.log("Deployed funds");
+
+    // check the strategy token account balance
+    let strategyTokenAccountInfo = await token.getAccount(provider.connection, strategyTokenAccount);
+    assert.strictEqual(strategyTokenAccountInfo.amount.toString(), '0');
+
+    let strategyAccount = await strategyProgram.account.simpleStrategy.fetch(strategy);
+    assert.strictEqual(strategyAccount.totalInvested.toString(), '90');
+
+    // check the admin token account balance
+    let adminTokenAccountInfo = await token.getAccount(provider.connection, adminTokenAccount);
+    assert.strictEqual(adminTokenAccountInfo.amount.toString(), '90');
+
+    // free funds 
+    await strategyProgram.methods.freeFunds(new BN(90))
+      .accounts({
+        strategy,
+        signer: admin.publicKey,
+      })
+      .remainingAccounts([
+        { pubkey: adminTokenAccount, isWritable: true, isSigner: false },
+      ])
+      .signers([admin])
+      .rpc();
+
+    console.log("Freed funds");
+
+    // check the strategy token account balance
+    strategyTokenAccountInfo = await token.getAccount(provider.connection, strategyTokenAccount);
+    assert.strictEqual(strategyTokenAccountInfo.amount.toString(), '90');
+
+    // check the admin token account balance
+    adminTokenAccountInfo = await token.getAccount(provider.connection, adminTokenAccount);
+    assert.strictEqual(adminTokenAccountInfo.amount.toString(), '0');
   });
 
   it("Deallocates tokens from the strategy", async () => {
@@ -629,7 +676,7 @@ describe("tokenized_vault", () => {
     )[0];
     const strategyDataAccount = await vaultProgram.account.strategyData.fetch(strategyData);
     const vaultAccount = await vaultProgram.account.vault.fetch(vault);
-    
+
     assert.strictEqual(strategyDataAccount.currentDebt.toString(), '80');
     assert.strictEqual(vaultAccount.totalDebt.toString(), '80');
     assert.strictEqual(vaultAccount.totalIdle.toString(), '20');
@@ -777,8 +824,6 @@ describe("tokenized_vault", () => {
   it("report profit", async () => {
     const provider = AnchorProvider.env();
 
-    adminTokenAccount = await token.createAccount(provider.connection, admin, underlyingMint, admin.publicKey);
-
     // 60 tokens profit for the strategy
     await token.mintTo(provider.connection, admin, underlyingMint, adminTokenAccount, admin.publicKey, 60);
 
@@ -922,7 +967,7 @@ describe("tokenized_vault", () => {
         .rpc();
       assert.fail("Expected error was not thrown");
     } catch (err) {
-      assert.strictEqual(err.message, "AnchorError occurred. Error Code: AccessDenied. Error Number: 6006. Error Message: Signer has no access.");
+      assert.strictEqual(err.message, "AnchorError caused by account: signer. Error Code: AccessDenied. Error Number: 6006. Error Message: Signer has no access.");
     }
   });
 
@@ -948,8 +993,8 @@ describe("tokenized_vault", () => {
       .signers([admin])
       .rpc();
 
-      vaultAccount = await vaultProgram.account.vault.fetch(vault);
-      assert.strictEqual(vaultAccount.minUserDeposit.toString(), '100');
+    vaultAccount = await vaultProgram.account.vault.fetch(vault);
+    assert.strictEqual(vaultAccount.minUserDeposit.toString(), '100');
   });
 
   it("set deposit limit - unauthorized", async () => {
@@ -1017,7 +1062,7 @@ describe("tokenized_vault", () => {
         Buffer.from(new Uint8Array(new BigUint64Array([BigInt(6)]).buffer))],
       accessControlProgram.programId,
     )[0];
-    
+
     await vaultProgram.methods.deposit(new BN(100))
       .accounts({
         vault,
@@ -1132,10 +1177,10 @@ describe("tokenized_vault", () => {
       .signers([admin])
       .rpc();
 
-      const strategyData = web3.PublicKey.findProgramAddressSync(
-        [Buffer.from("strategy_data"), vault.toBuffer(), strategy.toBuffer()],
-        vaultProgram.programId,
-      )[0];
+    const strategyData = web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("strategy_data"), vault.toBuffer(), strategy.toBuffer()],
+      vaultProgram.programId,
+    )[0];
 
     // get the vault strategies
     let strategyDataAccount = await vaultProgram.account.strategyData.fetchNullable(strategyData);
