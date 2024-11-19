@@ -12,7 +12,7 @@ anchor.setProvider(anchor.AnchorProvider.env());
 export const provider = anchor.AnchorProvider.env();
 export const workspace = anchor.workspace;
 export const connection = provider.connection;
-export let superAdmin: anchor.web3.Keypair;
+export let configOwner: anchor.web3.Keypair;
 
 export const accessControlProgram =
   workspace.AccessControl as Program<AccessControl>;
@@ -22,21 +22,21 @@ export const accountantProgram = workspace.Accountant as Program<Accountant>;
 
 export async function mochaGlobalSetup() {
   console.log("-------Global Setup Started-------");
-  superAdmin = anchor.web3.Keypair.generate();
-  console.log("Super Admin public key:", superAdmin.publicKey.toBase58());
+  configOwner = anchor.web3.Keypair.generate();
+  console.log("Super Admin public key:", configOwner.publicKey.toBase58());
 
   await airdrop({
     connection,
-    publicKey: superAdmin.publicKey,
+    publicKey: configOwner.publicKey,
     amount: 100e9,
   });
 
   await accessControlProgram.methods
     .initialize()
     .accounts({
-      admin: superAdmin.publicKey,
+      admin: configOwner.publicKey,
     })
-    .signers([superAdmin])
+    .signers([configOwner])
     .rpc();
 
   const config = anchor.web3.PublicKey.findProgramAddressSync(
@@ -50,10 +50,10 @@ export async function mochaGlobalSetup() {
       accessControlProgram.programId
     )[0];
 
-  const superAdminRolesAdminRole = anchor.web3.PublicKey.findProgramAddressSync(
+  const configOwnerRolesAdminRole = anchor.web3.PublicKey.findProgramAddressSync(
     [
       Buffer.from("user_role"),
-      superAdmin.publicKey.toBuffer(),
+      configOwner.publicKey.toBuffer(),
       ROLES_BUFFER.ROLES_ADMIN,
     ],
     accessControlProgram.programId
@@ -66,15 +66,15 @@ export async function mochaGlobalSetup() {
       roleManagerRolesAdminRole
     );
 
-  const superAdminRolesAdminRoleAccount =
-    await accessControlProgram.account.userRole.fetch(superAdminRolesAdminRole);
+  const configOwnerRolesAdminRoleAccount =
+    await accessControlProgram.account.userRole.fetch(configOwnerRolesAdminRole);
 
-  assert.equal(configAccount.owner.toString(), superAdmin.publicKey.toString());
+  assert.equal(configAccount.owner.toString(), configOwner.publicKey.toString());
   assert.equal(
     Number(roleManageRolesAdminRoleAccount.managerRoleId),
     Number(ROLES.ROLES_ADMIN)
   );
-  assert.isTrue(superAdminRolesAdminRoleAccount.hasRole);
+  assert.isTrue(configOwnerRolesAdminRoleAccount.hasRole);
 
   console.log(
     "Access Control program and Super Admin initialized successfully"
