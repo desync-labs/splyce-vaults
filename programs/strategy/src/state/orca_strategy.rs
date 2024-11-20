@@ -7,7 +7,7 @@ use super::fee_data::*;
 use crate::error::ErrorCode;
 use crate::events::{StrategyDepositEvent, AMMStrategyInitEvent, StrategyWithdrawEvent};
 use crate::utils::{orca_swap_handler};
-use crate::instructions::{Report, ReportProfit, ReportLoss, DeployFunds, FreeFunds};
+use crate::instructions::{Report, ReportProfit, ReportLoss, DeployFunds, FreeFunds, OrcaPurchaseAssets};
 use crate::constants::{AMOUNT_SPECIFIED_IS_INPUT, REMAINING_ACCOUNTS_MIN, MAX_SQRT_PRICE_X64, MIN_SQRT_PRICE_X64};
 
 #[account]
@@ -208,6 +208,60 @@ impl Strategy for OrcaStrategy {
 
     fn set_total_assets(&mut self, total_assets: u64) {
         self.total_assets = total_assets;
+    }
+
+    fn orca_purchase_assets<'info>(
+        &mut self,
+        accounts: &OrcaPurchaseAssets<'info>,
+        remaining: &[AccountInfo<'info>],
+        amount: Vec<u64>,
+        a_to_b: Vec<bool>,
+    ) -> Result<()> {
+        // Verify we have enough remaining accounts: length of a_to_b * 11
+        if remaining.len() < a_to_b.len() * 11 {
+            return Err(OrcaStrategyErrorCode::NotEnoughAccounts.into());
+        }
+
+        // Use enumeration to get the correct index
+        for (index, is_a_to_b) in a_to_b.iter().enumerate() {
+            let start = index * 11;
+
+            // Access the appropriate set of remaining accounts, skipping the 11th account
+            let whirlpool_program = &remaining[start + 0];
+            let whirlpool = &remaining[start + 1];
+            let token_owner_account_a = &remaining[start + 2];
+            let token_vault_a = &remaining[start + 3];
+            let token_owner_account_b = &remaining[start + 4];
+            let token_vault_b = &remaining[start + 5];
+            let tick_array_0 = &remaining[start + 6];
+            let tick_array_1 = &remaining[start + 7];
+            let tick_array_2 = &remaining[start + 8];
+            let oracle = &remaining[start + 9];
+            // The 11th account (start + 10) is intentionally skipped because it's strategy account itself
+
+            orca_swap_handler(
+                whirlpool_program,
+                &accounts.token_program,
+                &accounts.strategy,  // strategy account is the authority
+                whirlpool,
+                token_owner_account_a,
+                token_vault_a,
+                token_owner_account_b,
+                token_vault_b,
+                tick_array_0,
+                tick_array_1,
+                tick_array_2,
+                oracle,
+                &[&self.seeds()],  // PDA seeds for signing
+                amount[index],      // Amount to swap
+                0,                  // other_amount_threshold (minimum amount to receive)
+                0,                  // sqrt_price_limit (0 = no limit)
+                AMOUNT_SPECIFIED_IS_INPUT,  // amount_specified_is_input
+                *is_a_to_b,         // a_to_b
+            )?;
+        }
+
+        Ok(())
     }
 }
 

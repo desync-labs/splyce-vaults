@@ -25,4 +25,7 @@ pub enum ErrorCode {
 
     #[msg("Loss is too high")]
     LossTooHigh,
+
+    #[msg("Invalid strategy type")]
+    InvalidStrategyType
 }

@@ -7,7 +7,7 @@ use crate::state::{
     orca_strategy::OrcaStrategy,
 };
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, PartialEq)]
 pub enum StrategyType {
     Simple,
     TradeFintech,

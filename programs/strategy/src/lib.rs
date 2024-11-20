@@ -83,4 +83,8 @@ pub mod strategy {
     pub fn init_token_account(ctx: Context<InitTokenAccount>) -> Result<()> {
         handle_init_token_account(ctx)
     }
+
+    pub fn orca_purchase_assets<'info>(ctx: Context<'_, '_, '_, 'info, OrcaPurchaseAssets<'info>>, amount: Vec<u64>, a_to_b: Vec<bool>) -> Result<()> {
+        handle_orca_purchase_assets(ctx, amount, a_to_b)
+    }
 }

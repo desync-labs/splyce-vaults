@@ -3,7 +3,7 @@ use anchor_spl::token_interface::Mint;
 
 use super::*;
 use crate::constants::FEE_BPS;
-use crate::instructions::{Report, ReportProfit, ReportLoss, DeployFunds, FreeFunds};
+use crate::instructions::{Report, ReportProfit, ReportLoss, DeployFunds, FreeFunds, OrcaPurchaseAssets};
 
 pub trait StrategyDataAccount {
     fn save_changes(&self, writer: &mut dyn std::io::Write) -> Result<()>;
@@ -80,4 +80,5 @@ pub trait Strategy:
 
         Ok(())
     }
+    fn orca_purchase_assets<'info>(&mut self, accounts: &OrcaPurchaseAssets<'info>, remaining: &[AccountInfo<'info>], amount: Vec<u64>, a_to_b: Vec<bool>) -> Result<()>;
 }

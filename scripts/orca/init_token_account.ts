@@ -66,7 +66,23 @@ async function main() {
       .signers([admin])
       .rpc();
 
-    console.log("Token account initialized successfully");
+    console.log("Token account initialized successfully for WSOL");
+
+    const TMAC_MINT = new PublicKey(
+      "Afn8YB1p4NsoZeS5XJBZ18LTfEy5NFPwN46wapZcBQr6"
+    );
+    // Initialize token account for TMAC
+    await strategyProgram.methods
+      .initTokenAccount()
+      .accounts({
+          strategy: strategy,
+          assetMint: TMAC_MINT,
+          signer: admin.publicKey,
+        })
+        .signers([admin])
+        .rpc();
+  
+    console.log("Token account initialized successfully for TMAC");
 
   } catch (error) {
     console.error("Error occurred:", error);

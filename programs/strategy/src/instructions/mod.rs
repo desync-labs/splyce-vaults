@@ -11,6 +11,7 @@ pub mod transfer_management;
 pub mod withdraw;
 pub mod withdraw_fee;
 pub mod init_token_account;
+pub mod orca_purchase_assets;
 
 pub use deploy_funds::*;
 pub use deposit::*;
@@ -25,3 +26,4 @@ pub use transfer_management::*;
 pub use withdraw::*;
 pub use withdraw_fee::*;
 pub use init_token_account::*;
+pub use orca_purchase_assets::*;

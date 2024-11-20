@@ -7,7 +7,7 @@ use super::fee_data::*;
 use crate::error::ErrorCode;
 use crate::events::{StrategyDepositEvent, StrategyInitEvent, StrategyWithdrawEvent};
 use crate::utils::token;
-use crate::instructions::{Report, ReportProfit, ReportLoss, DeployFunds, FreeFunds};
+use crate::instructions::{Report, ReportProfit, ReportLoss, DeployFunds, FreeFunds, OrcaPurchaseAssets};
 
 #[account]
 #[derive(Default, Debug, InitSpace)]
@@ -206,6 +206,10 @@ impl Strategy for TradeFintechStrategy {
 
     fn set_total_assets(&mut self, total_assets: u64) {
         self.total_assets = total_assets;
+    }
+
+    fn orca_purchase_assets<'info>(&mut self, accounts: &OrcaPurchaseAssets<'info>, remaining: &[AccountInfo<'info>], amount: Vec<u64>, a_to_b: Vec<bool>) -> Result<()> {
+        Ok(())
     }
 }
 
