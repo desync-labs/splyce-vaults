@@ -34,8 +34,10 @@ export const ROLES_BUFFER = {
 };
 
 export const errorStrings = {
-  code2012:
+  addressConstraintViolated:
     "Error Code: ConstraintAddress. Error Number: 2012. Error Message: An address constraint was violated.",
-  code6002:
+  roleIdInvalid:
     "Error Code: InvalidRoleId. Error Number: 6002. Error Message: Role id is invalid.",
+  setRoleAdminMustBeCalledByOwner:
+    "Error Code: CannotSetRoleAdmin. Error Number: 6001. Error Message: set_role_admin fn must be called by the owner.",
 };
