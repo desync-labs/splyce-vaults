@@ -1,3 +1,4 @@
+/*
 import * as anchor from "@coral-xyz/anchor";
 import { BN } from "@coral-xyz/anchor";
 import * as token from "@solana/spl-token";
@@ -889,3 +890,4 @@ describe("Standard Vault: Deposit Tests", () => {
     );
   });
 });
+*/

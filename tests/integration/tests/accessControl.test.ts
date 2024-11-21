@@ -9,14 +9,7 @@ import { errorStrings, ROLES, ROLES_BUFFER } from "../../utils/constants";
 import { BN } from "@coral-xyz/anchor";
 import { airdrop } from "../../utils/helpers";
 
-export const ROLES_SUCCESS_DATA = {
-  VAULTS_ADMIN: new BN(1),
-  REPORTING_MANAGER: new BN(2),
-  STRATEGIES_MANAGER: new BN(3),
-  ACCOUNTANT_ADMIN: new BN(4),
-  KYC_PROVIDER: new BN(5),
-  KYC_VERIFIED: new BN(6),
-};
+const { ROLES_ADMIN, ...ROLES_SUCCESS_DATA } = ROLES;
 
 describe.only("Access Control Tests", () => {
   before(async () => {
@@ -97,6 +90,7 @@ describe.only("Access Control Tests", () => {
         })
         .signers([anotherconfigOwner])
         .rpc();
+      assert.fail("Error was not thrown");
     } catch {
       assert.isTrue(true);
     }
@@ -119,6 +113,7 @@ describe.only("Access Control Tests", () => {
         })
         .signers([vaultAdminInner])
         .rpc();
+      assert.fail("Error was not thrown");
     } catch (err) {
       expect(err.message).contains(errorStrings.addressConstraintViolated);
     }
@@ -133,6 +128,7 @@ describe.only("Access Control Tests", () => {
         })
         .signers([configOwner])
         .rpc();
+      assert.fail("Error was not thrown");
     } catch (err) {
       expect(err.message).contains(errorStrings.roleIdInvalid);
     }
@@ -147,6 +143,7 @@ describe.only("Access Control Tests", () => {
         })
         .signers([configOwner])
         .rpc();
+      assert.fail("Error was not thrown");
     } catch (err) {
       expect(err.message).contains(errorStrings.roleIdInvalid);
     }
@@ -162,6 +159,7 @@ describe.only("Access Control Tests", () => {
         })
         .signers([configOwner])
         .rpc();
+      assert.fail("Error was not thrown");
     } catch (err) {
       expect(err.message).contains(
         errorStrings.setRoleAdminMustBeCalledByOwner
@@ -224,4 +222,378 @@ describe.only("Access Control Tests", () => {
       assert.isTrue(roleReceiverCorrespondingRoleAccount.hasRole);
     });
   }
+
+  it("Setting multiple roles to the same account by corresponding role manager account is successful", async function () {
+    const roleReceiver = anchor.web3.Keypair.generate();
+    for (const role in ROLES_SUCCESS_DATA) {
+      if (role === "KYC_VERIFIED") {
+        // Set KYC Provider role to kycProvider account
+        const kycProvider = anchor.web3.Keypair.generate();
+        await airdrop({
+          connection,
+          publicKey: kycProvider.publicKey,
+          amount: 10e9,
+        });
+        await accessControlProgram.methods
+          .setRole(ROLES.KYC_PROVIDER, kycProvider.publicKey)
+          .accounts({
+            signer: configOwner.publicKey,
+          })
+          .signers([configOwner])
+          .rpc();
+
+        // Then only set KYC Verified user
+        await accessControlProgram.methods
+          .setRole(ROLES[role], roleReceiver.publicKey)
+          .accounts({
+            signer: kycProvider.publicKey,
+          })
+          .signers([kycProvider])
+          .rpc();
+      } else {
+        await accessControlProgram.methods
+          .setRole(ROLES[role], roleReceiver.publicKey)
+          .accounts({
+            signer: configOwner.publicKey,
+          })
+          .signers([configOwner])
+          .rpc();
+      }
+    }
+
+    for (const role in ROLES_SUCCESS_DATA) {
+      const roleReceiverCorrespondingRole =
+        anchor.web3.PublicKey.findProgramAddressSync(
+          [
+            Buffer.from("user_role"),
+            roleReceiver.publicKey.toBuffer(),
+            ROLES_BUFFER[role],
+          ],
+          accessControlProgram.programId
+        )[0];
+
+      const roleReceiverCorrespondingRoleAccount =
+        await accessControlProgram.account.userRole.fetch(
+          roleReceiverCorrespondingRole
+        );
+
+      assert.isTrue(roleReceiverCorrespondingRoleAccount.hasRole);
+    }
+  });
+
+  it("Setting a role via set role method by non role manager account should revert", async function () {
+    const roleReceiver = anchor.web3.Keypair.generate();
+    // KYC VERIFIED user's role manager is KYC_PROVIDER role, not ROLES_ADMIN
+    try {
+      await accessControlProgram.methods
+        .setRole(ROLES.KYC_VERIFIED, roleReceiver.publicKey)
+        .accounts({
+          signer: configOwner.publicKey,
+        })
+        .signers([configOwner])
+        .rpc();
+      assert.fail("Error was not thrown");
+    } catch (err) {
+      expect(err.message).contains(
+        errorStrings.accountExpectedToAlreadyBeIntiialzied
+      );
+    }
+  });
+
+  for (const role in ROLES_SUCCESS_DATA) {
+    it(`Revoking ${role} role with signer being the corresponding role manager account is successful`, async function () {
+      const roleReceiver = anchor.web3.Keypair.generate();
+      if (role === "KYC_VERIFIED") {
+        // Set KYC Provider role to kycProvider account
+        const kycProvider = anchor.web3.Keypair.generate();
+        await airdrop({
+          connection,
+          publicKey: kycProvider.publicKey,
+          amount: 10e9,
+        });
+        await accessControlProgram.methods
+          .setRole(ROLES.KYC_PROVIDER, kycProvider.publicKey)
+          .accounts({
+            signer: configOwner.publicKey,
+          })
+          .signers([configOwner])
+          .rpc();
+
+        // Set KYC Verified user
+        await accessControlProgram.methods
+          .setRole(ROLES[role], roleReceiver.publicKey)
+          .accounts({
+            signer: kycProvider.publicKey,
+          })
+          .signers([kycProvider])
+          .rpc();
+        // Revoke Role
+        await accessControlProgram.methods
+          .revokeRole(ROLES[role], roleReceiver.publicKey)
+          .accounts({
+            signer: kycProvider.publicKey,
+            recipient: configOwner.publicKey,
+          })
+          .signers([kycProvider])
+          .rpc();
+      } else {
+        await accessControlProgram.methods
+          .setRole(ROLES[role], roleReceiver.publicKey)
+          .accounts({
+            signer: configOwner.publicKey,
+          })
+          .signers([configOwner])
+          .rpc();
+        // Revoke Role
+        await accessControlProgram.methods
+          .revokeRole(ROLES[role], roleReceiver.publicKey)
+          .accounts({
+            signer: configOwner.publicKey,
+            recipient: configOwner.publicKey,
+          })
+          .signers([configOwner])
+          .rpc();
+      }
+
+      const roleReceiverCorrespondingRole =
+        anchor.web3.PublicKey.findProgramAddressSync(
+          [
+            Buffer.from("user_role"),
+            roleReceiver.publicKey.toBuffer(),
+            ROLES_BUFFER[role],
+          ],
+          accessControlProgram.programId
+        )[0];
+
+      try {
+        await accessControlProgram.account.userRole.fetch(
+          roleReceiverCorrespondingRole
+        );
+        assert.fail("Error was not thrown");
+      } catch (err) {
+        expect(err.message).contains("Account does not exist or has no data");
+      }
+    });
+  }
+
+  it("Revoking a role that account did not have, with signer being the corresponding role manager should revert", async function () {
+    const roleReceiver = anchor.web3.Keypair.generate();
+    // Set Role
+    await accessControlProgram.methods
+      .setRole(ROLES.VAULTS_ADMIN, roleReceiver.publicKey)
+      .accounts({
+        signer: configOwner.publicKey,
+      })
+      .signers([configOwner])
+      .rpc();
+    // Revoke Role
+    try {
+      await accessControlProgram.methods
+        .revokeRole(ROLES.STRATEGIES_MANAGER, roleReceiver.publicKey)
+        .accounts({
+          signer: configOwner.publicKey,
+          recipient: configOwner.publicKey,
+        })
+        .signers([configOwner])
+        .rpc();
+      assert.fail("Error was not thrown.");
+    } catch (err) {
+      expect(err.message).contains(
+        errorStrings.accountExpectedToAlreadyBeIntiialzied
+      );
+    }
+    // Still has the existing role
+    const roleReceiverVaultsAdminRole =
+      anchor.web3.PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("user_role"),
+          roleReceiver.publicKey.toBuffer(),
+          ROLES_BUFFER.VAULTS_ADMIN,
+        ],
+        accessControlProgram.programId
+      )[0];
+
+    const roleReceiverVaultsAdminRoleAccount =
+      await accessControlProgram.account.userRole.fetch(
+        roleReceiverVaultsAdminRole
+      );
+
+    assert.isTrue(roleReceiverVaultsAdminRoleAccount.hasRole);
+
+    // Does not have the non-existing revoked role
+    const roleReceiverStrategiesManagerRole =
+      anchor.web3.PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("user_role"),
+          roleReceiver.publicKey.toBuffer(),
+          ROLES_BUFFER.STRATEGIES_MANAGER,
+        ],
+        accessControlProgram.programId
+      )[0];
+
+    try {
+      await accessControlProgram.account.userRole.fetch(
+        roleReceiverStrategiesManagerRole
+      );
+      assert.fail("Error was not thrown");
+    } catch (err) {
+      expect(err.message).contains("Account does not exist or has no data");
+    }
+  });
+
+  it("Revoking role with invalid role_id with signer being the corresponding role manager is successful", async function () {
+    const roleReceiver = anchor.web3.Keypair.generate();
+    // Set Role
+    await accessControlProgram.methods
+      .setRole(ROLES.VAULTS_ADMIN, roleReceiver.publicKey)
+      .accounts({
+        signer: configOwner.publicKey,
+      })
+      .signers([configOwner])
+      .rpc();
+    // Revoke Role
+    try {
+      await accessControlProgram.methods
+        .revokeRole(new BN(10), roleReceiver.publicKey)
+        .accounts({
+          signer: configOwner.publicKey,
+          recipient: configOwner.publicKey,
+        })
+        .signers([configOwner])
+        .rpc();
+      assert.fail("Error was not thrown.");
+    } catch (err) {
+      assert.isTrue(true);
+    }
+
+    // Still has the role
+    const roleReceiverVaultsAdminRole =
+      anchor.web3.PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("user_role"),
+          roleReceiver.publicKey.toBuffer(),
+          ROLES_BUFFER.VAULTS_ADMIN,
+        ],
+        accessControlProgram.programId
+      )[0];
+
+    const roleReceiverVaultsAdminRoleAccount =
+      await accessControlProgram.account.userRole.fetch(
+        roleReceiverVaultsAdminRole
+      );
+
+    assert.isTrue(roleReceiverVaultsAdminRoleAccount.hasRole);
+  });
+
+  it("Revoking one role from account that has multiple roles and signer being the corresponding role manager is successful", async function () {
+    const roleReceiver = anchor.web3.Keypair.generate();
+    // Set Role One
+    await accessControlProgram.methods
+      .setRole(ROLES.VAULTS_ADMIN, roleReceiver.publicKey)
+      .accounts({
+        signer: configOwner.publicKey,
+      })
+      .signers([configOwner])
+      .rpc();
+    // Set Role Two
+    await accessControlProgram.methods
+      .setRole(ROLES.STRATEGIES_MANAGER, roleReceiver.publicKey)
+      .accounts({
+        signer: configOwner.publicKey,
+      })
+      .signers([configOwner])
+      .rpc();
+
+    // Revoke Role One
+    await accessControlProgram.methods
+      .revokeRole(ROLES.VAULTS_ADMIN, roleReceiver.publicKey)
+      .accounts({
+        signer: configOwner.publicKey,
+        recipient: configOwner.publicKey,
+      })
+      .signers([configOwner])
+      .rpc();
+
+    // Doesn't have role one
+    const roleReceiverVaultsAdminRole =
+      anchor.web3.PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("user_role"),
+          roleReceiver.publicKey.toBuffer(),
+          ROLES_BUFFER.VAULTS_ADMIN,
+        ],
+        accessControlProgram.programId
+      )[0];
+
+    try {
+      await accessControlProgram.account.userRole.fetch(
+        roleReceiverVaultsAdminRole
+      );
+      assert.fail("Error was not thrown");
+    } catch (err) {
+      expect(err.message).contains("Account does not exist or has no data");
+    }
+
+    // Still Has Role Two
+    const roleReceiverStrategiesManagerRole =
+      anchor.web3.PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("user_role"),
+          roleReceiver.publicKey.toBuffer(),
+          ROLES_BUFFER.STRATEGIES_MANAGER,
+        ],
+        accessControlProgram.programId
+      )[0];
+
+    const roleReceiverStrategiesManagerRoleAccount =
+      await accessControlProgram.account.userRole.fetch(
+        roleReceiverStrategiesManagerRole
+      );
+
+    assert.isTrue(roleReceiverStrategiesManagerRoleAccount.hasRole);
+  });
+
+  it("Revoking ROLES_ADMIN role from ROLES_ADMIN with signer being the config owner is successful", async function () {
+    await accessControlProgram.methods
+      .revokeRole(ROLES.ROLES_ADMIN, configOwner.publicKey)
+      .accounts({
+        signer: configOwner.publicKey,
+        recipient: configOwner.publicKey,
+      })
+      .signers([configOwner])
+      .rpc();
+
+    // No longer has ROLES_ADMIN role
+    const roleReceiverCorrespondingRole =
+      anchor.web3.PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("user_role"),
+          configOwner.publicKey.toBuffer(),
+          ROLES_BUFFER.ROLES_ADMIN,
+        ],
+        accessControlProgram.programId
+      )[0];
+
+    try {
+      await accessControlProgram.account.userRole.fetch(
+        roleReceiverCorrespondingRole
+      );
+      assert.fail("Error was not thrown");
+    } catch (err) {
+      expect(err.message).contains("Account does not exist or has no data");
+    }
+
+    // Confid owner account is still the config owner
+    const config = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("config")],
+      accessControlProgram.programId
+    )[0];
+    const configAccount = await accessControlProgram.account.config.fetch(
+      config
+    );
+    assert.equal(
+      configAccount.owner.toString(),
+      configOwner.publicKey.toString()
+    );
+  });
 });

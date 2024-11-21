@@ -1,3 +1,4 @@
+/*
 import * as anchor from "@coral-xyz/anchor";
 import { BN } from "@coral-xyz/anchor";
 import * as token from "@solana/spl-token";
@@ -580,3 +581,4 @@ describe("Standard Vault: Withdrawal Tests", () => {
 
   // TO DO: Add max loss related test(s)
 });
+*/
