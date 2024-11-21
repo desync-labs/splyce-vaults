@@ -24,9 +24,9 @@ pub struct OrcaStrategy {
     pub underlying_token_acc: Pubkey,
     pub underlying_decimals: u8,
 
-    pub total_invested: u64,
-    pub total_assets: u64,
-    pub deposit_limit: u64,
+    pub total_invested: u64, //
+    pub total_assets: u64, //TODO This part can be removed because this strategy deals with multiple assets
+    pub deposit_limit: u64, //TODO later use or delete
 
     pub fee_data: FeeData,
     pub deploy_funds_direction: bool, // if true, deploy funds swap with b_to_a, otherwise a_to_b and free funds swap in opposite direction
@@ -50,6 +50,8 @@ pub enum OrcaStrategyErrorCode {
     NotEnoughAccounts,
     #[msg("Invalid account")]
     InvalidAccount,
+    #[msg("Invalid underlying token account for the swap direction")]
+    InvalidUnderlyingToken,
 }
 
 impl StrategyManagement for OrcaStrategy {
@@ -237,7 +239,20 @@ impl Strategy for OrcaStrategy {
             let tick_array_1 = &remaining[start + 7];
             let tick_array_2 = &remaining[start + 8];
             let oracle = &remaining[start + 9];
-            // The 11th account (start + 10) is intentionally skipped because it's strategy account itself
+            // The 11th account (start + 10) is intentionally skipped because it's the strategy account itself
+
+            // Validate and assign underlying token based on is_a_to_b flag
+            if *is_a_to_b {
+                // When a_to_b is true, token_owner_account_a should be the underlying token
+                if token_owner_account_a.key() != self.underlying_token_acc {
+                    return Err(OrcaStrategyErrorCode::InvalidUnderlyingToken.into());
+                }
+            } else {
+                // When a_to_b is false, token_owner_account_b should be the underlying token
+                if token_owner_account_b.key() != self.underlying_token_acc {
+                    return Err(OrcaStrategyErrorCode::InvalidUnderlyingToken.into());
+                }
+            }
 
             orca_swap_handler(
                 whirlpool_program,
