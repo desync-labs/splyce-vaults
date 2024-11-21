@@ -87,4 +87,8 @@ pub mod strategy {
     pub fn orca_purchase_assets<'info>(ctx: Context<'_, '_, '_, 'info, OrcaPurchaseAssets<'info>>, amount: Vec<u64>, a_to_b: Vec<bool>) -> Result<()> {
         handle_orca_purchase_assets(ctx, amount, a_to_b)
     }
+
+    pub fn init_invest_tracker(ctx: Context<InitInvestTracker>) -> Result<()> {
+        handle_init_invest_tracker(ctx)
+    }
 }

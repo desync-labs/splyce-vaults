@@ -3,6 +3,7 @@ pub const SHARES_SEED: &str = "shares";
 pub const UNDERLYING_SEED: &str = "underlying";
 pub const CONFIG_SEED: &str = "config";
 pub const TOKEN_ACCOUNT_SEED: &str = "token_account";
+pub const INVEST_TRACKER_SEED: &str = "invest_tracker";
 
 pub const REMAINING_ACCOUNTS_MIN: usize = 9;
 pub const AMOUNT_SPECIFIED_IS_INPUT: bool = true;

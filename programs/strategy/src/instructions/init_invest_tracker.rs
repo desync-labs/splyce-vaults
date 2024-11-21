@@ -9,27 +9,27 @@ use access_control::{
     state::{UserRole, Role}
 };
 
-use crate::constants::TOKEN_ACCOUNT_SEED;
+use crate::constants::INVEST_TRACKER_SEED;
+use crate::state::invest_tracker::*;
 
 use crate::ID;
 
-//This instruction initializes a token account for the strategy
-//AMM-strategies may have multiple token accounts, one for each asset
+//This instruction initializes an invest tracker for the strategy
 #[derive(Accounts)]
-pub struct InitTokenAccount<'info> {
+#[instruction()]
+pub struct InitInvestTracker<'info> {
     #[account(
         init, 
+        space = 8 + InvestTracker::INIT_SPACE,
         seeds = [
-            TOKEN_ACCOUNT_SEED.as_bytes(),
+            INVEST_TRACKER_SEED.as_bytes(),
             &asset_mint.key().to_bytes(),
             strategy.key().as_ref(),
         ], 
         bump, 
         payer = signer, 
-        token::mint = asset_mint, 
-        token::authority = strategy,
     )]
-    pub token_account: Box<Account<'info, TokenAccount>>,
+    pub invest_tracker: Box<Account<'info, InvestTracker>>,
 
     /// CHECK: can be any strategy
     #[account(owner = ID)]
@@ -58,7 +58,7 @@ pub struct InitTokenAccount<'info> {
     pub access_control: Program<'info, AccessControl>,
 }
 
-pub fn handle_init_token_account(_ctx: Context<InitTokenAccount>) -> Result<()> {
-    msg!("Token account initialized");
+pub fn handle_init_invest_tracker(_ctx: Context<InitInvestTracker>) -> Result<()> {
+    msg!("Invest tracker initialized");
     Ok(())
 }
