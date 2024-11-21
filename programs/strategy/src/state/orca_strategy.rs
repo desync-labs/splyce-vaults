@@ -1,5 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface::Mint;
+use anchor_spl::token::TokenAccount;
 
 use super::base_strategy::*;
 use super::StrategyType;
@@ -224,7 +225,7 @@ impl Strategy for OrcaStrategy {
             return Err(OrcaStrategyErrorCode::NotEnoughAccounts.into());
         }
 
-        // Use enumeration to get the correct index
+        // Iterate through each swap operation
         for (index, is_a_to_b) in a_to_b.iter().enumerate() {
             let start = index * 11;
 
@@ -241,7 +242,7 @@ impl Strategy for OrcaStrategy {
             let oracle = &remaining[start + 9];
             // The 11th account (start + 10) is intentionally skipped because it's the strategy account itself
 
-            // Validate and assign underlying token based on is_a_to_b flag
+            // Validate underlying token account based on swap direction
             if *is_a_to_b {
                 // When a_to_b is true, token_owner_account_a should be the underlying token
                 if token_owner_account_a.key() != self.underlying_token_acc {
@@ -254,6 +255,18 @@ impl Strategy for OrcaStrategy {
                 }
             }
 
+            // Deserialize the TokenAccount before the swap
+            let token_account_before_swap = if *is_a_to_b {
+                let data_before = token_owner_account_a.data.borrow();
+                TokenAccount::try_deserialize(&mut &data_before[..])?
+            } else {
+                let data_before = token_owner_account_b.data.borrow();
+                TokenAccount::try_deserialize(&mut &data_before[..])?
+            };
+            let token_balance_before_swap = token_account_before_swap.amount;
+            msg!("token_balance_before_swap: {}", token_balance_before_swap);
+
+            // Perform the swap
             orca_swap_handler(
                 whirlpool_program,
                 &accounts.token_program,
@@ -274,6 +287,20 @@ impl Strategy for OrcaStrategy {
                 AMOUNT_SPECIFIED_IS_INPUT,  // amount_specified_is_input
                 *is_a_to_b,         // a_to_b
             )?;
+
+            // Deserialize the TokenAccount after the swap
+            let token_account_after_swap = if *is_a_to_b {
+                let data_after = token_owner_account_a.data.borrow();
+                TokenAccount::try_deserialize(&mut &data_after[..])?
+            } else {
+                let data_after = token_owner_account_b.data.borrow();
+                TokenAccount::try_deserialize(&mut &data_after[..])?
+            };
+            let token_balance_after_swap = token_account_after_swap.amount;
+            msg!("token_balance_after_swap: {}", token_balance_after_swap);
+
+            //save the difference between the before and after swap balances to the total invested
+            self.total_invested += token_balance_after_swap - token_balance_before_swap;
         }
 
         Ok(())
