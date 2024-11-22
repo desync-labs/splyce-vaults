@@ -10,6 +10,8 @@ import { BN } from "@coral-xyz/anchor";
 import { airdrop } from "../../utils/helpers";
 
 const { ROLES_ADMIN, ...ROLES_SUCCESS_DATA } = ROLES;
+let qaseIdSetRoleTests = 82;
+let qaseIdRevokeRoleTests = 90;
 
 describe.only("Access Control Tests", () => {
   before(async () => {
@@ -66,6 +68,7 @@ describe.only("Access Control Tests", () => {
   });
 
   it("Initalizing access control program with super configOwner when it is already initialized should revert", async function () {
+    this.qaseId(76);
     try {
       await accessControlProgram.methods
         .initialize()
@@ -81,6 +84,7 @@ describe.only("Access Control Tests", () => {
   });
 
   it("Initalizing access control program with another account when it is already initialized should revert", async function () {
+    this.qaseId(77);
     const anotherconfigOwner = anchor.web3.Keypair.generate();
     try {
       await accessControlProgram.methods
@@ -97,6 +101,7 @@ describe.only("Access Control Tests", () => {
   });
 
   it("Setting Role Manager for any role with signer not being the config owner should revert", async function () {
+    this.qaseId(78);
     const vaultAdminInner = anchor.web3.Keypair.generate();
     await accessControlProgram.methods
       .setRole(ROLES.VAULTS_ADMIN, vaultAdminInner.publicKey)
@@ -120,6 +125,7 @@ describe.only("Access Control Tests", () => {
   });
 
   it("Setting role manager with invalid role id should revert", async function () {
+    this.qaseId(79);
     try {
       await accessControlProgram.methods
         .setRoleManager(new BN(10), ROLES.ROLES_ADMIN)
@@ -135,6 +141,7 @@ describe.only("Access Control Tests", () => {
   });
 
   it("Setting role manager with invalid manager role id should revert", async function () {
+    this.qaseId(80);
     try {
       await accessControlProgram.methods
         .setRoleManager(ROLES.VAULTS_ADMIN, new BN(10))
@@ -150,6 +157,7 @@ describe.only("Access Control Tests", () => {
   });
 
   it("Setting ROLES_ADMIN role via set role method by the config owner should revert", async function () {
+    this.qaseId(81);
     const roleReceiver = anchor.web3.Keypair.generate();
     try {
       await accessControlProgram.methods
@@ -169,6 +177,8 @@ describe.only("Access Control Tests", () => {
 
   for (const role in ROLES_SUCCESS_DATA) {
     it(`Setting ${role} role with signer being the corresponding role manager account is successful`, async function () {
+      this.qaseId(qaseIdSetRoleTests)
+      qaseIdSetRoleTests++;
       const roleReceiver = anchor.web3.Keypair.generate();
       if (role === "KYC_VERIFIED") {
         // Set KYC Provider role to kycProvider account
@@ -224,6 +234,7 @@ describe.only("Access Control Tests", () => {
   }
 
   it("Setting multiple roles to the same account by corresponding role manager account is successful", async function () {
+    this.qaseId(88);
     const roleReceiver = anchor.web3.Keypair.generate();
     for (const role in ROLES_SUCCESS_DATA) {
       if (role === "KYC_VERIFIED") {
@@ -282,6 +293,7 @@ describe.only("Access Control Tests", () => {
   });
 
   it("Setting a role via set role method by non role manager account should revert", async function () {
+    this.qaseId(89);
     const roleReceiver = anchor.web3.Keypair.generate();
     // KYC VERIFIED user's role manager is KYC_PROVIDER role, not ROLES_ADMIN
     try {
@@ -302,6 +314,8 @@ describe.only("Access Control Tests", () => {
 
   for (const role in ROLES_SUCCESS_DATA) {
     it(`Revoking ${role} role with signer being the corresponding role manager account is successful`, async function () {
+      this.qaseId(qaseIdRevokeRoleTests);
+      qaseIdRevokeRoleTests++;
       const roleReceiver = anchor.web3.Keypair.generate();
       if (role === "KYC_VERIFIED") {
         // Set KYC Provider role to kycProvider account
@@ -377,6 +391,7 @@ describe.only("Access Control Tests", () => {
   }
 
   it("Revoking a role that account did not have, with signer being the corresponding role manager should revert", async function () {
+    this.qaseId(96);
     const roleReceiver = anchor.web3.Keypair.generate();
     // Set Role
     await accessControlProgram.methods
@@ -442,6 +457,7 @@ describe.only("Access Control Tests", () => {
   });
 
   it("Revoking role with invalid role_id with signer being the corresponding role manager is successful", async function () {
+    this.qaseId(97);
     const roleReceiver = anchor.web3.Keypair.generate();
     // Set Role
     await accessControlProgram.methods
@@ -486,6 +502,7 @@ describe.only("Access Control Tests", () => {
   });
 
   it("Revoking one role from account that has multiple roles and signer being the corresponding role manager is successful", async function () {
+    this.qaseId(98);
     const roleReceiver = anchor.web3.Keypair.generate();
     // Set Role One
     await accessControlProgram.methods
@@ -554,6 +571,7 @@ describe.only("Access Control Tests", () => {
   });
 
   it("Revoking ROLES_ADMIN role from ROLES_ADMIN with signer being the config owner is successful", async function () {
+    this.qaseId(99);
     await accessControlProgram.methods
       .revokeRole(ROLES.ROLES_ADMIN, configOwner.publicKey)
       .accounts({
