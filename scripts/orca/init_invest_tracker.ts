@@ -81,7 +81,7 @@ async function main() {
       );
 
       await strategyProgram.methods
-        .initInvestTracker()
+        .initInvestTracker(false)
         .accounts({
           strategy: strategy,
           assetMint: mint,

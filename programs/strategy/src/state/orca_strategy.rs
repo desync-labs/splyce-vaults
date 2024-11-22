@@ -221,8 +221,8 @@ impl Strategy for OrcaStrategy {
         amount: Vec<u64>,
         a_to_b: Vec<bool>,
     ) -> Result<()> {
-        // Verify we have enough remaining accounts: length of a_to_b * 11
-        if remaining.len() < a_to_b.len() * 11 {
+        // Verify we have enough remaining accounts: length of a_to_b * 12
+        if remaining.len() < a_to_b.len() * 12 {
             return Err(OrcaStrategyErrorCode::NotEnoughAccounts.into());
         }
 
