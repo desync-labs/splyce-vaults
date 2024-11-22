@@ -18,10 +18,17 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout the repository
+      # 1. Checkout the repository and get the branch name
       - name: Checkout Code
         uses: actions/checkout@v3
-
+      - name: Get the branch name
+        id: get_branch_name
+        run: |
+            if [ "${{ github.event_name }}" == "pull_request" ]; then
+               echo "BRANCH_NAME=$(echo ${{ github.head_ref }})" >> $GITHUB_ENV
+            else
+              echo "BRANCH_NAME=$(echo ${{ github.ref_name }})" >> $GITHUB_ENV
+            fi
       # 2. Install Rust Toolchain
       - name: Set up Rust
         uses: actions-rs/toolchain@v1
@@ -100,7 +107,7 @@ jobs:
           QASE_MODE: testops
           QASE_TESTOPS_API_TOKEN: ${{ secrets.QASE_TESTOPS_API_TOKEN }}
           QASE_TESTOPS_PROJECT: SPLYCE
-          QASE_TESTOPS_RUN_TITLE: CI - Onchain Vault Integration Tests at branch ${{ env.BRANCH_NAME }}
+          QASE_TESTOPS_RUN_TITLE: CI Automation Tests Run - Onchain Vault Integration Tests at branch ${{ env.BRANCH_NAME }}
           QASE_TESTOPS_RUN_COMPLETE: true
           QASE_CAPTURE_LOGS: true
           QASE_ENVIRONMENT: local-tesnet
