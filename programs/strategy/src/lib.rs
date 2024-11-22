@@ -64,11 +64,11 @@ pub mod strategy {
         handle_transfer_management(ctx, new_admin)
     }
 
-    pub fn set_performance_fee(ctx: Context<SetPerformanceFee>, fee: u64) -> Result<()> {
+    pub fn set_performance_fee(ctx: Context<SetStrategyValue>, fee: u64) -> Result<()> {
         handle_set_performance_fee(ctx, fee)
     }
 
-    pub fn set_fee_manager(ctx: Context<SetFeeManager>, recipient: Pubkey) -> Result<()> {
+    pub fn set_fee_manager(ctx: Context<SetStrategyValue>, recipient: Pubkey) -> Result<()> {
         handle_set_fee_manager(ctx, recipient)
     }
 
@@ -78,5 +78,9 @@ pub mod strategy {
 
     pub fn deploy_funds<'info>(ctx:  Context<'_, '_, '_, 'info, DeployFunds<'info>>, amount: u64) -> Result<()> {
         handle_deploy_funds(ctx, amount)
+    }
+
+    pub fn free_funds<'info>(ctx:  Context<'_, '_, '_, 'info, FreeFunds<'info>>, amount: u64) -> Result<()> {
+        handle_free_funds(ctx, amount)
     }
 }

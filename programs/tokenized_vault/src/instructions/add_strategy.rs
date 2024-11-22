@@ -60,5 +60,10 @@ pub fn handle_add_strategy(ctx: Context<AddStrategy>, max_debt: u64) -> Result<(
     }
 
     let strategy_data = &mut ctx.accounts.strategy_data;
-    strategy_data.init(ctx.accounts.vault.key(), ctx.accounts.strategy.key(), max_debt)
+    strategy_data.init(ctx.accounts.vault.key(), ctx.accounts.strategy.key(), max_debt)?;
+
+    let vault = &mut ctx.accounts.vault.load_mut()?;
+    vault.strategies_amount += 1;
+    
+    Ok(())
 }
