@@ -100,7 +100,7 @@ jobs:
           QASE_MODE: testops
           QASE_TESTOPS_API_TOKEN: ${{ secrets.QASE_TESTOPS_API_TOKEN }}
           QASE_TESTOPS_PROJECT: SPLYCE
-          QASE_TESTOPS_RUN_TITLE: CI Automation Tests Run - Onchain Vault Program Regression
+          QASE_TESTOPS_RUN_TITLE: CI - Onchain Vault Integration Tests at branch ${{ env.BRANCH_NAME }}
           QASE_TESTOPS_RUN_COMPLETE: true
           QASE_CAPTURE_LOGS: true
           QASE_ENVIRONMENT: local-tesnet
