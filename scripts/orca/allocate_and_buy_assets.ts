@@ -187,6 +187,20 @@ async function main() {
     console.log("TMAC balance before purchase:", tmacBalanceBefore.value.uiAmount);
     console.log("WSOL balance before purchase:", wsolBalanceBefore.value.uiAmount);
 
+    // ======= Get Invest Tracker PDA =======
+    const [INVEST_TRACKER_ACCOUNT_TMAC] = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("invest_tracker"), TMAC_MINT.toBuffer(), strategyData.toBuffer()],
+      strategyProgram.programId
+    );
+    console.log("Invest Tracker TMAC address:", INVEST_TRACKER_ACCOUNT_TMAC.toBase58());
+
+    // ======= Get Invest Tracker PDA for WSOL =======
+    const [INVEST_TRACKER_ACCOUNT_WSOL] = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("invest_tracker"), WSOL_MINT.toBuffer(), strategyData.toBuffer()],
+      strategyProgram.programId
+    );
+    console.log("Invest Tracker WSOL address:", INVEST_TRACKER_ACCOUNT_WSOL.toBase58());
+
     // ======= Define Remaining Accounts for TMAC =======
     const remainingAccountsForTMAC = [
       {
@@ -240,7 +254,12 @@ async function main() {
         isSigner: false,
       },
       {
-        pubkey: strategyData, // orca_strategy (index 10)
+        pubkey: INVEST_TRACKER_ACCOUNT_TMAC, // invest_tracker (index 10)
+        isWritable: true,
+        isSigner: false,
+      },
+      {
+        pubkey: strategyData, // orca_strategy (index 11)
         isWritable: true,
         isSigner: false,
       }
@@ -299,7 +318,12 @@ async function main() {
         isSigner: false,
       },
       {
-        pubkey: strategyData, // orca_strategy (index 10)
+        pubkey: INVEST_TRACKER_ACCOUNT_WSOL, // invest_tracker (index 10)
+        isWritable: true,
+        isSigner: false,
+      },
+      {
+        pubkey: strategyData, // orca_strategy (index 11)
         isWritable: true,
         isSigner: false,
       }

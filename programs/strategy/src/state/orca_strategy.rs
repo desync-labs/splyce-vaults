@@ -9,7 +9,8 @@ use crate::error::ErrorCode;
 use crate::events::{StrategyDepositEvent, AMMStrategyInitEvent, StrategyWithdrawEvent};
 use crate::utils::{orca_swap_handler};
 use crate::instructions::{Report, ReportProfit, ReportLoss, DeployFunds, FreeFunds, OrcaPurchaseAssets};
-use crate::constants::{AMOUNT_SPECIFIED_IS_INPUT, REMAINING_ACCOUNTS_MIN, MAX_SQRT_PRICE_X64, MIN_SQRT_PRICE_X64};
+use crate::constants::{AMOUNT_SPECIFIED_IS_INPUT, REMAINING_ACCOUNTS_MIN, MAX_SQRT_PRICE_X64, MIN_SQRT_PRICE_X64, INVEST_TRACKER_SEED};
+use crate::state::invest_tracker::*;
 
 #[account]
 #[derive(Default, Debug, InitSpace)]
@@ -227,7 +228,7 @@ impl Strategy for OrcaStrategy {
 
         // Iterate through each swap operation
         for (index, is_a_to_b) in a_to_b.iter().enumerate() {
-            let start = index * 11;
+            let start = index * 12;
 
             // Access the appropriate set of remaining accounts, skipping the 11th account
             let whirlpool_program = &remaining[start + 0];
@@ -240,7 +241,8 @@ impl Strategy for OrcaStrategy {
             let tick_array_1 = &remaining[start + 7];
             let tick_array_2 = &remaining[start + 8];
             let oracle = &remaining[start + 9];
-            // The 11th account (start + 10) is intentionally skipped because it's the strategy account itself
+            let invest_tracker_account = &remaining[start + 10];
+            // The 12th account (start + 10) is intentionally skipped because it's the strategy account itself
 
             // Validate underlying token account based on swap direction
             if *is_a_to_b {
@@ -266,6 +268,32 @@ impl Strategy for OrcaStrategy {
             let token_balance_before_swap = token_account_before_swap.amount;
             msg!("token_balance_before_swap: {}", token_balance_before_swap);
 
+            let token_account_of_asset = if *is_a_to_b {
+                let data_before = token_owner_account_b.data.borrow();
+                TokenAccount::try_deserialize(&mut &data_before[..])?
+            } else {
+                let data_before = token_owner_account_a.data.borrow();
+                TokenAccount::try_deserialize(&mut &data_before[..])?
+            };
+            let asset_balance_before_swap = token_account_of_asset.amount;
+            msg!("asset_balance_before_swap: {}", asset_balance_before_swap);
+
+            let asset_mint = token_account_of_asset.mint;
+            //get the PDA of the invest tracker
+            let (invest_tracker, _) = Pubkey::find_program_address(&[
+                INVEST_TRACKER_SEED.as_bytes(), 
+                &asset_mint.to_bytes(),
+                accounts.strategy.key().as_ref()
+            ], &crate::ID);
+            msg!("calculated invest_tracker_PDA: {}", invest_tracker);
+            require!(invest_tracker == invest_tracker_account.key(), ErrorCode::InvalidAccount);
+
+            // Get the invest tracker data
+            let mut data = invest_tracker_account.try_borrow_mut_data()?;
+            msg!("invest_tracker_account data length: {}", data.len());
+            let invest_tracker_account_data = InvestTracker::try_from_slice(&data[8..])?;
+            msg!("invest_tracker_account.amount_invested: {}", invest_tracker_account_data.amount_invested);
+            msg!("invest_tracker_account.asset_amount: {}", invest_tracker_account_data.asset_amount);
             // Perform the swap
             orca_swap_handler(
                 whirlpool_program,
@@ -296,11 +324,39 @@ impl Strategy for OrcaStrategy {
                 let data_after = token_owner_account_b.data.borrow();
                 TokenAccount::try_deserialize(&mut &data_after[..])?
             };
+
             let token_balance_after_swap = token_account_after_swap.amount;
             msg!("token_balance_after_swap: {}", token_balance_after_swap);
 
-            //save the difference between the before and after swap balances to the total invested
-            self.total_invested += token_balance_after_swap - token_balance_before_swap;
+            let asset_account_after_swap = if *is_a_to_b {
+                let data_after = token_owner_account_b.data.borrow();
+                TokenAccount::try_deserialize(&mut &data_after[..])?
+            } else {
+                let data_after = token_owner_account_a.data.borrow();
+                TokenAccount::try_deserialize(&mut &data_after[..])?
+            };
+            let asset_balance_after_swap = asset_account_after_swap.amount;
+            msg!("asset_balance_after_swap: {}", asset_balance_after_swap);
+
+            let new_asset_amount = asset_balance_after_swap.checked_sub(asset_balance_before_swap).unwrap_or(0);
+            msg!("new_asset_amount: {}", new_asset_amount);
+
+
+            //save the difference between the before and after swap balances
+            let new_total_invested = token_balance_before_swap.checked_sub(token_balance_after_swap).unwrap_or(0);
+            self.total_invested += new_total_invested;
+
+            let mut updated_data = invest_tracker_account_data;
+            updated_data.amount_invested += new_total_invested;
+            updated_data.asset_amount += new_asset_amount;
+            let serialized_data = updated_data.try_to_vec()?;
+
+            // Save the changes to the invest tracker account
+            data[8..].copy_from_slice(&serialized_data);
+
+            let final_data = InvestTracker::try_from_slice(&data[8..])?;
+            msg!("invest_tracker_account.mount_invested_after_swap: {}", final_data.amount_invested);
+            msg!("invest_tracker_account.asset_amount_after_swap: {}", final_data.asset_amount);
         }
 
         Ok(())

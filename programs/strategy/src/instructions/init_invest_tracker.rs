@@ -58,7 +58,9 @@ pub struct InitInvestTracker<'info> {
     pub access_control: Program<'info, AccessControl>,
 }
 
-pub fn handle_init_invest_tracker(_ctx: Context<InitInvestTracker>) -> Result<()> {
+pub fn handle_init_invest_tracker(ctx: Context<InitInvestTracker>) -> Result<()> {
     msg!("Invest tracker initialized");
+    let invest_tracker = &mut ctx.accounts.invest_tracker;
+    invest_tracker.amount_invested = 0;
     Ok(())
 }

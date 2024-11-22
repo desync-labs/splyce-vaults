@@ -58,7 +58,7 @@ pub struct InitTokenAccount<'info> {
     pub access_control: Program<'info, AccessControl>,
 }
 
-pub fn handle_init_token_account(_ctx: Context<InitTokenAccount>) -> Result<()> {
+pub fn handle_init_token_account(ctx: Context<InitTokenAccount>) -> Result<()> {
     msg!("Token account initialized");
     Ok(())
 }
