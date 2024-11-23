@@ -54,6 +54,8 @@ pub enum OrcaStrategyErrorCode {
     InvalidAccount,
     #[msg("Invalid underlying token account for the swap direction")]
     InvalidUnderlyingToken,
+    #[msg("Math error")]
+    MathError
 }
 
 impl StrategyManagement for OrcaStrategy {
@@ -126,43 +128,152 @@ impl Strategy for OrcaStrategy {
 
     //Free fund swaps asset to underlying token
     fn free_funds<'info>(&mut self, accounts: &FreeFunds<'info>, remaining: &[AccountInfo<'info>], amount: u64) -> Result<()> {
-        // Verify we have enough remaining accounts
-        if remaining.len() < REMAINING_ACCOUNTS_MIN {
+        // Calculate number of swaps based on remaining accounts length
+        let num_swaps = remaining.len() / 12;
+        if remaining.len() != num_swaps * 12 {
             return Err(OrcaStrategyErrorCode::NotEnoughAccounts.into());
         }
 
-        // Extract accounts from remaining array
-        let whirlpool_program = &remaining[0];
-        let whirlpool = &remaining[1];
-        let token_owner_account_a = &remaining[2];
-        let token_vault_a = &remaining[3];
-        let token_owner_account_b = &remaining[4];
-        let token_vault_b = &remaining[5];
-        let tick_array_0 = &remaining[6];
-        let tick_array_1 = &remaining[7];
-        let tick_array_2 = &remaining[8];
-        let oracle = &remaining[9];
+        // First pass: Calculate total invested amount across all invest trackers
+        let mut total_invested = 0u64;
+        let mut invested_amounts = Vec::with_capacity(num_swaps);
 
-        orca_swap_handler(
-            whirlpool_program,
-            &accounts.token_program,
-            &accounts.strategy,  // strategy account is the authority
-            whirlpool,
-            token_owner_account_a,
-            token_vault_a,
-            token_owner_account_b,
-            token_vault_b,
-            tick_array_0,
-            tick_array_1,
-            tick_array_2,
-            oracle,
-            &[&self.seeds()],  // PDA seeds for signing
-            amount,            // Amount to swap
-            u64::MAX,         // other_amount_threshold (maximum amount to receive)
-            if !self.deploy_funds_direction { MAX_SQRT_PRICE_X64 } else { MIN_SQRT_PRICE_X64 },  // sqrt_price_limit for A->B (true) = MIN, B->A (false) = MAX
-            !AMOUNT_SPECIFIED_IS_INPUT,             // !amount_specified_is_input, here it should be false
-            !self.deploy_funds_direction,            // a_to_b (true for WSOL -> devUSDC, which is a_to_b)
-        )?;
+        for i in 0..num_swaps {
+            let invest_tracker_account = &remaining[i * 12 + 10];
+            let data = invest_tracker_account.try_borrow_data()?;
+            let invest_tracker_data = InvestTracker::try_from_slice(&data[8..])?;
+            
+            invested_amounts.push(invest_tracker_data.amount_invested);
+            total_invested = total_invested
+                .checked_add(invest_tracker_data.amount_invested)
+                .ok_or(OrcaStrategyErrorCode::MathError)?;
+        }
+
+        // Iterate through each swap operation
+        for i in 0..num_swaps {
+            let start = i * 12;
+
+            // Calculate proportional amount for this swap
+            let amount_per_swap = if total_invested > 0 {
+                (amount as u128)
+                    .checked_mul(invested_amounts[i] as u128)
+                    .ok_or(OrcaStrategyErrorCode::MathError)?
+                    .checked_div(total_invested as u128)
+                    .ok_or(OrcaStrategyErrorCode::MathError)? as u64
+            } else {
+                amount.checked_div(num_swaps as u64)
+                    .ok_or(OrcaStrategyErrorCode::MathError)?
+            };
+
+            // Extract accounts from remaining array
+            let whirlpool_program = &remaining[start];
+            let whirlpool = &remaining[start + 1];
+            let token_owner_account_a = &remaining[start + 2];
+            let token_vault_a = &remaining[start + 3];
+            let token_owner_account_b = &remaining[start + 4];
+            let token_vault_b = &remaining[start + 5];
+            let tick_array_0 = &remaining[start + 6];
+            let tick_array_1 = &remaining[start + 7];
+            let tick_array_2 = &remaining[start + 8];
+            let oracle = &remaining[start + 9];
+            let invest_tracker_account = &remaining[start + 10];
+            // The 12th account (start + 10) is intentionally skipped because it's the strategy account itself
+
+            // Get the invest tracker data to determine swap direction
+            let mut data = invest_tracker_account.try_borrow_mut_data()?;
+            let invest_tracker_data = InvestTracker::try_from_slice(&data[8..])?;
+            let is_a_to_b = invest_tracker_data.a_to_b_for_purchase;
+
+            // Validate underlying token account based on swap direction
+            if is_a_to_b {
+                // When a_to_b is true, token_owner_account_a should be the underlying token
+                if token_owner_account_a.key() != self.underlying_token_acc {
+                    return Err(OrcaStrategyErrorCode::InvalidUnderlyingToken.into());
+                }
+            } else {
+                // When a_to_b is false, token_owner_account_b should be the underlying token
+                if token_owner_account_b.key() != self.underlying_token_acc {
+                    return Err(OrcaStrategyErrorCode::InvalidUnderlyingToken.into());
+                }
+            }
+
+            // Get balances before swap
+            let underlying_account_before_swap = if is_a_to_b {
+                let data_before = token_owner_account_a.data.borrow();
+                TokenAccount::try_deserialize(&mut &data_before[..])?
+            } else {
+                let data_before = token_owner_account_b.data.borrow();
+                TokenAccount::try_deserialize(&mut &data_before[..])?
+            };
+            let underlying_balance_before_swap = underlying_account_before_swap.amount;
+            msg!("underlying_balance_before_swap: {}", underlying_balance_before_swap);
+
+            let asset_account_before_swap = if is_a_to_b {
+                let data_before = token_owner_account_b.data.borrow();
+                TokenAccount::try_deserialize(&mut &data_before[..])?
+            } else {
+                let data_before = token_owner_account_a.data.borrow();
+                TokenAccount::try_deserialize(&mut &data_before[..])?
+            };
+            let asset_balance_before_swap = asset_account_before_swap.amount;
+            msg!("asset_balance_before_swap: {}", asset_balance_before_swap);
+
+            // Perform the swap
+            orca_swap_handler(
+                whirlpool_program,
+                &accounts.token_program,
+                &accounts.strategy,
+                whirlpool,
+                token_owner_account_a,
+                token_vault_a,
+                token_owner_account_b,
+                token_vault_b,
+                tick_array_0,
+                tick_array_1,
+                tick_array_2,
+                oracle,
+                &[&self.seeds()],
+                amount_per_swap,
+                u64::MAX,
+                if !is_a_to_b { MAX_SQRT_PRICE_X64 } else { MIN_SQRT_PRICE_X64 },
+                !AMOUNT_SPECIFIED_IS_INPUT,
+                !is_a_to_b,
+            )?;
+
+            // Get balances after swap
+            let underlying_account_after_swap = if is_a_to_b {
+                let data_after = token_owner_account_a.data.borrow();
+                TokenAccount::try_deserialize(&mut &data_after[..])?
+            } else {
+                let data_after = token_owner_account_b.data.borrow();
+                TokenAccount::try_deserialize(&mut &data_after[..])?
+            };
+            let underlying_balance_after_swap = underlying_account_after_swap.amount;
+            msg!("underlying_balance_after_swap: {}", underlying_balance_after_swap);
+
+            let asset_account_after_swap = if is_a_to_b {
+                let data_after = token_owner_account_b.data.borrow();
+                TokenAccount::try_deserialize(&mut &data_after[..])?
+            } else {
+                let data_after = token_owner_account_a.data.borrow();
+                TokenAccount::try_deserialize(&mut &data_after[..])?
+            };
+            let asset_balance_after_swap = asset_account_after_swap.amount;
+            msg!("asset_balance_after_swap: {}", asset_balance_after_swap);
+
+            // Update invest tracker data
+            let mut updated_data = invest_tracker_data;
+            let asset_amount_change = asset_balance_before_swap.checked_sub(asset_balance_after_swap).unwrap_or(0);
+            updated_data.asset_amount = updated_data.asset_amount.checked_sub(asset_amount_change).unwrap_or(0);
+            
+            let amount_withdrawn_change = underlying_balance_after_swap.checked_sub(underlying_balance_before_swap).unwrap_or(0);
+            updated_data.amount_withdrawn = updated_data.amount_withdrawn
+                .checked_add(amount_withdrawn_change)
+                .ok_or(OrcaStrategyErrorCode::MathError)?;
+            
+            let serialized_data = updated_data.try_to_vec()?;
+            data[8..].copy_from_slice(&serialized_data);
+        }
 
         Ok(())
     }

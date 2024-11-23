@@ -118,14 +118,14 @@ async function main() {
     );
 
     // PDA for Strategy Data
-    const [strategyData, _] = await anchor.web3.PublicKey.findProgramAddressSync(
+    const [strategy, _] = await anchor.web3.PublicKey.findProgramAddressSync(
       [vaultPDA.toBuffer(),
       new BN(0).toArrayLike(Buffer, 'le', 8)
       ],
       strategyProgram.programId
     );
 
-    console.log("Strategy Data PDA:", strategyData.toBase58());
+    console.log("Strategy Data PDA:", strategy.toBase58());
 
     // ============================
     // Update Debt on the Strategy
@@ -138,7 +138,7 @@ async function main() {
     //     .updateDebt(depositAmount.mul(new BN(1)))
     //     .accounts({
     //       vault: vaultPDA,
-    //       strategy: strategyData,
+    //       strategy: strategy,
     //       signer: admin.publicKey,
     //     })
     //     .signers([admin])
@@ -151,7 +151,7 @@ async function main() {
 
     // Check the balance of devUSDC in the strategy token account after updating debt
     const strategyTokenAccount = anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("underlying"), strategyData.toBuffer()],
+      [Buffer.from("underlying"), strategy.toBuffer()],
       strategyProgram.programId,
     )[0];
 
@@ -169,14 +169,14 @@ async function main() {
 
     // ======= Get Strategy TMAC Token Account PDA =======
     const [strategyTMACAccount] = anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("token_account"), TMAC_MINT.toBuffer(), strategyData.toBuffer()],
+      [Buffer.from("token_account"), TMAC_MINT.toBuffer(), strategy.toBuffer()],
       strategyProgram.programId
     );
     console.log("Strategy TMAC token account address:", strategyTMACAccount.toBase58());
 
     // ======= Get Strategy WSOL Token Account PDA =======
     const [strategyWSOLAccount] = anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("token_account"), WSOL_MINT.toBuffer(), strategyData.toBuffer()],
+      [Buffer.from("token_account"), WSOL_MINT.toBuffer(), strategy.toBuffer()],
       strategyProgram.programId
     );
     console.log("Strategy WSOL token account address:", strategyWSOLAccount.toBase58());
@@ -189,14 +189,14 @@ async function main() {
 
     // ======= Get Invest Tracker PDA =======
     const [INVEST_TRACKER_ACCOUNT_TMAC] = anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("invest_tracker"), TMAC_MINT.toBuffer(), strategyData.toBuffer()],
+      [Buffer.from("invest_tracker"), TMAC_MINT.toBuffer(), strategy.toBuffer()],
       strategyProgram.programId
     );
     console.log("Invest Tracker TMAC address:", INVEST_TRACKER_ACCOUNT_TMAC.toBase58());
 
     // ======= Get Invest Tracker PDA for WSOL =======
     const [INVEST_TRACKER_ACCOUNT_WSOL] = anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("invest_tracker"), WSOL_MINT.toBuffer(), strategyData.toBuffer()],
+      [Buffer.from("invest_tracker"), WSOL_MINT.toBuffer(), strategy.toBuffer()],
       strategyProgram.programId
     );
     console.log("Invest Tracker WSOL address:", INVEST_TRACKER_ACCOUNT_WSOL.toBase58());
@@ -259,7 +259,7 @@ async function main() {
         isSigner: false,
       },
       {
-        pubkey: strategyData, // orca_strategy (index 11)
+        pubkey: strategy, // orca_strategy (index 11)
         isWritable: true,
         isSigner: false,
       }
@@ -323,7 +323,7 @@ async function main() {
         isSigner: false,
       },
       {
-        pubkey: strategyData, // orca_strategy (index 11)
+        pubkey: strategy, // orca_strategy (index 11)
         isWritable: true,
         isSigner: false,
       }
@@ -340,7 +340,7 @@ async function main() {
       await strategyProgram.methods
         .orcaPurchaseAssets(amounts, aToB)
         .accounts({
-          strategy: strategyData,
+          strategy: strategy,
           signer: admin.publicKey,
         })
         .remainingAccounts(combinedRemainingAccounts)
