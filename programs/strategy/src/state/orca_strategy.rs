@@ -9,7 +9,7 @@ use crate::error::ErrorCode;
 use crate::events::{StrategyDepositEvent, AMMStrategyInitEvent, StrategyWithdrawEvent};
 use crate::utils::{orca_swap_handler};
 use crate::instructions::{Report, ReportProfit, ReportLoss, DeployFunds, FreeFunds, OrcaPurchaseAssets};
-use crate::constants::{AMOUNT_SPECIFIED_IS_INPUT, REMAINING_ACCOUNTS_MIN, MAX_SQRT_PRICE_X64, MIN_SQRT_PRICE_X64, INVEST_TRACKER_SEED};
+use crate::constants::{AMOUNT_SPECIFIED_IS_INPUT, REMAINING_ACCOUNTS_MIN, MAX_SQRT_PRICE_X64, MIN_SQRT_PRICE_X64, INVEST_TRACKER_SEED, NO_EXPLICIT_SQRT_PRICE_LIMIT};
 use crate::state::invest_tracker::*;
 
 #[account]
@@ -218,6 +218,8 @@ impl Strategy for OrcaStrategy {
             let asset_balance_before_swap = asset_account_before_swap.amount;
             msg!("asset_balance_before_swap: {}", asset_balance_before_swap);
 
+            msg!("amount_per_swap: {}", amount_per_swap);
+
             // Perform the swap
             orca_swap_handler(
                 whirlpool_program,
@@ -233,11 +235,11 @@ impl Strategy for OrcaStrategy {
                 tick_array_2,
                 oracle,
                 &[&self.seeds()],
-                amount_per_swap,
-                u64::MAX,
-                if !is_a_to_b { MAX_SQRT_PRICE_X64 } else { MIN_SQRT_PRICE_X64 },
-                !AMOUNT_SPECIFIED_IS_INPUT,
-                !is_a_to_b,
+                amount_per_swap, // amount to swap
+                u64::MAX, // other_amount_threshold
+                if !is_a_to_b { MIN_SQRT_PRICE_X64 } else { MAX_SQRT_PRICE_X64 }, // sqrt_price_limit
+                !AMOUNT_SPECIFIED_IS_INPUT, // amount_specified_is_input
+                !is_a_to_b, // a_to_b
             )?;
 
             // Get balances after swap
@@ -422,7 +424,7 @@ impl Strategy for OrcaStrategy {
                 &[&self.seeds()],  // PDA seeds for signing
                 amount[index],      // Amount to swap
                 0,                  // other_amount_threshold (minimum amount to receive)
-                0,                  // sqrt_price_limit (0 = no limit)
+                NO_EXPLICIT_SQRT_PRICE_LIMIT, // sqrt_price_limit (0 = no limit)
                 AMOUNT_SPECIFIED_IS_INPUT,  // amount_specified_is_input
                 *is_a_to_b,         // a_to_b
             )?;

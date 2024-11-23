@@ -164,7 +164,7 @@ async function main() {
     console.log("Purchasing assets using the Orca Strategy...");
 
     // Define the amounts and directions for the swaps
-    const amounts = [new BN(1).mul(new BN(10).pow(new BN(6))), new BN(1).mul(new BN(10).pow(new BN(6)))]; // amounts for TMAC and WSOL
+    const amounts = [new BN(4).mul(new BN(10).pow(new BN(6))), new BN(4).mul(new BN(10).pow(new BN(6)))]; // amounts for TMAC and WSOL
     const aToB = [false, false]; // devUSDC -> TMAC and devUSDC -> WSOL
 
     // ======= Get Strategy TMAC Token Account PDA =======

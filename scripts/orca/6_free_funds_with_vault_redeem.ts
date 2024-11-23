@@ -18,6 +18,7 @@ import {
   AddressLookupTableProgram,
   PublicKey,
   sendAndConfirmTransaction,
+  ComputeBudgetProgram,
 } from "@solana/web3.js";
 import {
   TOKEN_PROGRAM_ID,
@@ -270,7 +271,7 @@ async function main() {
       },
       {
         pubkey: ORACLE_ADDRESS_WSOL, // index 9
-        isWritable: false,
+        isWritable: true,
         isSigner: false,
       },
       {
@@ -339,7 +340,7 @@ async function main() {
       },
       {
         pubkey: ORACLE_ADDRESS_TMAC, // index 22
-        isWritable: false,
+        isWritable: true,
         isSigner: false,
       },
       {
@@ -361,7 +362,6 @@ async function main() {
 
     // Combine remaining accounts
     const combinedRemainingAccounts = [...remainingAccountsForWSOL, ...remainingAccountsForTMAC];
-
     // Build remainingAccountsMap
     const remainingAccountsMap = {
       accountsMap: [
@@ -382,13 +382,6 @@ async function main() {
             new BN(9),
             new BN(10),
             new BN(11),
-          ],
-        },
-        {
-          strategyAcc: new BN(24),
-          strategyTokenAccount: new BN(17),
-          strategyData: new BN(25),
-          remainingAccounts: [
             new BN(13),
             new BN(14),
             new BN(15),
@@ -407,21 +400,31 @@ async function main() {
     };
 
     // ============================
-    // Get User Shares Balance
+    // Get Initial Balances
     // ============================
     const userSharesBalanceInfo = await provider.connection.getTokenAccountBalance(userSharesATA);
     const userSharesBalance = new BN(userSharesBalanceInfo.value.amount);
 
-    // Get and log initial balances
+    // Log all relevant initial balances
     const userUsdcBalanceBefore = await provider.connection.getTokenAccountBalance(userUsdcATA);
-    console.log("User USDC balance before redemption:", userUsdcBalanceBefore.value.uiAmount);
-    console.log("User Shares balance before redemption:", userSharesBalanceInfo.value.uiAmount);
+    const vaultUsdcBalanceBefore = await provider.connection.getTokenAccountBalance(vaultUsdcATA);
+    const strategyTokenBalanceBefore = await provider.connection.getTokenAccountBalance(strategyTokenAccount);
+    const strategyWsolBalanceBefore = await provider.connection.getTokenAccountBalance(strategyWSOLAccount);
+    const strategyTmacBalanceBefore = await provider.connection.getTokenAccountBalance(strategyTMACAccount);
+
+    console.log("\nInitial Balances:");
+    console.log("User USDC balance:", userUsdcBalanceBefore.value.uiAmount);
+    console.log("User Shares balance:", userSharesBalanceInfo.value.uiAmount);
+    console.log("Vault USDC balance:", vaultUsdcBalanceBefore.value.uiAmount);
+    console.log("Strategy USDC balance:", strategyTokenBalanceBefore.value.uiAmount);
+    console.log("Strategy WSOL balance:", strategyWsolBalanceBefore.value.uiAmount);
+    console.log("Strategy TMAC balance:", strategyTmacBalanceBefore.value.uiAmount);
 
     // Define redeemAmount and maxLoss
-    const redeemAmount = userSharesBalance.div(new BN(2)); // Redeem half of the user's shares
+    const redeemAmount = userSharesBalance.mul(new BN(70)).div(new BN(100)); // Redeem 70% of the user's shares
     const maxLoss = new BN(500000); // Adjust as needed
 
-    console.log(`Redeeming ${redeemAmount.toString()} shares with max loss ${maxLoss.toString()}`);
+    console.log(`\nRedeeming ${redeemAmount.toString()} shares with max loss ${maxLoss.toString()}`);
 
     // ============================
     // Create Lookup Table
@@ -449,6 +452,11 @@ async function main() {
     // Build the Versioned Transaction
     // ============================
 
+    // Build the instruction for compute budget (add this before redeemIx)
+    const computeUnitLimitIx = ComputeBudgetProgram.setComputeUnitLimit({
+      units: 300000, // Increase this value as needed
+    });
+
     // Build the instruction for redeem
     const redeemIx = await vaultProgram.methods
       .redeem(redeemAmount, maxLoss, remainingAccountsMap)
@@ -461,16 +469,14 @@ async function main() {
       .remainingAccounts(combinedRemainingAccounts)
       .instruction();
 
-    // Now, we need to build a VersionedTransaction
-
-    // Get the latest blockhash
+    // Get latest blockhash before creating transaction
     const latestBlockhash = await provider.connection.getLatestBlockhash();
 
-    // Create a TransactionMessage
+    // Create a TransactionMessage with both instructions
     const messageV0 = new TransactionMessage({
       payerKey: admin.publicKey,
       recentBlockhash: latestBlockhash.blockhash,
-      instructions: [redeemIx],
+      instructions: [computeUnitLimitIx, redeemIx],
     }).compileToV0Message([lookupTableAccount]);
 
     // Create VersionedTransaction
@@ -486,15 +492,32 @@ async function main() {
 
     // Wait for confirmation
     const confirmation = await provider.connection.confirmTransaction(txid, "confirmed");
-
     console.log("Transaction confirmed:", confirmation);
 
-    // Fetch and log balances
-    const userUsdcBalance = await provider.connection.getTokenAccountBalance(userUsdcATA);
-    console.log("User USDC balance after redemption:", userUsdcBalance.value.uiAmount);
-
+    // Fetch and log final balances
+    const userUsdcBalanceAfter = await provider.connection.getTokenAccountBalance(userUsdcATA);
     const userSharesBalanceAfter = await provider.connection.getTokenAccountBalance(userSharesATA);
-    console.log("User Shares balance after redemption:", userSharesBalanceAfter.value.uiAmount);
+    const vaultUsdcBalanceAfter = await provider.connection.getTokenAccountBalance(vaultUsdcATA);
+    const strategyTokenBalanceAfter = await provider.connection.getTokenAccountBalance(strategyTokenAccount);
+    const strategyWsolBalanceAfter = await provider.connection.getTokenAccountBalance(strategyWSOLAccount);
+    const strategyTmacBalanceAfter = await provider.connection.getTokenAccountBalance(strategyTMACAccount);
+
+    console.log("\nFinal Balances:");
+    console.log("User USDC balance:", userUsdcBalanceAfter.value.uiAmount);
+    console.log("User Shares balance:", userSharesBalanceAfter.value.uiAmount);
+    console.log("Vault USDC balance:", vaultUsdcBalanceAfter.value.uiAmount);
+    console.log("Strategy USDC balance:", strategyTokenBalanceAfter.value.uiAmount);
+    console.log("Strategy WSOL balance:", strategyWsolBalanceAfter.value.uiAmount);
+    console.log("Strategy TMAC balance:", strategyTmacBalanceAfter.value.uiAmount);
+
+    // Log the changes
+    console.log("\nBalance Changes:");
+    console.log("User USDC change:", userUsdcBalanceAfter.value.uiAmount! - userUsdcBalanceBefore.value.uiAmount!);
+    console.log("User Shares change:", userSharesBalanceAfter.value.uiAmount! - userSharesBalanceInfo.value.uiAmount!);
+    console.log("Vault USDC change:", vaultUsdcBalanceAfter.value.uiAmount! - vaultUsdcBalanceBefore.value.uiAmount!);
+    console.log("Strategy USDC change:", strategyTokenBalanceAfter.value.uiAmount! - strategyTokenBalanceBefore.value.uiAmount!);
+    console.log("Strategy WSOL change:", strategyWsolBalanceAfter.value.uiAmount! - strategyWsolBalanceBefore.value.uiAmount!);
+    console.log("Strategy TMAC change:", strategyTmacBalanceAfter.value.uiAmount! - strategyTmacBalanceBefore.value.uiAmount!);
 
   } catch (error) {
     console.error("Error occurred:", error);
