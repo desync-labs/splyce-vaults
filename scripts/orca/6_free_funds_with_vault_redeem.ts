@@ -402,6 +402,32 @@ async function main() {
     // ============================
     // Get Initial Balances
     // ============================
+    
+    // Add these new lines to fetch invest tracker data
+    const investTrackerWSOLBefore = await strategyProgram.account.investTracker.fetch(
+      INVEST_TRACKER_ACCOUNT_WSOL
+    );
+    const investTrackerTMACBefore = await strategyProgram.account.investTracker.fetch(
+      INVEST_TRACKER_ACCOUNT_TMAC
+    );
+
+    console.log("\nInitial Balances:");
+    console.log("WSOL Invest Tracker before:", {
+      amountInvested: investTrackerWSOLBefore.amountInvested.toString(),
+      amountWithdrawn: investTrackerWSOLBefore.amountWithdrawn.toString(),
+      assetAmount: investTrackerWSOLBefore.assetAmount.toString(),
+      assetPrice: investTrackerWSOLBefore.assetPrice.toString(),
+      aToBForPurchase: investTrackerWSOLBefore.aToBForPurchase
+    });
+    console.log("TMAC Invest Tracker before:", {
+      amountInvested: investTrackerTMACBefore.amountInvested.toString(),
+      amountWithdrawn: investTrackerTMACBefore.amountWithdrawn.toString(),
+      assetAmount: investTrackerTMACBefore.assetAmount.toString(),
+      assetPrice: investTrackerTMACBefore.assetPrice.toString(),
+      aToBForPurchase: investTrackerTMACBefore.aToBForPurchase
+    });
+
+    // Existing balance checks...
     const userSharesBalanceInfo = await provider.connection.getTokenAccountBalance(userSharesATA);
     const userSharesBalance = new BN(userSharesBalanceInfo.value.amount);
 
@@ -518,6 +544,44 @@ async function main() {
     console.log("Strategy USDC change:", strategyTokenBalanceAfter.value.uiAmount! - strategyTokenBalanceBefore.value.uiAmount!);
     console.log("Strategy WSOL change:", strategyWsolBalanceAfter.value.uiAmount! - strategyWsolBalanceBefore.value.uiAmount!);
     console.log("Strategy TMAC change:", strategyTmacBalanceAfter.value.uiAmount! - strategyTmacBalanceBefore.value.uiAmount!);
+
+    // After transaction confirmation, add these lines:
+    const investTrackerWSOLAfter = await strategyProgram.account.investTracker.fetch(
+      INVEST_TRACKER_ACCOUNT_WSOL
+    );
+    const investTrackerTMACAfter = await strategyProgram.account.investTracker.fetch(
+      INVEST_TRACKER_ACCOUNT_TMAC
+    );
+
+    console.log("\nInvest Tracker Changes:");
+    console.log("WSOL Invest Tracker after:", {
+      amountInvested: investTrackerWSOLAfter.amountInvested.toString(),
+      amountWithdrawn: investTrackerWSOLAfter.amountWithdrawn.toString(),
+      assetAmount: investTrackerWSOLAfter.assetAmount.toString(),
+      assetPrice: investTrackerWSOLAfter.assetPrice.toString(),
+      aToBForPurchase: investTrackerWSOLAfter.aToBForPurchase
+    });
+    console.log("TMAC Invest Tracker after:", {
+      amountInvested: investTrackerTMACAfter.amountInvested.toString(),
+      amountWithdrawn: investTrackerTMACAfter.amountWithdrawn.toString(),
+      assetAmount: investTrackerTMACAfter.assetAmount.toString(),
+      assetPrice: investTrackerTMACAfter.assetPrice.toString(),
+      aToBForPurchase: investTrackerTMACAfter.aToBForPurchase
+    });
+
+    // Add invest tracker changes
+    console.log("WSOL Invest Tracker changes:", {
+      amountInvested: investTrackerWSOLAfter.amountInvested.sub(investTrackerWSOLBefore.amountInvested).toString(),
+      amountWithdrawn: investTrackerWSOLAfter.amountWithdrawn.sub(investTrackerWSOLBefore.amountWithdrawn).toString(),
+      assetAmount: investTrackerWSOLAfter.assetAmount.sub(investTrackerWSOLBefore.assetAmount).toString(),
+      assetPrice: investTrackerWSOLAfter.assetPrice.sub(investTrackerWSOLBefore.assetPrice).toString()
+    });
+    console.log("TMAC Invest Tracker changes:", {
+      amountInvested: investTrackerTMACAfter.amountInvested.sub(investTrackerTMACBefore.amountInvested).toString(),
+      amountWithdrawn: investTrackerTMACAfter.amountWithdrawn.sub(investTrackerTMACBefore.amountWithdrawn).toString(),
+      assetAmount: investTrackerTMACAfter.assetAmount.sub(investTrackerTMACBefore.assetAmount).toString(),
+      assetPrice: investTrackerTMACAfter.assetPrice.sub(investTrackerTMACBefore.assetPrice).toString()
+    });
 
   } catch (error) {
     console.error("Error occurred:", error);
