@@ -16,6 +16,22 @@ const WSOL_MINT = new PublicKey(
 const TMAC_MINT = new PublicKey(
   "Afn8YB1p4NsoZeS5XJBZ18LTfEy5NFPwN46wapZcBQr6"
 );
+
+const WHIRLPOOL_ID_for_WSOL = new PublicKey(
+  "3KBZiL2g8C7tiJ32hTv5v3KM7aK9htpqTw4cTXz1HvPt"
+);
+
+const WHIRLPOOL_ID_for_TMAC = new PublicKey(
+  "H3xhLrSEyDFm6jjG42QezbvhSxF5YHW75VdGUnqeEg5y"
+);
+
+const UNDERLYING_MINT = new PublicKey(
+  "BRjpCHtyQLNCo8gqRUr8jtdAj5AjPYQaoqbvcZiHok1k" //devUSDC
+);
+
+const a_to_b_for_purchase_WSOL = false;
+const a_to_b_for_purchase_TMAC = false;
+
 async function main() {
   try {
     // Setup Provider and Programs
@@ -68,30 +84,53 @@ async function main() {
       accessControlProgram.programId
     );
 
-    // Initialize invest trackers for both WSOL and TMAC
-    for (const mint of [WSOL_MINT, TMAC_MINT]) {
-      // Derive invest tracker PDA
-      const [investTracker] = anchor.web3.PublicKey.findProgramAddressSync(
-        [
-          Buffer.from("invest_tracker"),
-          mint.toBuffer(),
-          strategy.toBuffer()
-        ],
-        strategyProgram.programId
-      );
+    // Initialize invest trackers for WSOL
+    const [investTrackerWSOL] = anchor.web3.PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("invest_tracker"),
+        WSOL_MINT.toBuffer(),
+        strategy.toBuffer()
+      ],
+      strategyProgram.programId
+    );
 
-      await strategyProgram.methods
-        .initInvestTracker(false)
-        .accounts({
-          strategy: strategy,
-          assetMint: mint,
-          signer: admin.publicKey,
-        })
-        .signers([admin])
-        .rpc();
+    await strategyProgram.methods
+      .initInvestTracker(a_to_b_for_purchase_WSOL)
+      .accounts({
+        strategy: strategy,
+        assetMint: WSOL_MINT,
+        signer: admin.publicKey,
+        whirlpool: WHIRLPOOL_ID_for_WSOL,
+        underlyingMint: UNDERLYING_MINT,
+      })
+      .signers([admin])
+      .rpc();
 
-      console.log(`Invest tracker initialized successfully for ${mint.toString()}`);
-    }
+    console.log(`Invest tracker initialized successfully for WSOL`);
+
+    // Initialize invest trackers for TMAC
+    const [investTrackerTMAC] = anchor.web3.PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("invest_tracker"),
+        TMAC_MINT.toBuffer(),
+        strategy.toBuffer()
+      ],
+      strategyProgram.programId
+    );
+
+    await strategyProgram.methods
+      .initInvestTracker(a_to_b_for_purchase_TMAC)
+      .accounts({
+        strategy: strategy,
+        assetMint: TMAC_MINT,
+        signer: admin.publicKey,
+        whirlpool: WHIRLPOOL_ID_for_TMAC,
+        underlyingMint: UNDERLYING_MINT,
+      })
+      .signers([admin])
+      .rpc();
+
+    console.log(`Invest tracker initialized successfully for TMAC`);
 
   } catch (error) {
     console.error("Error occurred:", error);

@@ -12,3 +12,5 @@ pub const MIN_SQRT_PRICE_X64: u128 = 4295048016;
 pub const FEE_BPS: u64 = 10_000;
 pub const DISCRIMINATOR_LEN: usize = 8;
 pub const NO_EXPLICIT_SQRT_PRICE_LIMIT: u128 = 0;
+pub const NUM_REWARDS: usize = 3;
+pub const MAX_ASSIGNED_WEIGHT: u8 = 10000; // 100%

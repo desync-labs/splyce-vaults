@@ -11,6 +11,8 @@ use access_control::{
 
 use crate::constants::INVEST_TRACKER_SEED;
 use crate::state::invest_tracker::*;
+use crate::state::whirlpool::*;
+use crate::error::ErrorCode;
 
 use crate::ID;
 
@@ -31,12 +33,14 @@ pub struct InitInvestTracker<'info> {
     )]
     pub invest_tracker: Box<Account<'info, InvestTracker>>,
 
+    pub whirlpool: Box<Account<'info, Whirlpool>>,
+
     /// CHECK: can be any strategy
     #[account(owner = ID)]
     pub strategy: UncheckedAccount<'info>,
 
-    #[account(mut)]
     pub asset_mint: Box<InterfaceAccount<'info, Mint>>,
+    pub underlying_mint: Box<InterfaceAccount<'info, Mint>>,
 
     #[account(
         seeds = [
@@ -58,13 +62,37 @@ pub struct InitInvestTracker<'info> {
     pub access_control: Program<'info, AccessControl>,
 }
 
-pub fn handle_init_invest_tracker(ctx: Context<InitInvestTracker>, a_to_b_for_purchase: bool) -> Result<()> {
+pub fn handle_init_invest_tracker(ctx: Context<InitInvestTracker>, a_to_b_for_purchase: bool, assigned_weight: u8) -> Result<()> {
     msg!("Invest tracker initialized");
     let invest_tracker = &mut ctx.accounts.invest_tracker;
+    let whirlpool = &ctx.accounts.whirlpool;
+    let asset_mint = &ctx.accounts.asset_mint;
+    let underlying_mint = &ctx.accounts.underlying_mint;
+    if a_to_b_for_purchase {
+        require!(
+            whirlpool.token_mint_a == underlying_mint.key() &&
+            whirlpool.token_mint_b == asset_mint.key(),
+            ErrorCode::InvalidTrackerSetup
+        );
+    } else {
+        require!(
+            whirlpool.token_mint_a == asset_mint.key() &&
+            whirlpool.token_mint_b == underlying_mint.key(),
+            ErrorCode::InvalidTrackerSetup
+        );
+    }
+    invest_tracker.whirlpool_id = whirlpool.key();
+    invest_tracker.asset_mint = asset_mint.key();
     invest_tracker.amount_invested = 0;
     invest_tracker.amount_withdrawn = 0;
     invest_tracker.asset_amount = 0;
     invest_tracker.asset_price = 0;
+    invest_tracker.sqrt_price = whirlpool.sqrt_price;
+    invest_tracker.asset_value = 0;
+    invest_tracker.asset_decimals = asset_mint.decimals;
+    invest_tracker.underlying_decimals = underlying_mint.decimals;
     invest_tracker.a_to_b_for_purchase = a_to_b_for_purchase;
+    require!(assigned_weight <= MAX_ASSIGNED_WEIGHT, ErrorCode::InvalidTrackerSetup);
+    invest_tracker.assigned_weight = assigned_weight;
     Ok(())
 }
