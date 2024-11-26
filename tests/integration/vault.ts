@@ -282,6 +282,7 @@ describe("tokenized_vault", () => {
       accountant: accountant,
       profitMaxUnlockTime: new BN(0),
       kycVerifiedOnly: true,
+      directDepositEnabled: true,
     };
 
     const sharesConfig = {
@@ -527,6 +528,7 @@ describe("tokenized_vault", () => {
     await vaultProgram.methods.deposit(new BN(100))
       .accounts({
         vault,
+        // strategy,
         user: user.publicKey,
         userTokenAccount,
         userSharesAccount,

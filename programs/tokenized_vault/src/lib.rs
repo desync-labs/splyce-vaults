@@ -32,6 +32,10 @@ pub mod tokenized_vault {
         handle_deposit(ctx, amount)
     }
 
+    pub fn direct_deposit<'info>(ctx: Context<'_, '_, '_, 'info, DirectDeposit<'info>>, amount: u64) -> Result<()> {
+        handle_direct_deposit(ctx, amount)
+    }
+
     pub fn withdraw<'info>(
         ctx: Context<'_, '_, '_, 'info, Withdraw<'info>>, 
         amount: u64, 
