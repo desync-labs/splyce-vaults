@@ -13,4 +13,4 @@ pub const FEE_BPS: u64 = 10_000;
 pub const DISCRIMINATOR_LEN: usize = 8;
 pub const NO_EXPLICIT_SQRT_PRICE_LIMIT: u128 = 0;
 pub const NUM_REWARDS: usize = 3;
-pub const MAX_ASSIGNED_WEIGHT: u8 = 10000; // 100%
+pub const MAX_ASSIGNED_WEIGHT: u16 = 10000; // 100% in bps

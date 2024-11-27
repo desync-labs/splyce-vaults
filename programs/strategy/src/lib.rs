@@ -88,7 +88,11 @@ pub mod strategy {
         handle_orca_purchase_assets(ctx, amount, a_to_b)
     }
 
-    pub fn init_invest_tracker(ctx: Context<InitInvestTracker>, a_to_b_for_purchase: bool) -> Result<()> {
-        handle_init_invest_tracker(ctx, a_to_b_for_purchase)
+    pub fn init_invest_tracker(ctx: Context<InitInvestTracker>, a_to_b_for_purchase: bool, assigned_weight: u16) -> Result<()> {
+        handle_init_invest_tracker(ctx, a_to_b_for_purchase, assigned_weight)
+    }
+
+    pub fn update_invest_trackers(ctx: Context<UpdateInvestTrackers>) -> Result<()> {
+        handle_update_invest_trackers(ctx)
     }
 }

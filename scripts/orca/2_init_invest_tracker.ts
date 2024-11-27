@@ -95,7 +95,7 @@ async function main() {
     );
 
     await strategyProgram.methods
-      .initInvestTracker(a_to_b_for_purchase_WSOL)
+      .initInvestTracker(a_to_b_for_purchase_WSOL, 5000)
       .accounts({
         strategy: strategy,
         assetMint: WSOL_MINT,
@@ -108,6 +108,24 @@ async function main() {
 
     console.log(`Invest tracker initialized successfully for WSOL`);
 
+    // Fetch and log WSOL invest tracker data
+    const wsolTrackerAccount = await strategyProgram.account.investTracker.fetch(investTrackerWSOL);
+    console.log("WSOL Invest Tracker Data:", {
+      whirlpoolId: wsolTrackerAccount.whirlpoolId.toString(),
+      assetMint: wsolTrackerAccount.assetMint.toString(),
+      amountInvested: wsolTrackerAccount.amountInvested.toString(),
+      amountWithdrawn: wsolTrackerAccount.amountWithdrawn.toString(),
+      assetAmount: wsolTrackerAccount.assetAmount.toString(),
+      assetPrice: wsolTrackerAccount.assetPrice.toString(),
+      sqrtPrice: wsolTrackerAccount.sqrtPrice.toString(),
+      assetValue: wsolTrackerAccount.assetValue.toString(),
+      assetDecimals: wsolTrackerAccount.assetDecimals,
+      underlyingDecimals: wsolTrackerAccount.underlyingDecimals,
+      aToBForPurchase: wsolTrackerAccount.aToBForPurchase,
+      assignedWeight: wsolTrackerAccount.assignedWeight,
+      currentWeight: wsolTrackerAccount.currentWeight
+    });
+
     // Initialize invest trackers for TMAC
     const [investTrackerTMAC] = anchor.web3.PublicKey.findProgramAddressSync(
       [
@@ -119,7 +137,7 @@ async function main() {
     );
 
     await strategyProgram.methods
-      .initInvestTracker(a_to_b_for_purchase_TMAC)
+      .initInvestTracker(a_to_b_for_purchase_TMAC, 5000)
       .accounts({
         strategy: strategy,
         assetMint: TMAC_MINT,
@@ -131,6 +149,24 @@ async function main() {
       .rpc();
 
     console.log(`Invest tracker initialized successfully for TMAC`);
+
+    // Fetch and log TMAC invest tracker data
+    const tmacTrackerAccount = await strategyProgram.account.investTracker.fetch(investTrackerTMAC);
+    console.log("TMAC Invest Tracker Data:", {
+      whirlpoolId: tmacTrackerAccount.whirlpoolId.toString(),
+      assetMint: tmacTrackerAccount.assetMint.toString(),
+      amountInvested: tmacTrackerAccount.amountInvested.toString(),
+      amountWithdrawn: tmacTrackerAccount.amountWithdrawn.toString(),
+      assetAmount: tmacTrackerAccount.assetAmount.toString(),
+      assetPrice: tmacTrackerAccount.assetPrice.toString(),
+      sqrtPrice: tmacTrackerAccount.sqrtPrice.toString(),
+      assetValue: tmacTrackerAccount.assetValue.toString(),
+      assetDecimals: tmacTrackerAccount.assetDecimals,
+      underlyingDecimals: tmacTrackerAccount.underlyingDecimals,
+      aToBForPurchase: tmacTrackerAccount.aToBForPurchase,
+      assignedWeight: tmacTrackerAccount.assignedWeight,
+      currentWeight: tmacTrackerAccount.currentWeight
+    });
 
   } catch (error) {
     console.error("Error occurred:", error);

@@ -9,11 +9,10 @@ use access_control::{
     state::{UserRole, Role}
 };
 
-use crate::constants::INVEST_TRACKER_SEED;
+use crate::constants::{INVEST_TRACKER_SEED, MAX_ASSIGNED_WEIGHT};
 use crate::state::invest_tracker::*;
 use crate::state::whirlpool::*;
 use crate::error::ErrorCode;
-
 use crate::ID;
 
 //This instruction initializes an invest tracker for the strategy
@@ -62,7 +61,7 @@ pub struct InitInvestTracker<'info> {
     pub access_control: Program<'info, AccessControl>,
 }
 
-pub fn handle_init_invest_tracker(ctx: Context<InitInvestTracker>, a_to_b_for_purchase: bool, assigned_weight: u8) -> Result<()> {
+pub fn handle_init_invest_tracker(ctx: Context<InitInvestTracker>, a_to_b_for_purchase: bool, assigned_weight: u16) -> Result<()> {
     msg!("Invest tracker initialized");
     let invest_tracker = &mut ctx.accounts.invest_tracker;
     let whirlpool = &ctx.accounts.whirlpool;
@@ -94,5 +93,6 @@ pub fn handle_init_invest_tracker(ctx: Context<InitInvestTracker>, a_to_b_for_pu
     invest_tracker.a_to_b_for_purchase = a_to_b_for_purchase;
     require!(assigned_weight <= MAX_ASSIGNED_WEIGHT, ErrorCode::InvalidTrackerSetup);
     invest_tracker.assigned_weight = assigned_weight;
+    invest_tracker.current_weight = assigned_weight;
     Ok(())
 }

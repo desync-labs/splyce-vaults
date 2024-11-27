@@ -31,4 +31,7 @@ pub enum ErrorCode {
 
     #[msg("Invalid tracker setup")]
     InvalidTrackerSetup,
+
+    #[msg("Math overflow")]
+    MathOverflow,
 }
