@@ -1,7 +1,6 @@
 import * as anchor from "@coral-xyz/anchor";
 import { TokenizedVault } from "../../target/types/tokenized_vault";
 import { BN, web3 } from "@coral-xyz/anchor";
-import { token } from "@coral-xyz/anchor/dist/cjs/utils";
 import { Strategy } from "../../target/types/strategy";
 import { SimpleStrategyConfigSchema } from "./schemas";
 import * as borsh from "borsh";
@@ -34,13 +33,17 @@ export const initializeVault = async ({
   underlyingMint,
   vaultIndex,
   signer,
-  config,
+  vaultConfig,
+  sharesConfig,
+  skipInitShares,
 }: {
   vaultProgram: anchor.Program<TokenizedVault>;
   underlyingMint: anchor.web3.PublicKey;
   vaultIndex: number;
   signer: anchor.web3.Keypair;
-  config: any;
+  vaultConfig: any;
+  sharesConfig: any;
+  skipInitShares?: boolean;
 }) => {
   const vault = anchor.web3.PublicKey.findProgramAddressSync(
     [
@@ -57,6 +60,11 @@ export const initializeVault = async ({
     vaultProgram.programId
   )[0];
 
+  const vaultTokenAccount = anchor.web3.PublicKey.findProgramAddressSync(
+    [Buffer.from("underlying"), vault.toBuffer()],
+    vaultProgram.programId
+  )[0];
+
   const [metadataAddress] = web3.PublicKey.findProgramAddressSync(
     [
       Buffer.from(METADATA_SEED),
@@ -66,13 +74,8 @@ export const initializeVault = async ({
     TOKEN_METADATA_PROGRAM_ID
   );
 
-  const vaultTokenAccount = anchor.web3.PublicKey.findProgramAddressSync(
-    [Buffer.from("underlying"), vault.toBuffer()],
-    vaultProgram.programId
-  )[0];
-
   await vaultProgram.methods
-    .initVault(new BN(vaultIndex), config)
+    .initVault(vaultConfig)
     .accounts({
       underlyingMint,
       signer: signer.publicKey,
@@ -80,16 +83,16 @@ export const initializeVault = async ({
     .signers([signer])
     .rpc();
 
-
-  await vaultProgram.methods
-  .initVaultShares(new BN(vaultIndex), config)
-  .accounts({
-    metadata: metadataAddress,
-    signer: signer.publicKey,
-  })
-  .signers([signer])
-  .rpc();
-
+  if (!skipInitShares) {
+    await vaultProgram.methods
+      .initVaultShares(new BN(vaultIndex), sharesConfig)
+      .accounts({
+        metadata: metadataAddress,
+        signer: signer.publicKey,
+      })
+      .signers([signer])
+      .rpc();
+  }
 
   return [vault, sharesMint, metadataAddress, vaultTokenAccount];
 };
@@ -126,13 +129,11 @@ export const initializeSimpleStrategy = async ({
   );
 
   await strategyProgram.methods
-    .initStrategy(index, strategyType, configBytes)
+    .initStrategy(strategyType, configBytes)
     .accounts({
       vault,
       signer: signer.publicKey,
       underlyingMint,
-      // @ts-ignore
-      tokenProgram: token.TOKEN_PROGRAM_ID,
     })
     .signers([signer])
     .rpc();

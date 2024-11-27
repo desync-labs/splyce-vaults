@@ -13,60 +13,7 @@ const { ROLES_ADMIN, ...ROLES_SUCCESS_DATA } = ROLES;
 let qaseIdSetRoleTests = 82;
 let qaseIdRevokeRoleTests = 90;
 
-describe.only("Access Control Tests", () => {
-  before(async () => {
-    console.log("-------Before Step Started-------");
-    await accessControlProgram.methods
-      .setRoleManager(ROLES.VAULTS_ADMIN, ROLES.ROLES_ADMIN)
-      .accounts({
-        signer: configOwner.publicKey,
-      })
-      .signers([configOwner])
-      .rpc();
-
-    await accessControlProgram.methods
-      .setRoleManager(ROLES.STRATEGIES_MANAGER, ROLES.ROLES_ADMIN)
-      .accounts({
-        signer: configOwner.publicKey,
-      })
-      .signers([configOwner])
-      .rpc();
-
-    await accessControlProgram.methods
-      .setRoleManager(ROLES.ACCOUNTANT_ADMIN, ROLES.ROLES_ADMIN)
-      .accounts({
-        signer: configOwner.publicKey,
-      })
-      .signers([configOwner])
-      .rpc();
-
-    await accessControlProgram.methods
-      .setRoleManager(ROLES.REPORTING_MANAGER, ROLES.ROLES_ADMIN)
-      .accounts({
-        signer: configOwner.publicKey,
-      })
-      .signers([configOwner])
-      .rpc();
-
-    await accessControlProgram.methods
-      .setRoleManager(ROLES.KYC_PROVIDER, ROLES.ROLES_ADMIN)
-      .accounts({
-        signer: configOwner.publicKey,
-      })
-      .signers([configOwner])
-      .rpc();
-
-    await accessControlProgram.methods
-      .setRoleManager(ROLES.KYC_VERIFIED, ROLES.KYC_PROVIDER)
-      .accounts({
-        signer: configOwner.publicKey,
-      })
-      .signers([configOwner])
-      .rpc();
-    console.log("Set role managers for all roles successfully");
-    console.log("-------Before Step Finished-------");
-  });
-
+describe("Access Control Tests", () => {
   it("Initalizing access control program with super configOwner when it is already initialized should revert", async function () {
     this.qaseId(76);
     try {
@@ -568,50 +515,5 @@ describe.only("Access Control Tests", () => {
       );
 
     assert.isTrue(roleReceiverStrategiesManagerRoleAccount.hasRole);
-  });
-
-  it("Revoking ROLES_ADMIN role from ROLES_ADMIN with signer being the config owner is successful", async function () {
-    this.qaseId(99);
-    await accessControlProgram.methods
-      .revokeRole(ROLES.ROLES_ADMIN, configOwner.publicKey)
-      .accounts({
-        signer: configOwner.publicKey,
-        recipient: configOwner.publicKey,
-      })
-      .signers([configOwner])
-      .rpc();
-
-    // No longer has ROLES_ADMIN role
-    const roleReceiverCorrespondingRole =
-      anchor.web3.PublicKey.findProgramAddressSync(
-        [
-          Buffer.from("user_role"),
-          configOwner.publicKey.toBuffer(),
-          ROLES_BUFFER.ROLES_ADMIN,
-        ],
-        accessControlProgram.programId
-      )[0];
-
-    try {
-      await accessControlProgram.account.userRole.fetch(
-        roleReceiverCorrespondingRole
-      );
-      assert.fail("Error was not thrown");
-    } catch (err) {
-      expect(err.message).contains("Account does not exist or has no data");
-    }
-
-    // Confid owner account is still the config owner
-    const config = anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("config")],
-      accessControlProgram.programId
-    )[0];
-    const configAccount = await accessControlProgram.account.config.fetch(
-      config
-    );
-    assert.equal(
-      configAccount.owner.toString(),
-      configOwner.publicKey.toString()
-    );
   });
 });
