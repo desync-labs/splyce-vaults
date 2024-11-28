@@ -45,7 +45,8 @@ pub struct UpdateStrategyDebt<'info> {
     )]
     pub strategy_data: Account<'info, StrategyData>,
 
-    #[account(mut, 
+    #[account(
+        mut, 
         seeds = [UNDERLYING_SEED.as_bytes(), strategy.key().as_ref()],
         bump,
         seeds::program = strategy_program.key(),
@@ -81,7 +82,7 @@ pub fn handle_update_debt<'a, 'b, 'c, 'info>(
     vault_mut.total_idle = total_idle;
     vault_mut.total_debt = total_debt;
 
-    ctx.accounts.strategy_data.update_strategy_current_debt(new_debt)?;
+    ctx.accounts.strategy_data.update_current_debt(new_debt)?;
 
     emit!(UpdatedCurrentDebtForStrategyEvent {
         vault_key: vault_mut.key,
@@ -156,7 +157,8 @@ fn handle_internal<'a, 'b, 'c, 'info>(
             ctx.accounts.token_program.to_account_info(),
             ctx.accounts.strategy_program.to_account_info(),
             assets_to_deposit,
-            vault_seeds
+            &[vault_seeds],
+            ctx.remaining_accounts.to_vec()
         )?;
 
         new_debt = current_debt + assets_to_deposit;
