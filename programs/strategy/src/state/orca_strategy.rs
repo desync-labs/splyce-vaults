@@ -127,6 +127,7 @@ impl Strategy for OrcaStrategy {
     }
 
     //Free fund swaps asset to underlying token
+    //Make sure sales would happen based on the current weight from the invest tracker
     fn free_funds<'info>(&mut self, accounts: &FreeFunds<'info>, remaining: &[AccountInfo<'info>], amount: u64) -> Result<()> {
         // Calculate number of swaps based on remaining accounts length
         let num_swaps = remaining.len() / 12;
