@@ -12,7 +12,7 @@ import { BN } from "@coral-xyz/anchor";
 import { airdrop, initializeVault } from "../../utils/helpers";
 import * as token from "@solana/spl-token";
 
-describe.only("Roles and Permissions Tests", () => {
+describe("Roles and Permissions Tests", () => {
   // Test Role Accounts
   let rolesAdmin: anchor.web3.Keypair;
   let accountantAdmin: anchor.web3.Keypair;
@@ -51,15 +51,6 @@ describe.only("Roles and Permissions Tests", () => {
     kycVerifiedUser = anchor.web3.Keypair.generate();
     nonVerifiedUser = anchor.web3.Keypair.generate();
 
-    // Create common underlying mint account
-    underlyingMint = await token.createMint(
-      connection,
-      underlyingMintOwner,
-      underlyingMintOwner.publicKey,
-      null,
-      9
-    );
-
     // Airdrop to all accounts
     const publicKeysList = [
       accountantAdmin.publicKey,
@@ -80,6 +71,20 @@ describe.only("Roles and Permissions Tests", () => {
 
     console.log(
       "Generate keypairs and airdrop to all test accounts successfully"
+    );
+
+    // Create common underlying mint account and set underlying mint owner
+    underlyingMintOwner = configOwner;
+    underlyingMint = await token.createMint(
+      connection,
+      underlyingMintOwner,
+      underlyingMintOwner.publicKey,
+      null,
+      9
+    );
+
+    console.log(
+      "Underlying mint owner and underlying mint set up successfully"
     );
 
     // Set Corresponding Roles
@@ -156,11 +161,14 @@ describe.only("Roles and Permissions Tests", () => {
       await initializeVault({
         vaultProgram,
         underlyingMint,
-        vaultIndex: 1,
+        vaultIndex: 0,
         signer: vaultsAdmin,
         vaultConfig: vaultConfigOne,
         sharesConfig: sharesConfigOne,
       });
+
+    console.log("Initialized vaults and strategies successfully");
+
     console.log("-------Before Step Finished-------");
   });
 

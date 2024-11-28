@@ -136,6 +136,16 @@ export async function mochaGlobalSetup() {
 
   console.log("Setting role managers for all roles successfully");
 
+  await vaultProgram.methods
+    .initialize()
+    .accounts({
+      admin: configOwner.publicKey,
+    })
+    .signers([configOwner])
+    .rpc();
+
+  console.log("Vault program initialized successfully");
+
   await strategyProgram.methods
     .initialize()
     .accounts({
