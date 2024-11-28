@@ -163,9 +163,8 @@ async function main() {
     // ============================
     console.log("Purchasing assets using the Orca Strategy...");
 
-    // Define the amounts and directions for the swaps
-    const amounts = [new BN(4).mul(new BN(10).pow(new BN(6))), new BN(4).mul(new BN(10).pow(new BN(6)))]; // amounts for TMAC and WSOL
-    const aToB = [false, false]; // devUSDC -> TMAC and devUSDC -> WSOL
+    // Define the amount for the swap
+    const amount = new BN(8).mul(new BN(10).pow(new BN(6))); // amount for both TMAC and WSOL combined
 
     // ======= Get Strategy TMAC Token Account PDA =======
     const [strategyTMACAccount] = anchor.web3.PublicKey.findProgramAddressSync(
@@ -200,6 +199,43 @@ async function main() {
       strategyProgram.programId
     );
     console.log("Invest Tracker WSOL address:", INVEST_TRACKER_ACCOUNT_WSOL.toBase58());
+
+    // Log invest tracker states before purchase
+    console.log("\nInvest Tracker States BEFORE purchase:");
+    const tmacTrackerBefore = await strategyProgram.account.investTracker.fetch(INVEST_TRACKER_ACCOUNT_TMAC);
+    const wsolTrackerBefore = await strategyProgram.account.investTracker.fetch(INVEST_TRACKER_ACCOUNT_WSOL);
+    
+    console.log("TMAC Tracker:", {
+      whirlpool_id: tmacTrackerBefore.whirlpoolId.toString(),
+      asset_mint: tmacTrackerBefore.assetMint.toString(),
+      amount_invested: tmacTrackerBefore.amountInvested.toString(),
+      amount_withdrawn: tmacTrackerBefore.amountWithdrawn.toString(),
+      asset_amount: tmacTrackerBefore.assetAmount.toString(),
+      asset_price: tmacTrackerBefore.assetPrice.toString(),
+      sqrt_price: tmacTrackerBefore.sqrtPrice.toString(),
+      asset_value: tmacTrackerBefore.assetValue.toString(),
+      asset_decimals: tmacTrackerBefore.assetDecimals,
+      underlying_decimals: tmacTrackerBefore.underlyingDecimals,
+      a_to_b_for_purchase: tmacTrackerBefore.aToBForPurchase,
+      assigned_weight: tmacTrackerBefore.assignedWeight,
+      current_weight: tmacTrackerBefore.currentWeight,
+    });
+    
+    console.log("WSOL Tracker:", {
+      whirlpool_id: wsolTrackerBefore.whirlpoolId.toString(),
+      asset_mint: wsolTrackerBefore.assetMint.toString(),
+      amount_invested: wsolTrackerBefore.amountInvested.toString(),
+      amount_withdrawn: wsolTrackerBefore.amountWithdrawn.toString(),
+      asset_amount: wsolTrackerBefore.assetAmount.toString(),
+      asset_price: wsolTrackerBefore.assetPrice.toString(),
+      sqrt_price: wsolTrackerBefore.sqrtPrice.toString(),
+      asset_value: wsolTrackerBefore.assetValue.toString(),
+      asset_decimals: wsolTrackerBefore.assetDecimals,
+      underlying_decimals: wsolTrackerBefore.underlyingDecimals,
+      a_to_b_for_purchase: wsolTrackerBefore.aToBForPurchase,
+      assigned_weight: wsolTrackerBefore.assignedWeight,
+      current_weight: wsolTrackerBefore.currentWeight,
+    });
 
     // ======= Define Remaining Accounts for TMAC =======
     const remainingAccountsForTMAC = [
@@ -338,7 +374,7 @@ async function main() {
     // ======= Call orca_purchase_assets once with combined remaining accounts =======
     try {
       await strategyProgram.methods
-        .orcaPurchaseAssets(amounts, aToB)
+        .orcaPurchaseAssets(amount)
         .accounts({
           strategy: strategy,
           signer: admin.publicKey,
@@ -357,6 +393,43 @@ async function main() {
 
       console.log("TMAC balance change:", tmacBalanceAfter.value.uiAmount - tmacBalanceBefore.value.uiAmount);
       console.log("WSOL balance change:", wsolBalanceAfter.value.uiAmount - wsolBalanceBefore.value.uiAmount);
+
+      // Log invest tracker states after purchase
+      console.log("\nInvest Tracker States AFTER purchase:");
+      const tmacTrackerAfter = await strategyProgram.account.investTracker.fetch(INVEST_TRACKER_ACCOUNT_TMAC);
+      const wsolTrackerAfter = await strategyProgram.account.investTracker.fetch(INVEST_TRACKER_ACCOUNT_WSOL);
+      
+      console.log("TMAC Tracker:", {
+        whirlpool_id: tmacTrackerAfter.whirlpoolId.toString(),
+        asset_mint: tmacTrackerAfter.assetMint.toString(),
+        amount_invested: tmacTrackerAfter.amountInvested.toString(),
+        amount_withdrawn: tmacTrackerAfter.amountWithdrawn.toString(),
+        asset_amount: tmacTrackerAfter.assetAmount.toString(),
+        asset_price: tmacTrackerAfter.assetPrice.toString(),
+        sqrt_price: tmacTrackerAfter.sqrtPrice.toString(),
+        asset_value: tmacTrackerAfter.assetValue.toString(),
+        asset_decimals: tmacTrackerAfter.assetDecimals,
+        underlying_decimals: tmacTrackerAfter.underlyingDecimals,
+        a_to_b_for_purchase: tmacTrackerAfter.aToBForPurchase,
+        assigned_weight: tmacTrackerAfter.assignedWeight,
+        current_weight: tmacTrackerAfter.currentWeight,
+      });
+      
+      console.log("WSOL Tracker:", {
+        whirlpool_id: wsolTrackerAfter.whirlpoolId.toString(),
+        asset_mint: wsolTrackerAfter.assetMint.toString(),
+        amount_invested: wsolTrackerAfter.amountInvested.toString(),
+        amount_withdrawn: wsolTrackerAfter.amountWithdrawn.toString(),
+        asset_amount: wsolTrackerAfter.assetAmount.toString(),
+        asset_price: wsolTrackerAfter.assetPrice.toString(),
+        sqrt_price: wsolTrackerAfter.sqrtPrice.toString(),
+        asset_value: wsolTrackerAfter.assetValue.toString(),
+        asset_decimals: wsolTrackerAfter.assetDecimals,
+        underlying_decimals: wsolTrackerAfter.underlyingDecimals,
+        a_to_b_for_purchase: wsolTrackerAfter.aToBForPurchase,
+        assigned_weight: wsolTrackerAfter.assignedWeight,
+        current_weight: wsolTrackerAfter.currentWeight,
+      });
 
     } catch (error) {
       console.error("Error during orca_purchase_assets:", error);

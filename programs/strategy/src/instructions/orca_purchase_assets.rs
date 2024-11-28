@@ -24,7 +24,7 @@ pub struct OrcaPurchaseAssets<'info> {
     pub token_program: Program<'info, Token>,
 }
 
-pub fn handle_orca_purchase_assets<'info>(ctx: Context<'_, '_, '_, 'info, OrcaPurchaseAssets<'info>>, amount: Vec<u64>, a_to_b: Vec<bool>) -> Result<()> {
+pub fn handle_orca_purchase_assets<'info>(ctx: Context<'_, '_, '_, 'info, OrcaPurchaseAssets<'info>>, amount: u64) -> Result<()> {
     let mut strategy = ctx.accounts.strategy.from_unchecked()?;
     let strategy_type = strategy.strategy_type();
     if strategy_type != StrategyType::Orca {
@@ -35,6 +35,6 @@ pub fn handle_orca_purchase_assets<'info>(ctx: Context<'_, '_, '_, 'info, OrcaPu
         return Err(ErrorCode::AccessDenied.into());
     }
     
-    strategy.orca_purchase_assets(&ctx.accounts, &ctx.remaining_accounts, amount, a_to_b)?;
+    strategy.orca_purchase_assets(&ctx.accounts, &ctx.remaining_accounts, amount)?;
     strategy.save_changes(&mut &mut ctx.accounts.strategy.try_borrow_mut_data()?[8..])
 }

@@ -106,7 +106,6 @@ export class OrcaStrategyConfig {
     lockPeriodEnds: BN;
     performanceFee: BN;
     feeManager: Buffer;
-    deployFundsDirection: boolean;
 
     constructor(fields: {
         depositLimit: BN,
@@ -114,15 +113,12 @@ export class OrcaStrategyConfig {
         lockPeriodEnds: BN,
         performanceFee: BN,
         feeManager: anchor.web3.PublicKey,
-        deployFundsDirection: boolean,
-        amountSpecifiedIsInput: boolean
     }) {
         this.depositLimit = fields.depositLimit;
         this.depositPeriodEnds = fields.depositPeriodEnds;
         this.lockPeriodEnds = fields.lockPeriodEnds;
         this.performanceFee = fields.performanceFee;
         this.feeManager = fields.feeManager.toBuffer();
-        this.deployFundsDirection = fields.deployFundsDirection;
     }
 }
 
@@ -137,7 +133,6 @@ export const OrcaStrategyConfigSchema = new Map([
                 ['lockPeriodEnds', 'u64'],
                 ['performanceFee', 'u64'],
                 ['feeManager', [32]],
-                ['deployFundsDirection', 'u8'],
             ],
         },
     ],

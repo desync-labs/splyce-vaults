@@ -84,8 +84,8 @@ pub mod strategy {
         handle_init_token_account(ctx)
     }
 
-    pub fn orca_purchase_assets<'info>(ctx: Context<'_, '_, '_, 'info, OrcaPurchaseAssets<'info>>, amount: Vec<u64>, a_to_b: Vec<bool>) -> Result<()> {
-        handle_orca_purchase_assets(ctx, amount, a_to_b)
+    pub fn orca_purchase_assets<'info>(ctx: Context<'_, '_, '_, 'info, OrcaPurchaseAssets<'info>>, amount: u64) -> Result<()> {
+        handle_orca_purchase_assets(ctx, amount)
     }
 
     pub fn init_invest_tracker(ctx: Context<InitInvestTracker>, a_to_b_for_purchase: bool, assigned_weight: u16) -> Result<()> {

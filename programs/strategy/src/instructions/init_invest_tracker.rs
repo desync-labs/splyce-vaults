@@ -31,8 +31,9 @@ pub struct InitInvestTracker<'info> {
         payer = signer, 
     )]
     pub invest_tracker: Box<Account<'info, InvestTracker>>,
-
-    pub whirlpool: Box<Account<'info, Whirlpool>>,
+    /// CHECK: This is a Whirlpool account owned by Orca's Whirlpool program. 
+    /// The account ownership and data are not yet verified in the instruction handler.
+    pub whirlpool: AccountInfo<'info>,
 
     /// CHECK: can be any strategy
     #[account(owner = ID)]
@@ -64,7 +65,11 @@ pub struct InitInvestTracker<'info> {
 pub fn handle_init_invest_tracker(ctx: Context<InitInvestTracker>, a_to_b_for_purchase: bool, assigned_weight: u16) -> Result<()> {
     msg!("Invest tracker initialized");
     let invest_tracker = &mut ctx.accounts.invest_tracker;
-    let whirlpool = &ctx.accounts.whirlpool;
+    
+    // Deserialize the whirlpool account
+    let account_data = ctx.accounts.whirlpool.data.borrow();
+    let whirlpool = Whirlpool::try_from_slice(&account_data[8..])?;
+    
     let asset_mint = &ctx.accounts.asset_mint;
     let underlying_mint = &ctx.accounts.underlying_mint;
     if a_to_b_for_purchase {
@@ -80,7 +85,7 @@ pub fn handle_init_invest_tracker(ctx: Context<InitInvestTracker>, a_to_b_for_pu
             ErrorCode::InvalidTrackerSetup
         );
     }
-    invest_tracker.whirlpool_id = whirlpool.key();
+    invest_tracker.whirlpool_id =  ctx.accounts.whirlpool.key();
     invest_tracker.asset_mint = asset_mint.key();
     invest_tracker.amount_invested = 0;
     invest_tracker.amount_withdrawn = 0;

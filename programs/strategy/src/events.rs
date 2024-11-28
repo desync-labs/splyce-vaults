@@ -22,7 +22,6 @@ pub struct AMMStrategyInitEvent {
     pub underlying_token_acc: Pubkey,
     pub undelying_decimals: u8,
     pub deposit_limit: u64,
-    pub deploy_funds_direction: bool,
 }
 
 #[event]

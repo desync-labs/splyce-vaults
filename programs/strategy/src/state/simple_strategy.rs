@@ -200,7 +200,7 @@ impl Strategy for SimpleStrategy {
         self.total_assets = total_assets;
     }
 
-    fn orca_purchase_assets<'info>(&mut self, _accounts: &OrcaPurchaseAssets<'info>, _remaining: &[AccountInfo<'info>], _amount: Vec<u64>, _a_to_b: Vec<bool>) -> Result<()> {
+    fn orca_purchase_assets<'info>(&mut self, accounts: &OrcaPurchaseAssets<'info>, remaining: &[AccountInfo<'info>], amount: u64) -> Result<()> {
         Ok(())
     }
 }
