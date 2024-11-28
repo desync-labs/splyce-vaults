@@ -99,7 +99,17 @@ jobs:
       - name: Install Node.js dependencies
         run: yarn install
 
-      # 9. Run Anchor Tests (skip build step since we built earlier)
+      # 9. Run anchor keys sync 1
+      - name: Run Anchor Keys Sync 1
+        run: anchor keys sync
+        timeout-minutes: 1
+  
+      # 10. Run anchor keys sync 2
+      - name: Run Anchor Keys Sync 2
+        run: anchor keys sync
+        timeout-minutes: 1
+
+      # 11. Run Anchor Tests (skip build step since we built earlier)
       - name: Run Anchor Tests
         run: anchor test
         timeout-minutes: 15
