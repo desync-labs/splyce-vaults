@@ -71,6 +71,14 @@ pub mod tokenized_vault {
         handle_update_debt(ctx, amount)
     }
 
+    pub fn whitelist(ctx: Context<Whitelist>, user: Pubkey) -> Result<()> {
+        handle_whitelist(ctx, user)
+    }
+
+    pub fn revoke_whitelisting(ctx: Context<RevokeWhitelisting>, user: Pubkey) -> Result<()> {
+        handle_revoke_whitelisting(ctx, user)
+    }
+
     pub fn set_deposit_limit(ctx: Context<SetVaultProperty>, limit: u64) -> Result<()> {
         handle_set_deposit_limit(ctx, limit)
     }

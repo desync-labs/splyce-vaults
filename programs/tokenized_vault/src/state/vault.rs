@@ -32,6 +32,7 @@ pub struct Vault {
     // only kyc verified users can deposit
     pub kyc_verified_only: bool,
     pub direct_deposit_enabled: bool,
+    pub whitelisted_only: bool,
 
     pub profit_max_unlock_time: u64,
     pub full_profit_unlock_date: u64,
@@ -47,6 +48,7 @@ pub struct VaultConfig {
     pub profit_max_unlock_time: u64,
     pub kyc_verified_only: bool,
     pub direct_deposit_enabled: bool,
+    pub whitelisted_only: bool,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
@@ -57,7 +59,7 @@ pub struct SharesConfig {
 }
 
 impl Vault {
-    pub const LEN: usize = DISCRIMINATOR_LEN + Vault::INIT_SPACE;
+    pub const LEN: usize = DISCRIMINATOR_LEN + Self::INIT_SPACE;
 
     pub fn seeds(&self) -> [&[u8]; 3] {
     [
@@ -97,6 +99,7 @@ impl Vault {
         self.profit_max_unlock_time = config.profit_max_unlock_time;
         self.kyc_verified_only = config.kyc_verified_only;
         self.direct_deposit_enabled = config.direct_deposit_enabled;
+        self.whitelisted_only = config.whitelisted_only;
 
         self.is_shutdown = false;
         self.total_debt = 0;

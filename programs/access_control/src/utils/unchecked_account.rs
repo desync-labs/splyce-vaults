@@ -1,13 +1,13 @@
 use anchor_lang::prelude::*;
 
-use access_control::state::UserRole;
+use crate::state::UserRole;
 
-pub trait RolesAccInfo {
+pub trait UserRoleAccInfo {
     fn deserialize(&self) -> Result<Box<UserRole>>;
     fn has_role(&self) -> bool;
 }
 
-impl<'a> RolesAccInfo for AccountInfo<'a> {
+impl<'a> UserRoleAccInfo for AccountInfo<'a> {
     fn deserialize(&self) -> Result<Box<UserRole>> {
         let data = self.try_borrow_data()?;
         Ok(Box::new(UserRole::try_from_slice(&data[8..]).unwrap()))

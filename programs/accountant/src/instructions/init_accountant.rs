@@ -29,6 +29,7 @@ pub struct InitAccountant<'info> {
     )]
     pub accountant: UncheckedAccount<'info>,
 
+    // TODO: move to separate instruction and handle multiple mints
     #[account(
         init, 
         payer = signer, 
