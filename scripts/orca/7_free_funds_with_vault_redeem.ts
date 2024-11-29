@@ -403,6 +403,11 @@ async function main() {
     // Get Initial Balances
     // ============================
     
+    // Add share mint decimal check
+    const shareMintInfo = await token.getMint(provider.connection, sharesMint);
+    const shareDecimals = shareMintInfo.decimals;
+    console.log("Shares Token Decimals:", shareDecimals);
+    
     // Add these new lines to fetch invest tracker data
     const investTrackerWSOLBefore = await strategyProgram.account.investTracker.fetch(
       INVEST_TRACKER_ACCOUNT_WSOL
@@ -447,10 +452,14 @@ async function main() {
     console.log("Strategy TMAC balance:", strategyTmacBalanceBefore.value.uiAmount);
 
     // Define redeemAmount and maxLoss
-    const redeemAmount = userSharesBalance.mul(new BN(70)).div(new BN(100)); // Redeem 70% of the user's shares
-    const maxLoss = new BN(500000); // Adjust as needed
-
-    console.log(`\nRedeeming ${redeemAmount.toString()} shares with max loss ${maxLoss.toString()}`);
+    const redeemAmount = userSharesBalance
+      .mul(new BN(60))
+      .div(new BN(100)); // Redeem 60% of the user's shares
+    
+    const maxLoss = new BN(500000);
+    
+    console.log("User total shares:", userSharesBalance.toString());
+    console.log(`Redeeming ${redeemAmount.toString()} shares (${(Number(redeemAmount.toString()) / Math.pow(10, shareDecimals))} tokens) with max loss ${maxLoss.toString()}`);
 
     // ============================
     // Create Lookup Table
