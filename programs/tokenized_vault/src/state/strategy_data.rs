@@ -38,7 +38,7 @@ impl<'a> StrategyDataAccInfo for AccountInfo<'a> {
     fn set_current_debt(&self, amount: u64) -> Result<()> {
         let mut data = self.try_borrow_mut_data()?;
         let mut strategy_data = StrategyData::try_from_slice(&data[8..]).unwrap();
-        strategy_data.update_strategy_current_debt(amount)?;
+        strategy_data.update_current_debt(amount)?;
         strategy_data.serialize(&mut &mut data[8..])?;
         Ok(())
     }
@@ -63,8 +63,14 @@ impl StrategyData {
         Ok(())
     }
 
-    pub fn update_strategy_current_debt(&mut self,  amount: u64) -> Result<()> {
+    pub fn update_current_debt(&mut self,  amount: u64) -> Result<()> {
         self.current_debt = amount;
+        self.last_update = Clock::get()?.unix_timestamp;
+        Ok(())
+    }
+
+    pub fn increase_current_debt(&mut self, amount: u64) -> Result<()> {
+        self.current_debt += amount;
         self.last_update = Clock::get()?.unix_timestamp;
         Ok(())
     }
