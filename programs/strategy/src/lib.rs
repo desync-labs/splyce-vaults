@@ -6,6 +6,7 @@ pub mod utils;
 pub mod events;
 
 use anchor_lang::prelude::*;
+use crate::error::ErrorCode;
 
 pub use constants::*;
 pub use instructions::*;
@@ -94,5 +95,14 @@ pub mod strategy {
 
     pub fn update_invest_trackers(ctx: Context<UpdateInvestTrackers>) -> Result<()> {
         handle_update_invest_trackers(ctx)
+    }
+
+    pub fn free_funds<'info>(ctx: Context<'_, '_, '_, 'info, FreeFunds<'info>>, amount: u64) -> Result<()> {
+        let strategy = OrcaStrategy::try_from_slice(&ctx.accounts.strategy.try_borrow_data()?[8..])?;
+
+        if strategy.strategy_type() != StrategyType::Orca {
+            return Err(ErrorCode::InvalidStrategyType.into());
+        }
+        handle_free_funds(ctx, amount)
     }
 }

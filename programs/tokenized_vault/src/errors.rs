@@ -58,4 +58,7 @@ pub enum ErrorCode {
 
     #[msg("Strategy cannot be added")]
     InvalidStrategyToAdd,
+
+    #[msg("Invalid strategy")]
+    InvalidStrategy,
 }
