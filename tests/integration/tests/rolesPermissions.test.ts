@@ -5,13 +5,19 @@ import {
   configOwner,
   connection,
   provider,
+  strategyProgram,
   vaultProgram,
 } from "../setups/globalSetup";
 import { assert, expect } from "chai";
 import { errorStrings, ROLES, ROLES_BUFFER } from "../../utils/constants";
 import { BN } from "@coral-xyz/anchor";
-import { airdrop, initializeVault } from "../../utils/helpers";
+import {
+  airdrop,
+  initializeSimpleStrategy,
+  initializeVault,
+} from "../../utils/helpers";
 import * as token from "@solana/spl-token";
+import { SimpleStrategyConfig } from "../../utils/schemas";
 
 describe("Roles and Permissions Tests", () => {
   // Test Role Accounts
@@ -24,10 +30,14 @@ describe("Roles and Permissions Tests", () => {
   let kycVerifiedUser: anchor.web3.Keypair;
   let nonVerifiedUser: anchor.web3.Keypair;
 
+  // Next indexes
+  let nextAccountantIndex = 0;
+  let nextVaultIndex = 0;
+  let nextStrategyIndex = 0;
+
   // Accountant vars
   let accountantConfig: anchor.web3.PublicKey;
   const accountantType = { generic: {} };
-  let nextAccountantIndex = 0;
 
   // Common underlying mint and owner
   let underlyingMint: anchor.web3.PublicKey;
@@ -171,11 +181,13 @@ describe("Roles and Permissions Tests", () => {
       await initializeVault({
         vaultProgram,
         underlyingMint,
-        vaultIndex: 0,
+        vaultIndex: nextVaultIndex,
         signer: vaultsAdmin,
         vaultConfig: vaultConfigOne,
         sharesConfig: sharesConfigOne,
       });
+
+    nextVaultIndex++;
 
     feeRecipientSharesAccountOne = await token.createAccount(
       provider.connection,
@@ -216,7 +228,7 @@ describe("Roles and Permissions Tests", () => {
       );
     });
 
-    it("Accountant Admin - Set fee is successful", async function () {
+    it("Accountant Admin - Calling set fee method is successful", async function () {
       await accountantProgram.methods
         .setFee(new BN(500))
         .accounts({
@@ -231,7 +243,7 @@ describe("Roles and Permissions Tests", () => {
       assert.strictEqual(genericAccountant.performanceFee.toNumber(), 500);
     });
 
-    it("Accountant Admin - Set fee recipient is successful", async function () {
+    it("Accountant Admin - Calling set fee recipient is successful", async function () {
       await accountantProgram.methods
         .setFeeRecipient(feeRecipientSharesAccountOne)
         .accounts({
@@ -249,7 +261,7 @@ describe("Roles and Permissions Tests", () => {
       );
     });
 
-    it("Accountant Admin - Distribute is successful", async function () {
+    it("Accountant Admin - Calling distribute method is successful", async function () {
       try {
         await accountantProgram.methods
           .distribute()
@@ -265,6 +277,33 @@ describe("Roles and Permissions Tests", () => {
       } catch {
         assert.fail("Error was thrown");
       }
+    });
+  });
+
+  describe("Strategies Manager Role Tests", () => {
+    it("Strategies Manager - Calling init strategy method is successful", async () => {
+      const strategyConfig = new SimpleStrategyConfig({
+        depositLimit: new BN(1000),
+        performanceFee: new BN(1),
+        feeManager: strategiesManager.publicKey,
+      });
+
+      const [strategy, strategyTokenAccount] = await initializeSimpleStrategy({
+        strategyProgram,
+        vault: vaultOne,
+        underlyingMint,
+        signer: strategiesManager,
+        index: nextStrategyIndex,
+        config: strategyConfig,
+      });
+
+      nextStrategyIndex++;
+
+      const strategyAccount =
+        await strategyProgram.account.simpleStrategy.fetch(strategy);
+      expect(strategyAccount.manager.toString()).to.equal(
+        strategiesManager.publicKey.toBase58()
+      );
     });
   });
 });

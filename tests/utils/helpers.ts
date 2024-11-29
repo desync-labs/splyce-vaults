@@ -112,8 +112,11 @@ export const initializeSimpleStrategy = async ({
   index: number;
   config: any;
 }) => {
-  const strategy = anchor.web3.PublicKey.findProgramAddressSync(
-    [vault.toBuffer(), Buffer.from(new Uint8Array([index]))],
+  const strategy = web3.PublicKey.findProgramAddressSync(
+    [
+      vault.toBuffer(),
+      Buffer.from(new Uint8Array(new BigUint64Array([BigInt(index)]).buffer)),
+    ],
     strategyProgram.programId
   )[0];
 
