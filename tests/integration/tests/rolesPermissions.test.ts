@@ -4,6 +4,7 @@ import {
   accountantProgram,
   configOwner,
   connection,
+  provider,
   vaultProgram,
 } from "../setups/globalSetup";
 import { assert, expect } from "chai";
@@ -23,8 +24,10 @@ describe("Roles and Permissions Tests", () => {
   let kycVerifiedUser: anchor.web3.Keypair;
   let nonVerifiedUser: anchor.web3.Keypair;
 
-  // Accountant config
+  // Accountant vars
   let accountantConfig: anchor.web3.PublicKey;
+  const accountantType = { generic: {} };
+  let nextAccountantIndex = 0;
 
   // Common underlying mint and owner
   let underlyingMint: anchor.web3.PublicKey;
@@ -35,9 +38,12 @@ describe("Roles and Permissions Tests", () => {
   let sharesMintOne: anchor.web3.PublicKey;
   let metadataAccountOne: anchor.web3.PublicKey;
   let vaultTokenAccountOne: anchor.web3.PublicKey;
-  let strategyOne: anchor.web3.PublicKey;
-  let strategyTokenAccountOne: anchor.web3.PublicKey;
+  let strategyOneVaultOne: anchor.web3.PublicKey;
+  let strategyTokenAccountOneVaultOne: anchor.web3.PublicKey;
   let accountantOne: anchor.web3.PublicKey;
+  let feeRecipientOne: anchor.web3.Keypair;
+  let feeRecipientSharesAccountOne: anchor.web3.PublicKey;
+  let feeRecipientTokenAccountOne: anchor.web3.PublicKey;
 
   before(async () => {
     console.log("-------Before Step Started-------");
@@ -50,6 +56,7 @@ describe("Roles and Permissions Tests", () => {
     kycProvider = anchor.web3.Keypair.generate();
     kycVerifiedUser = anchor.web3.Keypair.generate();
     nonVerifiedUser = anchor.web3.Keypair.generate();
+    feeRecipientOne = anchor.web3.Keypair.generate();
 
     // Airdrop to all accounts
     const publicKeysList = [
@@ -60,6 +67,7 @@ describe("Roles and Permissions Tests", () => {
       kycProvider.publicKey,
       kycVerifiedUser.publicKey,
       nonVerifiedUser.publicKey,
+      feeRecipientOne.publicKey,
     ];
     for (const publicKey of publicKeysList) {
       await airdrop({
@@ -132,14 +140,16 @@ describe("Roles and Permissions Tests", () => {
       .rpc();
     console.log("Set all roles successfully");
 
-    // Set up test vaults and strategies
-    accountantOne = anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from(new Uint8Array(new BigUint64Array([BigInt(0)]).buffer))],
+    // Set up accountant config
+    accountantConfig = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("config")],
       accountantProgram.programId
     )[0];
 
-    accountantConfig = anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("config")],
+    // Set up test vaults and strategies
+    // Vault One
+    accountantOne = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from(new Uint8Array(new BigUint64Array([BigInt(0)]).buffer))],
       accountantProgram.programId
     )[0];
 
@@ -167,6 +177,19 @@ describe("Roles and Permissions Tests", () => {
         sharesConfig: sharesConfigOne,
       });
 
+    feeRecipientSharesAccountOne = await token.createAccount(
+      provider.connection,
+      feeRecipientOne,
+      sharesMintOne,
+      feeRecipientOne.publicKey
+    );
+    feeRecipientTokenAccountOne = await token.createAccount(
+      provider.connection,
+      feeRecipientOne,
+      underlyingMint,
+      feeRecipientOne.publicKey
+    );
+
     console.log("Initialized vaults and strategies successfully");
 
     console.log("-------Before Step Finished-------");
@@ -174,8 +197,6 @@ describe("Roles and Permissions Tests", () => {
 
   describe("Accountant Admin Role Tests", () => {
     it("Accountant Admin - Init accountant is successful", async function () {
-      const accountantType = { generic: {} };
-
       await accountantProgram.methods
         .initAccountant(accountantType)
         .accounts({
@@ -184,6 +205,66 @@ describe("Roles and Permissions Tests", () => {
         })
         .signers([accountantAdmin])
         .rpc();
+
+      nextAccountantIndex++;
+
+      let accountantConfigAccount =
+        await accountantProgram.account.config.fetch(accountantConfig);
+      assert.strictEqual(
+        accountantConfigAccount.nextAccountantIndex.toNumber(),
+        nextAccountantIndex
+      );
+    });
+
+    it("Accountant Admin - Set fee is successful", async function () {
+      await accountantProgram.methods
+        .setFee(new BN(500))
+        .accounts({
+          accountant: accountantOne,
+          signer: accountantAdmin.publicKey,
+        })
+        .signers([accountantAdmin])
+        .rpc();
+
+      let genericAccountant =
+        await accountantProgram.account.genericAccountant.fetch(accountantOne);
+      assert.strictEqual(genericAccountant.performanceFee.toNumber(), 500);
+    });
+
+    it("Accountant Admin - Set fee recipient is successful", async function () {
+      await accountantProgram.methods
+        .setFeeRecipient(feeRecipientSharesAccountOne)
+        .accounts({
+          accountant: accountantOne,
+          signer: accountantAdmin.publicKey,
+        })
+        .signers([accountantAdmin])
+        .rpc();
+
+      const genericAccountant =
+        await accountantProgram.account.genericAccountant.fetch(accountantOne);
+      assert.strictEqual(
+        genericAccountant.feeRecipient.toString(),
+        feeRecipientSharesAccountOne.toBase58()
+      );
+    });
+
+    it("Accountant Admin - Distribute is successful", async function () {
+      try {
+        await accountantProgram.methods
+          .distribute()
+          .accounts({
+            recipient: feeRecipientSharesAccountOne,
+            accountant: accountantOne,
+            underlyingMint: sharesMintOne,
+            signer: accountantAdmin.publicKey,
+          })
+          .signers([accountantAdmin])
+          .rpc();
+        assert.isTrue(true);
+      } catch {
+        assert.fail("Error was thrown");
+      }
     });
   });
 });
