@@ -14,6 +14,7 @@ pub mod init_token_account;
 pub mod orca_purchase_assets;
 pub mod init_invest_tracker;
 pub mod update_invest_trackers;
+pub mod rebalance;
 
 pub use deploy_funds::*;
 pub use deposit::*;
@@ -31,3 +32,4 @@ pub use init_token_account::*;
 pub use init_invest_tracker::*;
 pub use update_invest_trackers::*;
 pub use orca_purchase_assets::*;
+pub use rebalance::*;

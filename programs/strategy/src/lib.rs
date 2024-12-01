@@ -105,4 +105,14 @@ pub mod strategy {
         }
         handle_free_funds(ctx, amount)
     }
+
+    pub fn rebalance<'info>(ctx: Context<'_, '_, '_, 'info, Rebalance<'info>>, amount: u64) -> Result<()> {
+        let strategy = OrcaStrategy::try_from_slice(&ctx.accounts.strategy.try_borrow_data()?[8..])?;
+
+        if strategy.strategy_type() != StrategyType::Orca {
+            return Err(ErrorCode::InvalidStrategyType.into());
+        }
+        
+        handle_rebalance(ctx, amount)
+    }
 }
