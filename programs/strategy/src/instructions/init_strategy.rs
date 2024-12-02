@@ -42,7 +42,7 @@ pub struct InitStrategy<'info> {
     )]
     pub token_account: Box<Account<'info, TokenAccount>>,
 
-    #[account(seeds = [CONFIG_SEED.as_bytes()], bump)]
+    #[account(mut, seeds = [CONFIG_SEED.as_bytes()], bump)]
     pub config: Account<'info, Config>,
 
     /// CHECK: This should be a vault account
