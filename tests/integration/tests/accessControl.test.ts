@@ -13,7 +13,7 @@ const { ROLES_ADMIN, ...ROLES_SUCCESS_DATA } = ROLES;
 let qaseIdSetRoleTests = 82;
 let qaseIdRevokeRoleTests = 90;
 
-describe.only("Access Control Tests", () => {
+describe("Access Control Tests", () => {
   before(async () => {
     console.log("-------Before Step Started-------");
     await accessControlProgram.methods
