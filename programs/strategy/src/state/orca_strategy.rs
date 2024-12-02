@@ -7,10 +7,15 @@ use super::StrategyType;
 use super::fee_data::*;
 use crate::error::ErrorCode;
 use crate::events::{StrategyDepositEvent, AMMStrategyInitEvent, StrategyWithdrawEvent};
-use crate::utils::{orca_swap_handler, compute_asset_per_swap, get_token_balance};
 use crate::instructions::{Report, ReportProfit, ReportLoss, DeployFunds, FreeFunds, Rebalance};
 use crate::constants::{AMOUNT_SPECIFIED_IS_INPUT, REMAINING_ACCOUNTS_MIN, MAX_SQRT_PRICE_X64, MIN_SQRT_PRICE_X64, INVEST_TRACKER_SEED, NO_EXPLICIT_SQRT_PRICE_LIMIT, MAX_ASSIGNED_WEIGHT};
 use crate::state::invest_tracker::*;
+use crate::utils::{
+    orca_swap_handler,
+    get_token_balance,
+    orca_utils::compute_asset_per_swap,
+};
+
 
 #[account]
 #[derive(Default, Debug, InitSpace)]

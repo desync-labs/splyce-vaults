@@ -13,10 +13,7 @@ use crate::constants::{INVEST_TRACKER_SEED, MAX_ASSIGNED_WEIGHT};
 use crate::state::invest_tracker::*;
 use crate::state::whirlpool::*;
 use crate::error::ErrorCode;
-use crate::utils::{
-    get_price_from_sqrt_price::get_price_in_underlying_decimals,
-    compute_asset_value::compute_asset_value,
-};
+use crate::utils::orca_utils::{compute_asset_value, get_price_in_underlying_decimals};
 
 use crate::ID;
 
