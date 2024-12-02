@@ -31,7 +31,7 @@ jobs:
       - name: Set up Rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly
+          toolchain: stable
           profile: minimal
           components: rustfmt, clippy
           override: true
@@ -109,7 +109,10 @@ jobs:
 
       # 11. Run Anchor Tests (skip build step since we built earlier)
       - name: Run Anchor Tests
-        run: anchor test
+        run: |
+          export RUSTFLAGS="-Znext-lockfile-bump"
+          cargo generate-lockfile -Znext-lockfile-bump
+          anchor test
         timeout-minutes: 15
         env:
           QASE_MODE: testops
