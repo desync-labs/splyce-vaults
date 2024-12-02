@@ -23,6 +23,7 @@
     "free_funds_with_vault_redeem": "npx ts-node scripts/orca/7_free_funds_with_vault_redeem.ts",
     "free_funds_directly": "npx ts-node scripts/orca/8_free_funds_directly.ts",
     "rebalance": "npx ts-node scripts/orca/9_rebalance.ts",
+    "report_profit": "npx ts-node scripts/orca/10_report_profit.ts",
     "clean": "anchor clean && rm -rf target/*",
     "build": "anchor build",
     "sync": "anchor keys sync",

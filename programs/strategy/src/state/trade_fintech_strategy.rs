@@ -230,6 +230,10 @@ impl StrategyGetters for TradeFintechStrategy {
         self.total_assets
     }
 
+    fn total_invested(&self) -> u64 {
+        self.total_invested
+    }
+
     fn available_deposit(&self) -> u64 {
         // if deposit_period_ends is in the past, return 0
         match Clock::get() {

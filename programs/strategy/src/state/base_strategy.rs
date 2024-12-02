@@ -41,6 +41,7 @@ pub trait StrategyGetters {
     fn available_withdraw(&self) -> u64;
     fn token_account(&self) -> Pubkey;
     fn underlying_mint(&self) -> Pubkey;
+    fn total_invested(&self) -> u64;
 }
 
 pub trait Strategy: 

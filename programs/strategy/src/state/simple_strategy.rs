@@ -62,6 +62,10 @@ impl StrategyGetters for SimpleStrategy {
         self.total_assets
     }
 
+    fn total_invested(&self) -> u64 {
+        0
+    }
+
     fn available_deposit(&self) -> u64 {
         self.deposit_limit - self.total_assets
     }

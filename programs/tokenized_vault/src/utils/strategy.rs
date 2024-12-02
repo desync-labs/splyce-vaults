@@ -6,6 +6,7 @@ use strategy::cpi::accounts::{
     Deposit,
     Withdraw
 };
+use strategy::StrategyType;
 
 pub fn deposit<'a>(
     strategy: AccountInfo<'a>,
@@ -89,9 +90,19 @@ pub fn get_total_assets(strategy_acc: &AccountInfo) -> Result<u64> {
     Ok(strategy.total_assets())
 }
 
+pub fn get_total_invested(strategy_acc: &AccountInfo) -> Result<u64> {
+    let strategy = deserialize(strategy_acc)?;
+    Ok(strategy.total_invested())
+}
+
 pub fn get_token_account_key(strategy_acc: &AccountInfo) -> Result<Pubkey> {
     let strategy = deserialize(strategy_acc)?;
     Ok(strategy.token_account())
+}
+
+pub fn get_strategy_type(strategy_acc: &AccountInfo) -> Result<StrategyType> {
+    let strategy = deserialize(strategy_acc)?;
+    Ok(strategy.strategy_type())
 }
 
 pub fn assess_share_of_unrealised_losses(

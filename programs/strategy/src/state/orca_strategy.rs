@@ -27,7 +27,7 @@ pub struct OrcaStrategy {
     pub underlying_decimals: u8,
 
     pub total_invested: u64, //
-    pub total_assets: u64, //TODO This part can be removed because this strategy deals with multiple assets
+    pub total_assets: u64, // In orca, this is not actual total assets but total asset value in underlying token units
     pub deposit_limit: u64, //TODO later use or delete
 
     pub fee_data: FeeData,
@@ -109,24 +109,95 @@ impl Strategy for OrcaStrategy {
         Ok(())
     }
 
-    //Reporting profit is not suitable for this strategy since ETF or IndexFund's return varies depending on how we set the start, length and the end of a window.
     #[allow(unused_variables)]
     fn report_profit<'info>(&mut self, accounts: &ReportProfit<'info>, remaining: &[AccountInfo<'info>], profit: u64) -> Result<()> {
+        // Verify we have enough remaining accounts and that they come in pairs
+        if remaining.len() < 2 || remaining.len() % 2 != 0 {
+            return Err(OrcaStrategyErrorCode::NotEnoughAccounts.into());
+        }
+
+        self.report(
+            &mut Report {
+                strategy: accounts.strategy.clone(),
+                underlying_token_account: accounts.underlying_token_account.clone(),
+                token_program: accounts.token_program.clone(),
+                signer: accounts.signer.clone(),
+            },
+            &remaining
+        )?;
+
         Ok(())
     }
 
-    //Reporting loss is not suitable for this strategy since ETF or IndexFund's return varies depending on how we set the start, length and the end of a window.
     #[allow(unused_variables)]
-    fn report_loss<'info>(&mut self, accounts: &ReportLoss<'info>, remaining: &[AccountInfo<'info>],  loss: u64) -> Result<()> {
+    fn report_loss<'info>(&mut self, accounts: &ReportLoss<'info>, remaining: &[AccountInfo<'info>], loss: u64) -> Result<()> {
+        // Verify we have enough remaining accounts and that they come in pairs
+        if remaining.len() < 2 || remaining.len() % 2 != 0 {
+            return Err(OrcaStrategyErrorCode::NotEnoughAccounts.into());
+        }
+
+        self.report(
+            &mut Report {
+                strategy: accounts.strategy.clone(),
+                underlying_token_account: accounts.underlying_token_account.clone(),
+                token_program: accounts.token_program.clone(),
+                signer: accounts.signer.clone(),
+            },
+            &remaining
+        )?;
+
         Ok(())
     }
 
     #[allow(unused_variables)]
-    fn harvest_and_report<'info>(&mut self, accounts: &Report<'info>, _remaining: &[AccountInfo<'info>]) -> Result<u64> {
+    fn harvest_and_report<'info>(&mut self, accounts: &Report<'info>, remaining: &[AccountInfo<'info>]) -> Result<u64> {
         if accounts.underlying_token_account.key() != self.underlying_token_acc {
             return Err(ErrorCode::InvalidAccount.into());
         }
-        let new_total_assets = accounts.underlying_token_account.amount;
+
+        // Calculate total asset value from all invest trackers
+        let mut total_asset_value: u128 = 0;
+
+        // Iterate through invest tracker accounts in pairs
+        // Each pair consists of (invest_tracker, asset_mint_account)
+        for chunk in remaining.chunks(2) {
+            if chunk.len() != 2 {
+                return Err(OrcaStrategyErrorCode::NotEnoughAccounts.into());
+            }
+
+            let invest_tracker_info = &chunk[0];
+            let asset_mint_info = &chunk[1];
+            
+            // Verify invest tracker PDA using the provided mint account
+            let (expected_invest_tracker, _) = Pubkey::find_program_address(
+                &[
+                    INVEST_TRACKER_SEED.as_bytes(),
+                    asset_mint_info.key().as_ref(),
+                    accounts.strategy.key().as_ref()
+                ],
+                &crate::ID
+            );
+            require!(expected_invest_tracker == invest_tracker_info.key(), ErrorCode::InvalidAccount);
+
+            // Get invest tracker data
+            let data = invest_tracker_info.try_borrow_data()?;
+            let invest_tracker_data = InvestTracker::try_from_slice(&data[8..])?;
+            
+            // Verify that the mint in invest tracker matches the provided mint account
+            require!(invest_tracker_data.asset_mint == asset_mint_info.key(), ErrorCode::InvalidAccount);
+
+            // Add asset value to total
+            total_asset_value = total_asset_value
+                .checked_add(invest_tracker_data.asset_value)
+                .ok_or(OrcaStrategyErrorCode::MathError)?;
+        }
+
+        // Ensure total_asset_value fits in u64
+        if total_asset_value > u64::MAX as u128 {
+            return Err(OrcaStrategyErrorCode::MathError.into());
+        }
+
+        let new_total_assets = total_asset_value as u64;
         Ok(new_total_assets)
     }
 
@@ -880,6 +951,10 @@ impl StrategyGetters for OrcaStrategy {
 
     fn total_assets(&self) -> u64 {
         self.total_assets
+    }
+
+    fn total_invested(&self) -> u64 {
+        self.total_invested
     }
 
     fn available_deposit(&self) -> u64 {
