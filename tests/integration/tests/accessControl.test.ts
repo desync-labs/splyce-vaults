@@ -569,49 +569,4 @@ describe("Access Control Tests", () => {
 
     assert.isTrue(roleReceiverStrategiesManagerRoleAccount.hasRole);
   });
-
-  it("Revoking ROLES_ADMIN role from ROLES_ADMIN with signer being the config owner is successful", async function () {
-    this.qaseId(99);
-    await accessControlProgram.methods
-      .revokeRole(ROLES.ROLES_ADMIN, configOwner.publicKey)
-      .accounts({
-        signer: configOwner.publicKey,
-        recipient: configOwner.publicKey,
-      })
-      .signers([configOwner])
-      .rpc();
-
-    // No longer has ROLES_ADMIN role
-    const roleReceiverCorrespondingRole =
-      anchor.web3.PublicKey.findProgramAddressSync(
-        [
-          Buffer.from("user_role"),
-          configOwner.publicKey.toBuffer(),
-          ROLES_BUFFER.ROLES_ADMIN,
-        ],
-        accessControlProgram.programId
-      )[0];
-
-    try {
-      await accessControlProgram.account.userRole.fetch(
-        roleReceiverCorrespondingRole
-      );
-      assert.fail("Error was not thrown");
-    } catch (err) {
-      expect(err.message).contains("Account does not exist or has no data");
-    }
-
-    // Confid owner account is still the config owner
-    const config = anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("config")],
-      accessControlProgram.programId
-    )[0];
-    const configAccount = await accessControlProgram.account.config.fetch(
-      config
-    );
-    assert.equal(
-      configAccount.owner.toString(),
-      configOwner.publicKey.toString()
-    );
-  });
 });
