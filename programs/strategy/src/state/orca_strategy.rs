@@ -8,7 +8,7 @@ use super::fee_data::*;
 use crate::error::ErrorCode;
 use crate::events::{StrategyDepositEvent, AMMStrategyInitEvent, StrategyWithdrawEvent};
 use crate::utils::{orca_swap_handler, compute_asset_per_swap, get_token_balance};
-use crate::instructions::{Report, ReportProfit, ReportLoss, DeployFunds, FreeFunds, OrcaPurchaseAssets, Rebalance};
+use crate::instructions::{Report, ReportProfit, ReportLoss, DeployFunds, FreeFunds, Rebalance};
 use crate::constants::{AMOUNT_SPECIFIED_IS_INPUT, REMAINING_ACCOUNTS_MIN, MAX_SQRT_PRICE_X64, MIN_SQRT_PRICE_X64, INVEST_TRACKER_SEED, NO_EXPLICIT_SQRT_PRICE_LIMIT, MAX_ASSIGNED_WEIGHT};
 use crate::state::invest_tracker::*;
 
@@ -429,59 +429,7 @@ impl Strategy for OrcaStrategy {
         Ok(())
     }
 
-    //Deploy funds swaps underlying token to asset
     fn deploy_funds<'info>(&mut self, accounts: &DeployFunds<'info>, remaining: &[AccountInfo<'info>], amount: u64) -> Result<()> {
-        // Verify we have enough remaining accounts
-        // if remaining.len() < 9 {
-        //     return Err(OrcaStrategyErrorCode::NotEnoughAccounts.into());
-        // }
-
-        // // Extract accounts from remaining array
-        // let whirlpool_program = &remaining[0];
-        // let whirlpool = &remaining[1];
-        // let token_owner_account_a = &remaining[2];
-        // let token_vault_a = &remaining[3];
-        // let token_owner_account_b = &remaining[4];
-        // let token_vault_b = &remaining[5];
-        // let tick_array_0 = &remaining[6];
-        // let tick_array_1 = &remaining[7];
-        // let tick_array_2 = &remaining[8];
-        // let oracle = &remaining[9];
-
-        // orca_swap_handler(
-        //     whirlpool_program,
-        //     &accounts.token_program,
-        //     &accounts.strategy,  // strategy account is the authority
-        //     whirlpool,
-        //     token_owner_account_a,
-        //     token_vault_a,
-        //     token_owner_account_b,
-        //     token_vault_b,
-        //     tick_array_0,
-        //     tick_array_1,
-        //     tick_array_2,
-        //     oracle,
-        //     &[&self.seeds()],  // PDA seeds for signing
-        //     amount,            // Amount to swap
-        //     0,                // other_amount_threshold (minimum amount to receive)
-        //     0,                // sqrt_price_limit (0 = no limit)
-        //     AMOUNT_SPECIFIED_IS_INPUT,             // amount_specified_is_input, here it should be true
-        //     self.deploy_funds_direction,            // a_to_b (false for devUSDC -> WSOL, which is b_to_a)
-        // )?;
-
-        Ok(())
-    }
-
-    fn set_total_assets(&mut self, total_assets: u64) {
-        self.total_assets = total_assets;
-    }
-
-    fn orca_purchase_assets<'info>(
-        &mut self,
-        accounts: &OrcaPurchaseAssets<'info>,
-        remaining: &[AccountInfo<'info>],
-        amount: u64,
-    ) -> Result<()> {
         // Calculate number of swaps based on remaining accounts length
         let num_swaps = remaining.len() / 12;
         if remaining.len() != num_swaps * 12 {
@@ -511,13 +459,11 @@ impl Strategy for OrcaStrategy {
         // Iterate through each swap operation
         for i in 0..num_swaps {
             let start = i * 12;
-
-            // Calculate amount for this swap based on weight
-            let amount_per_swap = (amount as u128)
-                .checked_mul(weights[i] as u128)
-                .ok_or(OrcaStrategyErrorCode::MathError)?
-                .checked_div(MAX_ASSIGNED_WEIGHT as u128)
-                .ok_or(OrcaStrategyErrorCode::MathError)? as u64;
+            let amount_per_swap = compute_asset_per_swap(
+                amount,
+                weights[i] as u128,
+                MAX_ASSIGNED_WEIGHT as u128
+            );
 
             // Extract accounts from remaining array
             let whirlpool_program = &remaining[start];
@@ -596,14 +542,11 @@ impl Strategy for OrcaStrategy {
                 (underlying_balance, asset_balance)
             };
 
-            msg!("underlying_balance_before_swap: {}", underlying_balance_before_swap);
-            msg!("asset_balance_before_swap: {}", asset_balance_before_swap);
-
             // Perform the swap
             orca_swap_handler(
                 whirlpool_program,
                 &accounts.token_program,
-                &accounts.strategy,  // strategy account is the authority
+                &accounts.strategy,
                 whirlpool,
                 token_owner_account_a,
                 token_vault_a,
@@ -613,15 +556,15 @@ impl Strategy for OrcaStrategy {
                 tick_array_1,
                 tick_array_2,
                 oracle,
-                &[&self.seeds()],  // PDA seeds for signing
-                amount_per_swap,    // Amount to swap
-                0,                  // other_amount_threshold (minimum amount to receive)
-                NO_EXPLICIT_SQRT_PRICE_LIMIT, // sqrt_price_limit
-                AMOUNT_SPECIFIED_IS_INPUT,    // amount_specified_is_input
-                is_a_to_b,         // a_to_b
+                &[&self.seeds()],
+                amount_per_swap,
+                0,
+                NO_EXPLICIT_SQRT_PRICE_LIMIT,
+                AMOUNT_SPECIFIED_IS_INPUT,
+                is_a_to_b,
             )?;
 
-            // Get balances after swap
+            // Get balances after swap and update invest tracker
             let (underlying_balance_after_swap, asset_balance_after_swap) = {
                 let underlying_balance = if is_a_to_b {
                     let data = token_owner_account_a.data.borrow();
@@ -642,10 +585,7 @@ impl Strategy for OrcaStrategy {
                 (underlying_balance, asset_balance)
             };
 
-            msg!("underlying_balance_after_swap: {}", underlying_balance_after_swap);
-            msg!("asset_balance_after_swap: {}", asset_balance_after_swap);
-
-            // Update invest tracker data in its own scope
+            // Update invest tracker data
             {
                 let mut data = invest_tracker_account.try_borrow_mut_data()?;
                 let mut invest_tracker_data = InvestTracker::try_from_slice(&data[8..])?;
@@ -674,6 +614,10 @@ impl Strategy for OrcaStrategy {
         }
 
         Ok(())
+    }
+
+    fn set_total_assets(&mut self, total_assets: u64) {
+        self.total_assets = total_assets;
     }
 
     fn rebalance<'info>(&mut self, accounts: &Rebalance<'info>, remaining: &[AccountInfo<'info>], _amount: u64) -> Result<()> {

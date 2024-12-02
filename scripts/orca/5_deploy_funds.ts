@@ -371,10 +371,10 @@ async function main() {
       ...remainingAccountsForWSOL
     ];
 
-    // ======= Call orca_purchase_assets once with combined remaining accounts =======
+    // ======= Call deployFunds once with combined remaining accounts =======
     try {
       await strategyProgram.methods
-        .orcaPurchaseAssets(amount)
+        .deployFunds(amount)
         .accounts({
           strategy: strategy,
           signer: admin.publicKey,
@@ -383,7 +383,7 @@ async function main() {
         .signers([admin])
         .rpc();
 
-      console.log("orca_purchase_assets called successfully for TMAC and WSOL. Swaps initiated.");
+      console.log("deployFunds called successfully for TMAC and WSOL. Swaps initiated.");
 
       // Check TMAC and WSOL balances after purchase
       const tmacBalanceAfter = await provider.connection.getTokenAccountBalance(strategyTMACAccount);
@@ -432,7 +432,7 @@ async function main() {
       });
 
     } catch (error) {
-      console.error("Error during orca_purchase_assets:", error);
+      console.error("Error during deployFunds:", error);
     }
 
   } catch (error) {
