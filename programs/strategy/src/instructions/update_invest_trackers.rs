@@ -14,7 +14,7 @@ use crate::state::invest_tracker::*;
 use crate::state::whirlpool::*;
 use crate::error::ErrorCode;
 use crate::utils::orca_utils::{compute_asset_value, get_price_in_underlying_decimals};
-
+use crate::events::InvestTrackerUpdateEvent;
 use crate::ID;
 
 //This instruction initializes an invest tracker for the strategy
@@ -115,6 +115,15 @@ pub fn handle_update_invest_trackers(ctx: Context<UpdateInvestTrackers>) -> Resu
 
         // Write the updated data
         account_data[8..].copy_from_slice(&serialized);
+
+        // Emit event with asset mint, value and timestamp
+        emit!(InvestTrackerUpdateEvent {
+            asset_mint: current_data.asset_mint,
+            asset_amount: current_data.asset_amount,
+            asset_price: current_data.asset_price,
+            asset_value: current_data.asset_value,
+            timestamp: Clock::get()?.unix_timestamp,
+        });
     }
 
     // Verify total weight is 100%

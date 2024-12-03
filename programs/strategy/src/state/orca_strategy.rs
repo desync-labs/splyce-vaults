@@ -6,7 +6,7 @@ use super::base_strategy::*;
 use super::StrategyType;
 use super::fee_data::*;
 use crate::error::ErrorCode;
-use crate::events::{StrategyDepositEvent, AMMStrategyInitEvent, StrategyWithdrawEvent};
+use crate::events::{StrategyDepositEvent, AMMStrategyInitEvent, StrategyWithdrawEvent, HarvestAndReportDTF, InvestTrackerSwapEvent};
 use crate::instructions::{Report, ReportProfit, ReportLoss, DeployFunds, FreeFunds, Rebalance};
 use crate::constants::{AMOUNT_SPECIFIED_IS_INPUT, REMAINING_ACCOUNTS_MIN, MAX_SQRT_PRICE_X64, MIN_SQRT_PRICE_X64, INVEST_TRACKER_SEED, NO_EXPLICIT_SQRT_PRICE_LIMIT, MAX_ASSIGNED_WEIGHT};
 use crate::state::invest_tracker::*;
@@ -244,6 +244,12 @@ impl Strategy for OrcaStrategy {
 
         let new_total_assets = total_asset_value as u64;
 
+        // Emit event with total assets and timestamp
+        emit!(HarvestAndReportDTF {
+            total_assets: new_total_assets as u128, //basically total asset value in USDC which is the underlying token
+            timestamp: Clock::get()?.unix_timestamp,
+        });
+
         Ok(new_total_assets)
     }
 
@@ -390,10 +396,6 @@ impl Strategy for OrcaStrategy {
                 (underlying_balance, asset_balance)
             };
 
-            msg!("underlying_balance_before_swap: {}", underlying_balance_before_swap);
-            msg!("asset_balance_before_swap: {}", asset_balance_before_swap);
-            msg!("amount_per_swap: {}", amount_per_swap);
-
             // Perform the swap
             orca_swap_handler(
                 whirlpool_program,
@@ -437,9 +439,6 @@ impl Strategy for OrcaStrategy {
                 (underlying_balance, asset_balance)
             };
 
-            msg!("underlying_balance_after_swap: {}", underlying_balance_after_swap);
-            msg!("asset_balance_after_swap: {}", asset_balance_after_swap);
-
             // Update invest tracker data
             self.update_invest_tracker_after_swap(
                 invest_tracker_account,
@@ -449,7 +448,6 @@ impl Strategy for OrcaStrategy {
                 asset_balance_after_swap,
                 false,
             )?;
-            msg!("Free funds completed");
         }
 
         Ok(())
@@ -989,8 +987,20 @@ impl OrcaStrategy {
                 .ok_or(OrcaStrategyErrorCode::MathError)?;
         }
 
-        let serialized_data = invest_tracker_data.try_to_vec()?;
-        data[8..].copy_from_slice(&serialized_data);
+        // Serialize and save the updated data
+        let serialized = invest_tracker_data.try_to_vec()?;
+        data[8..].copy_from_slice(&serialized);
+
+        // Emit event with the latest state
+        emit!(InvestTrackerSwapEvent {
+            asset_mint: invest_tracker_data.asset_mint,
+            invested_underlying_amount: invest_tracker_data.amount_invested
+                .checked_sub(invest_tracker_data.amount_withdrawn)
+                .ok_or(OrcaStrategyErrorCode::MathError)?,
+            asset_amount: invest_tracker_data.asset_amount,
+            asset_price: invest_tracker_data.sqrt_price,
+            timestamp: Clock::get()?.unix_timestamp,
+        });
 
         Ok(())
     }

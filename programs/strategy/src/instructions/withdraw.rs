@@ -39,7 +39,6 @@ pub fn handle_withdraw<'info>(
     }
 
     let balance = ctx.accounts.underlying_token_account.amount;
-    msg!("Balance before withdraw: {}", balance);
     if amount > balance {
         let free_funds = &mut FreeFunds {
             strategy: ctx.accounts.strategy.clone(),
@@ -49,14 +48,10 @@ pub fn handle_withdraw<'info>(
         };
         strategy.free_funds(free_funds, &ctx.remaining_accounts, amount - balance)?;
     }
-    msg!("Free funds done");
+
     strategy.withdraw(amount)?;
-    msg!("Withdraw done");
     strategy.save_changes(&mut &mut ctx.accounts.strategy.try_borrow_mut_data()?[8..])?;
-    msg!("Before transfer");
-    //let's log the amount and balance
-    msg!("Amount: {}", amount);
-    msg!("Balance after withdraw: {}", ctx.accounts.underlying_token_account.amount);
+    
     token::transfer_with_signer(
         ctx.accounts.token_program.to_account_info(), 
         ctx.accounts.underlying_token_account.to_account_info(), 
@@ -65,6 +60,5 @@ pub fn handle_withdraw<'info>(
         amount, 
         &strategy.seeds()
     )?;
-    msg!("After transfer");
     Ok(())
 }
