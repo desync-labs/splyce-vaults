@@ -10,19 +10,28 @@ use access_control::{
     state::{Role, UserRole}
 };
 
-use crate::utils::unchecked_accountant::UncheckedAccountant;
+use crate::state::*;
+use crate::constants::CONFIG_SEED;
 
 #[derive(Accounts)]
-pub struct Distribute<'info> {
-    /// CHECK: can be any accountant
+pub struct InitTokenAccount<'info> {
+    #[account(
+        init_if_needed, 
+        payer = signer, 
+        associated_token::mint = underlying_mint, 
+        associated_token::authority = accountant,
+    )]
+    pub token_account: Box<InterfaceAccount<'info, TokenAccount>>,
+
+    #[account(mut)]
+    pub underlying_mint: Box<InterfaceAccount<'info, Mint>>,
+
+    /// CHECK: We want to hadle all accountant types here
     #[account(mut)]
     pub accountant: UncheckedAccount<'info>,
 
-    #[account(
-        mut,
-        token::mint = underlying_mint,
-    )]
-    pub recipient: Box<InterfaceAccount<'info, TokenAccount>>,
+    #[account(mut, seeds = [CONFIG_SEED.as_bytes()], bump)]
+    pub config: Account<'info, Config>,
 
     #[account(
         seeds = [
@@ -38,23 +47,13 @@ pub struct Distribute<'info> {
     #[account(mut, constraint = roles.check_role()?)]
     pub signer: Signer<'info>,
 
-    #[account(
-        mut,
-        associated_token::mint = underlying_mint, 
-        associated_token::authority = accountant,
-    )]
-    pub token_account: Box<InterfaceAccount<'info, TokenAccount>>,
-
-    #[account(mut)]
-    pub underlying_mint: Box<InterfaceAccount<'info, Mint>>,
-
     pub access_control: Program<'info, AccessControl>,
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
+    pub system_program: Program<'info, System>,
+    pub rent: Sysvar<'info, Rent>,
 }
 
-pub fn handle_distribute(ctx: Context<Distribute>) -> Result<()> {
-    let accountant = &mut ctx.accounts.accountant.from_unchecked()?;
-    accountant.distribute(&ctx.accounts)?;
-    accountant.save_changes(&mut &mut ctx.accounts.accountant.try_borrow_mut_data()?[8..])
+pub fn handle_init_token_account(_ctx: Context<InitTokenAccount>) -> Result<()> {
+    Ok(())
 }
