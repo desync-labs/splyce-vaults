@@ -19,7 +19,7 @@ import {
 import * as token from "@solana/spl-token";
 import { SimpleStrategyConfig } from "../../utils/schemas";
 
-describe("Roles and Permissions Tests", () => {
+describe.only("Roles and Permissions Tests", () => {
   // Test Role Accounts
   let rolesAdmin: anchor.web3.Keypair;
   let accountantAdmin: anchor.web3.Keypair;
@@ -304,6 +304,114 @@ describe("Roles and Permissions Tests", () => {
       expect(strategyAccount.manager.toString()).to.equal(
         strategiesManager.publicKey.toBase58()
       );
+    });
+  });
+
+  describe("Vaults Admin Role Tests", () => {
+    it("Vaults Admin - Calling add strategy method is successful", async () => {
+      const strategyConfig = new SimpleStrategyConfig({
+        depositLimit: new BN(1000),
+        performanceFee: new BN(1),
+        feeManager: strategiesManager.publicKey,
+      });
+
+      const [strategy, strategyTokenAccount] = await initializeSimpleStrategy({
+        strategyProgram,
+        vault: vaultOne,
+        underlyingMint,
+        signer: strategiesManager,
+        index: nextStrategyIndex,
+        config: strategyConfig,
+      });
+
+      nextStrategyIndex++;
+
+      await vaultProgram.methods
+        .addStrategy(new BN(1000000000))
+        .accounts({
+          vault: vaultOne,
+          strategy,
+          signer: vaultsAdmin.publicKey,
+        })
+        .signers([vaultsAdmin])
+        .rpc();
+
+      const strategyData = anchor.web3.PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("strategy_data"),
+          vaultOne.toBuffer(),
+          strategy.toBuffer(),
+        ],
+        vaultProgram.programId
+      )[0];
+
+      const strategyDataAccount =
+        await vaultProgram.account.strategyData.fetchNullable(strategyData);
+      assert.isNotNull(strategyDataAccount);
+    });
+
+    it("Vaults Admin - Calling remove strategy method is successful", async () => {
+      const strategyConfig = new SimpleStrategyConfig({
+        depositLimit: new BN(1000),
+        performanceFee: new BN(1),
+        feeManager: strategiesManager.publicKey,
+      });
+
+      const [strategy, strategyTokenAccount] = await initializeSimpleStrategy({
+        strategyProgram,
+        vault: vaultOne,
+        underlyingMint,
+        signer: strategiesManager,
+        index: nextStrategyIndex,
+        config: strategyConfig,
+      });
+
+      nextStrategyIndex++;
+
+      await vaultProgram.methods
+        .addStrategy(new BN(1000000000))
+        .accounts({
+          vault: vaultOne,
+          strategy,
+          signer: vaultsAdmin.publicKey,
+        })
+        .signers([vaultsAdmin])
+        .rpc();
+
+      const strategyDataBefore = anchor.web3.PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("strategy_data"),
+          vaultOne.toBuffer(),
+          strategy.toBuffer(),
+        ],
+        vaultProgram.programId
+      )[0];
+
+      await vaultProgram.methods
+        .removeStrategy(strategy, false)
+        .accounts({
+          vault: vaultOne,
+          strategyData: strategyDataBefore,
+          recipient: vaultsAdmin.publicKey,
+          signer: vaultsAdmin.publicKey,
+        })
+        .signers([vaultsAdmin])
+        .rpc();
+
+      const strategyDataAfter = anchor.web3.PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("strategy_data"),
+          vaultOne.toBuffer(),
+          strategy.toBuffer(),
+        ],
+        vaultProgram.programId
+      )[0];
+
+      const strategyDataAccount =
+        await vaultProgram.account.strategyData.fetchNullable(
+          strategyDataAfter
+        );
+      assert.isNull(strategyDataAccount);
     });
   });
 });
