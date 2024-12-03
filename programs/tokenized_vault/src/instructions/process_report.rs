@@ -108,7 +108,7 @@ fn handle_orca_strategy_report(ctx: &mut Context<ProcessReport>) -> Result<()> {
     }
 
     // Update strategy's current debt with total assets
-    ctx.accounts.strategy_data.update_strategy_current_debt(total_assets)?;
+    ctx.accounts.strategy_data.update_current_debt(total_assets)?;
 
     emit!(StrategyReportedEvent {
         strategy_key: ctx.accounts.strategy.key(),
