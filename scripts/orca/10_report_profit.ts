@@ -1,24 +1,78 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
-import { Strategy } from "../../target/types/strategy";
 import { TokenizedVault } from "../../target/types/tokenized_vault";
-import { AccessControl } from "../../target/types/access_control";
+import { Strategy } from "../../target/types/strategy";
 import { BN } from "@coral-xyz/anchor";
 import * as fs from "fs";
 import * as path from "path";
 import { PublicKey } from "@solana/web3.js";
-import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 
-// Token Mints
 const WSOL_MINT = new PublicKey(
   "So11111111111111111111111111111111111111112"
 );
 const TMAC_MINT = new PublicKey(
   "Afn8YB1p4NsoZeS5XJBZ18LTfEy5NFPwN46wapZcBQr6"
 );
-const USDC_MINT = new PublicKey(
-  "BRjpCHtyQLNCo8gqRUr8jtdAj5AjPYQaoqbvcZiHok1k"
-);
+
+function deserializeOrcaStrategy(data: Buffer) {
+    // Skip 8 byte discriminator
+    let offset = 8;
+
+    // bump: [u8; 1]
+    const bump = data.slice(offset, offset + 1);
+    offset += 1;
+
+    // index_bytes: [u8; 8]
+    const indexBytes = data.slice(offset, offset + 8);
+    offset += 8;
+
+    // vault: Pubkey (32 bytes)
+    const vault = new PublicKey(data.slice(offset, offset + 32));
+    offset += 32;
+
+    // manager: Pubkey (32 bytes)
+    const manager = new PublicKey(data.slice(offset, offset + 32));
+    offset += 32;
+
+    // underlying_mint: Pubkey (32 bytes)
+    const underlyingMint = new PublicKey(data.slice(offset, offset + 32));
+    offset += 32;
+
+    // underlying_token_acc: Pubkey (32 bytes)
+    const underlyingTokenAcc = new PublicKey(data.slice(offset, offset + 32));
+    offset += 32;
+
+    // underlying_decimals: u8
+    const underlyingDecimals = data[offset];
+    offset += 1;
+
+    // total_invested: u64
+    const totalInvested = data.readBigUInt64LE(offset);
+    offset += 8;
+
+    // total_assets: u64
+    const totalAssets = data.readBigUInt64LE(offset);
+    offset += 8;
+
+    // deposit_limit: u64
+    const depositLimit = data.readBigUInt64LE(offset);
+    offset += 8;
+
+    // fee_data will follow but we don't need it for now
+
+    return {
+        bump,
+        indexBytes,
+        vault,
+        manager,
+        underlyingMint,
+        underlyingTokenAcc,
+        underlyingDecimals,
+        totalInvested,
+        totalAssets,
+        depositLimit
+    };
+}
 
 async function main() {
   try {
@@ -31,15 +85,13 @@ async function main() {
       process.env.HOME!,
       ".config/solana/id.json"
     );
-    const secretKeyString = fs.readFileSync(secretKeyPath, "utf8");
+    const secretKeyString = fs.readFileSync(secretKeyPath, { encoding: "utf-8" });
     const secretKey = Uint8Array.from(JSON.parse(secretKeyString));
     const admin = anchor.web3.Keypair.fromSecretKey(secretKey);
 
-    console.log("Admin PublicKey:", admin.publicKey.toBase58());
-
-    // Initialize programs
+    // Initialize Programs
+    const tokenizedVaultProgram = anchor.workspace.TokenizedVault as Program<TokenizedVault>;
     const strategyProgram = anchor.workspace.Strategy as Program<Strategy>;
-    const vaultProgram = anchor.workspace.TokenizedVault as Program<TokenizedVault>;
 
     // Get vault PDA
     const vaultIndex = 0;
@@ -48,7 +100,7 @@ async function main() {
         Buffer.from("vault"),
         Buffer.from(new Uint8Array(new BigUint64Array([BigInt(vaultIndex)]).buffer))
       ],
-      vaultProgram.programId
+      tokenizedVaultProgram.programId
     );
 
     // Get strategy PDA
@@ -57,30 +109,6 @@ async function main() {
         vaultPDA.toBuffer(),
         new BN(0).toArrayLike(Buffer, 'le', 8)
       ],
-      strategyProgram.programId
-    );
-
-    // Get strategy token accounts
-    const [strategyWSOLAccount] = PublicKey.findProgramAddressSync(
-      [
-        Buffer.from("token_account"),
-        WSOL_MINT.toBuffer(),
-        strategy.toBuffer(),
-      ],
-      strategyProgram.programId
-    );
-
-    const [strategyTMACAccount] = PublicKey.findProgramAddressSync(
-      [
-        Buffer.from("token_account"),
-        TMAC_MINT.toBuffer(),
-        strategy.toBuffer(),
-      ],
-      strategyProgram.programId
-    );
-
-    const [strategyTokenAccount] = PublicKey.findProgramAddressSync(
-      [Buffer.from("underlying"), strategy.toBuffer()],
       strategyProgram.programId
     );
 
@@ -103,38 +131,45 @@ async function main() {
       strategyProgram.programId
     );
 
-    // Log initial states
-    console.log("\nInitial States:");
-    const wsolBalanceBefore = await provider.connection.getTokenAccountBalance(strategyWSOLAccount);
-    const tmacBalanceBefore = await provider.connection.getTokenAccountBalance(strategyTMACAccount);
-    const usdcBalanceBefore = await provider.connection.getTokenAccountBalance(strategyTokenAccount);
-    
-    console.log("WSOL Balance:", wsolBalanceBefore.value.uiAmount);
-    console.log("TMAC Balance:", tmacBalanceBefore.value.uiAmount);
-    console.log("USDC Balance:", usdcBalanceBefore.value.uiAmount);
+    // Get raw account data and deserialize strategy
+    const strategyAccountInfo = await provider.connection.getAccountInfo(strategy);
+    if (!strategyAccountInfo) {
+      throw new Error("Strategy account not found");
+    }
 
-    const wsolTrackerBefore = await strategyProgram.account.investTracker.fetch(INVEST_TRACKER_ACCOUNT_WSOL);
-    const tmacTrackerBefore = await strategyProgram.account.investTracker.fetch(INVEST_TRACKER_ACCOUNT_TMAC);
-
+    // Log invest tracker states before report
     console.log("\nInvest Tracker States BEFORE report:");
-    console.log("WSOL Tracker:", {
-      assetValue: wsolTrackerBefore.assetValue.toString(),
-      currentWeight: wsolTrackerBefore.currentWeight,
-    });
+    const tmacTrackerBefore = await strategyProgram.account.investTracker.fetch(INVEST_TRACKER_ACCOUNT_TMAC);
+    const wsolTrackerBefore = await strategyProgram.account.investTracker.fetch(INVEST_TRACKER_ACCOUNT_WSOL);
+    
     console.log("TMAC Tracker:", {
-      assetValue: tmacTrackerBefore.assetValue.toString(),
-      currentWeight: tmacTrackerBefore.currentWeight,
+      amount_invested: tmacTrackerBefore.amountInvested.toString(),
+      amount_withdrawn: tmacTrackerBefore.amountWithdrawn.toString(),
+      asset_amount: tmacTrackerBefore.assetAmount.toString(),
+      asset_value: tmacTrackerBefore.assetValue.toString(),
+    });
+    
+    console.log("WSOL Tracker:", {
+      amount_invested: wsolTrackerBefore.amountInvested.toString(),
+      amount_withdrawn: wsolTrackerBefore.amountWithdrawn.toString(),
+      asset_amount: wsolTrackerBefore.assetAmount.toString(),
+      asset_value: wsolTrackerBefore.assetValue.toString(),
     });
 
-    // Call report_profit
+    // Deserialize and log strategy state
+    const strategyBefore = deserializeOrcaStrategy(Buffer.from(strategyAccountInfo.data));
+    console.log("\nStrategy State BEFORE report:");
+    console.log("Total Assets:", strategyBefore.totalAssets.toString());
+    console.log("Total Invested:", strategyBefore.totalInvested.toString());
+
+    // Call report_profit with required remaining accounts
     await strategyProgram.methods
-      .reportProfit(new BN(0)) // profit amount is calculated inside harvest_and_report
+      .reportProfit(new BN(0))
       .accounts({
         strategy,
         signer: admin.publicKey,
       })
       .remainingAccounts([
-        // First pair: WSOL invest tracker and mint
         {
           pubkey: INVEST_TRACKER_ACCOUNT_WSOL,
           isWritable: true,
@@ -145,7 +180,6 @@ async function main() {
           isWritable: false,
           isSigner: false,
         },
-        // Second pair: TMAC invest tracker and mint
         {
           pubkey: INVEST_TRACKER_ACCOUNT_TMAC,
           isWritable: true,
@@ -162,40 +196,55 @@ async function main() {
 
     console.log("\nReport profit completed successfully!");
 
-    // Log final states
-    const wsolBalanceAfter = await provider.connection.getTokenAccountBalance(strategyWSOLAccount);
-    const tmacBalanceAfter = await provider.connection.getTokenAccountBalance(strategyTMACAccount);
-    const usdcBalanceAfter = await provider.connection.getTokenAccountBalance(strategyTokenAccount);
+    // Fetch and decode strategy data after report
+    const strategyAccountInfoAfter = await provider.connection.getAccountInfo(strategy);
+    if (!strategyAccountInfoAfter) {
+      throw new Error("Strategy account not found after report");
+    }
     
-    console.log("\nFinal States:");
-    console.log("WSOL Balance:", wsolBalanceAfter.value.uiAmount);
-    console.log("TMAC Balance:", tmacBalanceAfter.value.uiAmount);
-    console.log("USDC Balance:", usdcBalanceAfter.value.uiAmount);
+    const strategyAfter = deserializeOrcaStrategy(Buffer.from(strategyAccountInfoAfter.data));
 
-    const wsolTrackerAfter = await strategyProgram.account.investTracker.fetch(INVEST_TRACKER_ACCOUNT_WSOL);
-    const tmacTrackerAfter = await strategyProgram.account.investTracker.fetch(INVEST_TRACKER_ACCOUNT_TMAC);
+    console.log("\nStrategy State AFTER report:");
+    console.log("Total Assets:", strategyAfter.totalAssets.toString());
+    console.log("Total Invested:", strategyAfter.totalInvested.toString());
 
-    console.log("\nInvest Tracker States AFTER report:");
-    console.log("WSOL Tracker:", {
-      assetValue: wsolTrackerAfter.assetValue.toString(),
-      currentWeight: wsolTrackerAfter.currentWeight,
-    });
-    console.log("TMAC Tracker:", {
-      assetValue: tmacTrackerAfter.assetValue.toString(),
-      currentWeight: tmacTrackerAfter.currentWeight,
-    });
-
-    // Log changes
+    // Calculate and log changes
     console.log("\nChanges:");
-    console.log("WSOL asset value change:", 
-      (wsolTrackerAfter.assetValue.sub(wsolTrackerBefore.assetValue)).toString()
+    console.log("Total Assets Change:", 
+      (strategyAfter.totalAssets - strategyBefore.totalAssets).toString()
     );
-    console.log("TMAC asset value change:", 
-      (tmacTrackerAfter.assetValue.sub(tmacTrackerBefore.assetValue)).toString()
+    console.log("Total Invested Change:", 
+      (strategyAfter.totalInvested - strategyBefore.totalInvested).toString()
     );
+
+    // Log invest tracker states after report
+    console.log("\nInvest Tracker States AFTER report:");
+    const tmacTrackerAfter = await strategyProgram.account.investTracker.fetch(INVEST_TRACKER_ACCOUNT_TMAC);
+    const wsolTrackerAfter = await strategyProgram.account.investTracker.fetch(INVEST_TRACKER_ACCOUNT_WSOL);
+    
+    console.log("TMAC Tracker:", {
+      amount_invested: tmacTrackerAfter.amountInvested.toString(),
+      amount_withdrawn: tmacTrackerAfter.amountWithdrawn.toString(),
+      asset_amount: tmacTrackerAfter.assetAmount.toString(),
+      asset_value: tmacTrackerAfter.assetValue.toString(),
+    });
+    
+    console.log("WSOL Tracker:", {
+      amount_invested: wsolTrackerAfter.amountInvested.toString(),
+      amount_withdrawn: wsolTrackerAfter.amountWithdrawn.toString(),
+      asset_amount: wsolTrackerAfter.assetAmount.toString(),
+      asset_value: wsolTrackerAfter.assetValue.toString(),
+    });
 
   } catch (error) {
     console.error("Error occurred:", error);
+    if (error.logs) {
+      console.error("Error logs:", error.logs);
+    }
+    // Print raw data if available for debugging
+    if (error.data) {
+      console.error("Raw data:", Buffer.from(error.data).toString('hex'));
+    }
   }
 }
 

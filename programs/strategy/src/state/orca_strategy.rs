@@ -946,7 +946,7 @@ impl OrcaStrategy {
     ) -> Result<()> {
         let mut data = invest_tracker_account.try_borrow_mut_data()?;
         let mut invest_tracker_data = InvestTracker::try_from_slice(&data[8..])?;
-
+    
         if is_buying {
             // When buying assets:
             // - asset_amount increases by what we received
@@ -957,14 +957,14 @@ impl OrcaStrategy {
             invest_tracker_data.asset_amount = invest_tracker_data.asset_amount
                 .checked_add(new_asset_amount)
                 .ok_or(OrcaStrategyErrorCode::MathError)?;
-
+    
             let underlying_spent = underlying_balance_before
                 .checked_sub(underlying_balance_after)
                 .ok_or(OrcaStrategyErrorCode::MathError)?;
             invest_tracker_data.amount_invested = invest_tracker_data.amount_invested
                 .checked_add(underlying_spent)
                 .ok_or(OrcaStrategyErrorCode::MathError)?;
-
+    
             self.total_invested = self.total_invested
                 .checked_add(underlying_spent)
                 .ok_or(OrcaStrategyErrorCode::MathError)?;
@@ -978,19 +978,24 @@ impl OrcaStrategy {
             invest_tracker_data.asset_amount = invest_tracker_data.asset_amount
                 .checked_sub(asset_amount_sold)
                 .ok_or(OrcaStrategyErrorCode::MathError)?;
-
+    
             let underlying_received = underlying_balance_after
                 .checked_sub(underlying_balance_before)
                 .ok_or(OrcaStrategyErrorCode::MathError)?;
             invest_tracker_data.amount_withdrawn = invest_tracker_data.amount_withdrawn
                 .checked_add(underlying_received)
                 .ok_or(OrcaStrategyErrorCode::MathError)?;
+    
+            // Decrease total_invested by the amount of underlying tokens received
+            self.total_invested = self.total_invested
+                .checked_sub(underlying_received)
+                .ok_or(OrcaStrategyErrorCode::MathError)?;
         }
-
+    
         // Serialize and save the updated data
         let serialized = invest_tracker_data.try_to_vec()?;
         data[8..].copy_from_slice(&serialized);
-
+    
         // Emit event with the latest state
         emit!(InvestTrackerSwapEvent {
             asset_mint: invest_tracker_data.asset_mint,
@@ -1001,7 +1006,7 @@ impl OrcaStrategy {
             asset_price: invest_tracker_data.sqrt_price,
             timestamp: Clock::get()?.unix_timestamp,
         });
-
+    
         Ok(())
     }
 }
