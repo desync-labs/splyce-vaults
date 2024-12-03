@@ -16,6 +16,8 @@ use crate::utils::{
     orca_utils::compute_asset_per_swap,
 };
 
+const ACCOUNTS_PER_SWAP: usize = 12;
+const INVEST_TRACKER_OFFSET: usize = 10;
 
 #[account]
 #[derive(Default, Debug, InitSpace)]
@@ -32,7 +34,7 @@ pub struct OrcaStrategy {
     pub underlying_decimals: u8,
 
     pub total_invested: u64, //
-    pub total_assets: u64, // In orca, this is not actual total assets but total asset value in underlying token units
+    pub total_assets: u64, // In orca, this is not actual total assets but total asset value in underlying token units (total asset value)
     pub deposit_limit: u64, //TODO later use or delete
 
     pub fee_data: FeeData,
@@ -75,6 +77,48 @@ impl StrategyManagement for OrcaStrategy {
     fn set_manager(&mut self, manager: Pubkey) -> Result<()> {
         self.manager = manager;
         Ok(())
+    }
+}
+
+impl OrcaStrategy {
+    fn verify_invest_tracker(
+        &self,
+        invest_tracker_account: &AccountInfo,
+        asset_mint: Pubkey,
+        strategy_key: Pubkey,
+    ) -> Result<()> {
+        let (expected_invest_tracker, _) = Pubkey::find_program_address(
+            &[
+                INVEST_TRACKER_SEED.as_bytes(),
+                &asset_mint.to_bytes(),
+                strategy_key.as_ref()
+            ],
+            &crate::ID
+        );
+        require!(expected_invest_tracker == invest_tracker_account.key(), ErrorCode::InvalidAccount);
+        Ok(())
+    }
+
+    fn validate_weights(&self, remaining: &[AccountInfo], num_swaps: usize) -> Result<Vec<u16>> {
+        let mut total_weight = 0u64;
+        let mut weights = Vec::with_capacity(num_swaps);
+
+        for i in 0..num_swaps {
+            let invest_tracker_account = &remaining[i * ACCOUNTS_PER_SWAP + INVEST_TRACKER_OFFSET];
+            let data = invest_tracker_account.try_borrow_data()?;
+            let invest_tracker_data = InvestTracker::try_from_slice(&data[8..])?;
+            
+            weights.push(invest_tracker_data.assigned_weight);
+            total_weight = total_weight
+                .checked_add(invest_tracker_data.assigned_weight.into())
+                .ok_or(OrcaStrategyErrorCode::MathError)?;
+        }
+
+        if total_weight != MAX_ASSIGNED_WEIGHT as u64 {
+            return Err(OrcaStrategyErrorCode::InvalidTotalWeight.into());
+        }
+
+        Ok(weights)
     }
 }
 
@@ -160,7 +204,7 @@ impl Strategy for OrcaStrategy {
             return Err(ErrorCode::InvalidAccount.into());
         }
 
-        // Calculate total asset value from all invest trackers
+        // Calculate total asset value from all invest tracker accounts
         let mut total_asset_value: u128 = 0;
 
         // Iterate through invest tracker accounts in pairs
@@ -174,15 +218,11 @@ impl Strategy for OrcaStrategy {
             let asset_mint_info = &chunk[1];
             
             // Verify invest tracker PDA using the provided mint account
-            let (expected_invest_tracker, _) = Pubkey::find_program_address(
-                &[
-                    INVEST_TRACKER_SEED.as_bytes(),
-                    asset_mint_info.key().as_ref(),
-                    accounts.strategy.key().as_ref()
-                ],
-                &crate::ID
-            );
-            require!(expected_invest_tracker == invest_tracker_info.key(), ErrorCode::InvalidAccount);
+            self.verify_invest_tracker(
+                invest_tracker_info,
+                asset_mint_info.key(),
+                accounts.strategy.key()
+            )?;
 
             // Get invest tracker data
             let data = invest_tracker_info.try_borrow_data()?;
@@ -203,6 +243,7 @@ impl Strategy for OrcaStrategy {
         }
 
         let new_total_assets = total_asset_value as u64;
+
         Ok(new_total_assets)
     }
 
@@ -210,8 +251,8 @@ impl Strategy for OrcaStrategy {
     //Make sure sales would happen based on the current weight from the invest tracker
     fn free_funds<'info>(&mut self, accounts: &FreeFunds<'info>, remaining: &[AccountInfo<'info>], amount: u64) -> Result<()> {
         // Calculate number of swaps based on remaining accounts length
-        let num_swaps = remaining.len() / 12;
-        if remaining.len() != num_swaps * 12 {
+        let num_swaps = remaining.len() / ACCOUNTS_PER_SWAP;
+        if remaining.len() != num_swaps * ACCOUNTS_PER_SWAP {
             return Err(OrcaStrategyErrorCode::NotEnoughAccounts.into());
         }
 
@@ -221,7 +262,7 @@ impl Strategy for OrcaStrategy {
         let mut highest_weight_index = 0;
 
         for i in 0..num_swaps {
-            let invest_tracker_account = &remaining[i * 12 + 10];
+            let invest_tracker_account = &remaining[i * ACCOUNTS_PER_SWAP + INVEST_TRACKER_OFFSET];
             let data = invest_tracker_account.try_borrow_data()?;
             let invest_tracker_data = InvestTracker::try_from_slice(&data[8..])?;
             
@@ -273,7 +314,7 @@ impl Strategy for OrcaStrategy {
 
         // Iterate through each swap operation using adjusted amounts
         for i in 0..num_swaps {
-            let start = i * 12;
+            let start = i * ACCOUNTS_PER_SWAP;
             let amount_per_swap = amounts[i];
 
             // Extract accounts from remaining array
@@ -287,7 +328,7 @@ impl Strategy for OrcaStrategy {
             let tick_array_1 = &remaining[start + 7];
             let tick_array_2 = &remaining[start + 8];
             let oracle = &remaining[start + 9];
-            let invest_tracker_account = &remaining[start + 10];
+            let invest_tracker_account = &remaining[start + INVEST_TRACKER_OFFSET];
 
             // Get the invest tracker data and verify PDA in its own scope
             let (is_a_to_b, asset_mint) = {
@@ -311,15 +352,11 @@ impl Strategy for OrcaStrategy {
             };
 
             // Verify invest tracker PDA
-            let (expected_invest_tracker, _) = Pubkey::find_program_address(
-                &[
-                    INVEST_TRACKER_SEED.as_bytes(),
-                    &asset_mint.to_bytes(),
-                    accounts.strategy.key().as_ref()
-                ],
-                &crate::ID
-            );
-            require!(expected_invest_tracker == invest_tracker_account.key(), ErrorCode::InvalidAccount);
+            self.verify_invest_tracker(
+                invest_tracker_account,
+                asset_mint,
+                accounts.strategy.key()
+            )?;
 
             // Validate underlying token account based on swap direction
             if is_a_to_b {
@@ -404,30 +441,14 @@ impl Strategy for OrcaStrategy {
             msg!("asset_balance_after_swap: {}", asset_balance_after_swap);
 
             // Update invest tracker data
-            {
-                let mut data = invest_tracker_account.try_borrow_mut_data()?;
-                let mut invest_tracker_data = InvestTracker::try_from_slice(&data[8..])?;
-
-                let asset_amount_change = asset_balance_before_swap
-                    .checked_sub(asset_balance_after_swap)
-                    .ok_or(OrcaStrategyErrorCode::MathError)?;
-                invest_tracker_data.asset_amount = invest_tracker_data.asset_amount
-                    .checked_sub(asset_amount_change)
-                    .ok_or(OrcaStrategyErrorCode::MathError)?;
-
-                let amount_withdrawn_change = underlying_balance_after_swap
-                    .checked_sub(underlying_balance_before_swap)
-                    .ok_or(OrcaStrategyErrorCode::MathError)?;
-                invest_tracker_data.amount_withdrawn = invest_tracker_data.amount_withdrawn
-                    .checked_add(amount_withdrawn_change)
-                    .ok_or(OrcaStrategyErrorCode::MathError)?;
-                self.total_invested = self.total_invested
-                    .checked_sub(amount_withdrawn_change)
-                    .ok_or(OrcaStrategyErrorCode::MathError)?;
-
-                let serialized_data = invest_tracker_data.try_to_vec()?;
-                data[8..].copy_from_slice(&serialized_data);
-            }
+            self.update_invest_tracker_after_swap(
+                invest_tracker_account,
+                underlying_balance_before_swap,
+                underlying_balance_after_swap,
+                asset_balance_before_swap,
+                asset_balance_after_swap,
+                false,
+            )?;
             msg!("Free funds completed");
         }
 
@@ -436,34 +457,17 @@ impl Strategy for OrcaStrategy {
 
     fn deploy_funds<'info>(&mut self, accounts: &DeployFunds<'info>, remaining: &[AccountInfo<'info>], amount: u64) -> Result<()> {
         // Calculate number of swaps based on remaining accounts length
-        let num_swaps = remaining.len() / 12;
-        if remaining.len() != num_swaps * 12 {
+        let num_swaps = remaining.len() / ACCOUNTS_PER_SWAP;
+        if remaining.len() != num_swaps * ACCOUNTS_PER_SWAP {
             return Err(OrcaStrategyErrorCode::NotEnoughAccounts.into());
         }
 
         // First pass: Calculate total weight and validate it equals MAX_ASSIGNED_WEIGHT
-        let mut total_weight = 0u64;
-        let mut weights = Vec::with_capacity(num_swaps);
-
-        for i in 0..num_swaps {
-            let invest_tracker_account = &remaining[i * 12 + 10];
-            let data = invest_tracker_account.try_borrow_data()?;
-            let invest_tracker_data = InvestTracker::try_from_slice(&data[8..])?;
-            
-            weights.push(invest_tracker_data.assigned_weight);
-            total_weight = total_weight
-                .checked_add(invest_tracker_data.assigned_weight.into())
-                .ok_or(OrcaStrategyErrorCode::MathError)?;
-        }
-
-        // Verify total weight equals MAX_ASSIGNED_WEIGHT
-        if total_weight != MAX_ASSIGNED_WEIGHT as u64 {
-            return Err(OrcaStrategyErrorCode::InvalidTotalWeight.into());
-        }
+        let weights = self.validate_weights(remaining, num_swaps)?;
 
         // Iterate through each swap operation
         for i in 0..num_swaps {
-            let start = i * 12;
+            let start = i * ACCOUNTS_PER_SWAP;
             let amount_per_swap = compute_asset_per_swap(
                 amount,
                 weights[i] as u128,
@@ -481,7 +485,7 @@ impl Strategy for OrcaStrategy {
             let tick_array_1 = &remaining[start + 7];
             let tick_array_2 = &remaining[start + 8];
             let oracle = &remaining[start + 9];
-            let invest_tracker_account = &remaining[start + 10];
+            let invest_tracker_account = &remaining[start + INVEST_TRACKER_OFFSET];
 
             // Get the invest tracker data in its own scope
             let (is_a_to_b, asset_mint) = {
@@ -505,15 +509,11 @@ impl Strategy for OrcaStrategy {
             };
 
             // Verify invest tracker PDA
-            let (expected_invest_tracker, _) = Pubkey::find_program_address(
-                &[
-                    INVEST_TRACKER_SEED.as_bytes(),
-                    &asset_mint.to_bytes(),
-                    accounts.strategy.key().as_ref()
-                ],
-                &crate::ID
-            );
-            require!(expected_invest_tracker == invest_tracker_account.key(), ErrorCode::InvalidAccount);
+            self.verify_invest_tracker(
+                invest_tracker_account,
+                asset_mint,
+                accounts.strategy.key()
+            )?;
 
             // Validate underlying token account based on swap direction
             if is_a_to_b {
@@ -591,31 +591,14 @@ impl Strategy for OrcaStrategy {
             };
 
             // Update invest tracker data
-            {
-                let mut data = invest_tracker_account.try_borrow_mut_data()?;
-                let mut invest_tracker_data = InvestTracker::try_from_slice(&data[8..])?;
-
-                let new_asset_amount = asset_balance_after_swap
-                    .checked_sub(asset_balance_before_swap)
-                    .ok_or(OrcaStrategyErrorCode::MathError)?;
-                invest_tracker_data.asset_amount = invest_tracker_data.asset_amount
-                    .checked_add(new_asset_amount)
-                    .ok_or(OrcaStrategyErrorCode::MathError)?;
-
-                let new_invested_amount = underlying_balance_before_swap
-                    .checked_sub(underlying_balance_after_swap)
-                    .ok_or(OrcaStrategyErrorCode::MathError)?;
-                invest_tracker_data.amount_invested = invest_tracker_data.amount_invested
-                    .checked_add(new_invested_amount)
-                    .ok_or(OrcaStrategyErrorCode::MathError)?;
-
-                self.total_invested = self.total_invested
-                    .checked_add(new_invested_amount)
-                    .ok_or(OrcaStrategyErrorCode::MathError)?;
-
-                let serialized_data = invest_tracker_data.try_to_vec()?;
-                data[8..].copy_from_slice(&serialized_data);
-            }
+            self.update_invest_tracker_after_swap(
+                invest_tracker_account,
+                underlying_balance_before_swap,
+                underlying_balance_after_swap,
+                asset_balance_before_swap,
+                asset_balance_after_swap,
+                true,
+            )?;
         }
 
         Ok(())
@@ -627,29 +610,13 @@ impl Strategy for OrcaStrategy {
 
     fn rebalance<'info>(&mut self, accounts: &Rebalance<'info>, remaining: &[AccountInfo<'info>], _amount: u64) -> Result<()> {
         // Calculate number of swaps based on remaining accounts length
-        let num_swaps = remaining.len() / 12;
-        if remaining.len() != num_swaps * 12 {
+        let num_swaps = remaining.len() / ACCOUNTS_PER_SWAP;
+        if remaining.len() != num_swaps * ACCOUNTS_PER_SWAP {
             return Err(OrcaStrategyErrorCode::NotEnoughAccounts.into());
         }
 
         // First, collect InvestTracker data and total asset value
-        let mut total_asset_value: u128 = 0;
-        let mut invest_tracker_data_vec = Vec::with_capacity(num_swaps);
-
-        for i in 0..num_swaps {
-            let start = i * 12;
-            let invest_tracker_account = &remaining[start + 10];
-
-            // Get the invest tracker data
-            let data = invest_tracker_account.try_borrow_data()?;
-            let invest_tracker_data = InvestTracker::try_from_slice(&data[8..])?;
-
-            total_asset_value = total_asset_value
-                .checked_add(invest_tracker_data.asset_value)
-                .ok_or(OrcaStrategyErrorCode::MathError)?;
-
-            invest_tracker_data_vec.push(invest_tracker_data);
-        }
+        let (mut invest_tracker_data_vec, total_asset_value) = self.collect_invest_tracker_data(remaining, num_swaps)?;
 
         if total_asset_value == 0 {
             return Err(OrcaStrategyErrorCode::ZeroTotalAssetValue.into());
@@ -682,8 +649,8 @@ impl Strategy for OrcaStrategy {
         let mut total_underlying_obtained: u64 = 0;
 
         for (i, delta_value) in sell_list {
-            let start = i * 12;
-            let invest_tracker_account = &remaining[start + 10];
+            let start = i * ACCOUNTS_PER_SWAP;
+            let invest_tracker_account = &remaining[start + INVEST_TRACKER_OFFSET];
             let invest_tracker_data = &mut invest_tracker_data_vec[i];
 
             // Ensure delta_value fits into u64
@@ -746,27 +713,14 @@ impl Strategy for OrcaStrategy {
                 .ok_or(OrcaStrategyErrorCode::MathError)?;
 
             // Update invest tracker data
-            {
-                let mut data = invest_tracker_account.try_borrow_mut_data()?;
-                let mut invest_tracker_data = InvestTracker::try_from_slice(&data[8..])?;
-
-                let asset_amount_change = asset_balance_before_swap
-                    .checked_sub(asset_balance_after_swap)
-                    .ok_or(OrcaStrategyErrorCode::MathError)?;
-                invest_tracker_data.asset_amount = invest_tracker_data.asset_amount
-                    .checked_sub(asset_amount_change)
-                    .ok_or(OrcaStrategyErrorCode::MathError)?;
-
-                invest_tracker_data.amount_withdrawn = invest_tracker_data.amount_withdrawn
-                    .checked_add(underlying_received)
-                    .ok_or(OrcaStrategyErrorCode::MathError)?;
-                self.total_invested = self.total_invested
-                    .checked_sub(underlying_received)
-                    .ok_or(OrcaStrategyErrorCode::MathError)?;
-
-                let serialized_data = invest_tracker_data.try_to_vec()?;
-                data[8..].copy_from_slice(&serialized_data);
-            }
+            self.update_invest_tracker_after_swap(
+                invest_tracker_account,
+                underlying_balance_before_swap,
+                underlying_balance_after_swap,
+                asset_balance_before_swap,
+                asset_balance_after_swap,
+                false,
+            )?;
 
             total_underlying_obtained = total_underlying_obtained
                 .checked_add(underlying_received)
@@ -782,8 +736,8 @@ impl Strategy for OrcaStrategy {
         let total_buy_value: u128 = buy_list.iter().map(|&(_, delta_value)| delta_value).sum();
 
         for (i, delta_value) in buy_list {
-            let start = i * 12;
-            let invest_tracker_account = &remaining[start + 10];
+            let start = i * ACCOUNTS_PER_SWAP;
+            let invest_tracker_account = &remaining[start + INVEST_TRACKER_OFFSET];
             let invest_tracker_data = &mut invest_tracker_data_vec[i];
 
             // Calculate amount_per_swap_u64 proportionally
@@ -842,39 +796,15 @@ impl Strategy for OrcaStrategy {
             let underlying_balance_after_swap = get_token_balance(if is_a_to_b { token_owner_account_a } else { token_owner_account_b })?;
             let asset_balance_after_swap = get_token_balance(if is_a_to_b { token_owner_account_b } else { token_owner_account_a })?;
 
-            // Calculate underlying spent
-            let underlying_spent = underlying_balance_before_swap.checked_sub(underlying_balance_after_swap)
-                .ok_or(OrcaStrategyErrorCode::MathError)?;
-
             // Update invest tracker data
-            {
-                let mut data = invest_tracker_account.try_borrow_mut_data()?;
-                let mut invest_tracker_data = InvestTracker::try_from_slice(&data[8..])?;
-
-                let new_asset_amount = asset_balance_after_swap
-                    .checked_sub(asset_balance_before_swap)
-                    .ok_or(OrcaStrategyErrorCode::MathError)?;
-                invest_tracker_data.asset_amount = invest_tracker_data.asset_amount
-                    .checked_add(new_asset_amount)
-                    .ok_or(OrcaStrategyErrorCode::MathError)?;
-
-                invest_tracker_data.amount_invested = invest_tracker_data.amount_invested
-                    .checked_add(underlying_spent)
-                    .ok_or(OrcaStrategyErrorCode::MathError)?;
-
-                self.total_invested = self.total_invested
-                    .checked_add(underlying_spent)
-                    .ok_or(OrcaStrategyErrorCode::MathError)?;
-
-                let serialized_data = invest_tracker_data.try_to_vec()?;
-                data[8..].copy_from_slice(&serialized_data);
-            }
-
-            // Update total_underlying_obtained
-            // comment out for now
-            // total_underlying_obtained = total_underlying_obtained
-            //     .checked_sub(underlying_spent)
-            //     .ok_or(OrcaStrategyErrorCode::MathError)?;
+            self.update_invest_tracker_after_swap(
+                invest_tracker_account,
+                underlying_balance_before_swap,
+                underlying_balance_after_swap,
+                asset_balance_before_swap,
+                asset_balance_after_swap,
+                true,
+            )?;
         }
 
         Ok(())
@@ -977,5 +907,91 @@ impl StrategyDataAccount for OrcaStrategy {
             self.index_bytes.as_ref(),
             self.bump.as_ref(),
         ]
+    }
+}
+
+impl OrcaStrategy {
+    // Helper functions for rebalance
+    fn collect_invest_tracker_data(
+        &self,
+        remaining: &[AccountInfo],
+        num_swaps: usize,
+    ) -> Result<(Vec<InvestTracker>, u128)> {
+        let mut total_asset_value: u128 = 0;
+        let mut invest_tracker_data_vec = Vec::with_capacity(num_swaps);
+
+        for i in 0..num_swaps {
+            let start = i * ACCOUNTS_PER_SWAP;
+            let invest_tracker_account = &remaining[start + INVEST_TRACKER_OFFSET];
+
+            let data = invest_tracker_account.try_borrow_data()?;
+            let invest_tracker_data = InvestTracker::try_from_slice(&data[8..])?;
+
+            total_asset_value = total_asset_value
+                .checked_add(invest_tracker_data.asset_value)
+                .ok_or(OrcaStrategyErrorCode::MathError)?;
+
+            invest_tracker_data_vec.push(invest_tracker_data);
+        }
+
+        Ok((invest_tracker_data_vec, total_asset_value))
+    }
+
+    fn update_invest_tracker_after_swap(
+        &mut self,
+        invest_tracker_account: &AccountInfo,
+        underlying_balance_before: u64,
+        underlying_balance_after: u64,
+        asset_balance_before: u64,
+        asset_balance_after: u64,
+        is_buying: bool,  // true when deploying funds or buying during rebalance
+    ) -> Result<()> {
+        let mut data = invest_tracker_account.try_borrow_mut_data()?;
+        let mut invest_tracker_data = InvestTracker::try_from_slice(&data[8..])?;
+
+        if is_buying {
+            // When buying assets:
+            // - asset_amount increases by what we received
+            // - amount_invested increases by what we spent
+            let new_asset_amount = asset_balance_after
+                .checked_sub(asset_balance_before)
+                .ok_or(OrcaStrategyErrorCode::MathError)?;
+            invest_tracker_data.asset_amount = invest_tracker_data.asset_amount
+                .checked_add(new_asset_amount)
+                .ok_or(OrcaStrategyErrorCode::MathError)?;
+
+            let underlying_spent = underlying_balance_before
+                .checked_sub(underlying_balance_after)
+                .ok_or(OrcaStrategyErrorCode::MathError)?;
+            invest_tracker_data.amount_invested = invest_tracker_data.amount_invested
+                .checked_add(underlying_spent)
+                .ok_or(OrcaStrategyErrorCode::MathError)?;
+
+            self.total_invested = self.total_invested
+                .checked_add(underlying_spent)
+                .ok_or(OrcaStrategyErrorCode::MathError)?;
+        } else {
+            // When selling assets:
+            // - asset_amount decreases by what we sold
+            // - amount_withdrawn increases by what we received
+            let asset_amount_sold = asset_balance_before
+                .checked_sub(asset_balance_after)
+                .ok_or(OrcaStrategyErrorCode::MathError)?;
+            invest_tracker_data.asset_amount = invest_tracker_data.asset_amount
+                .checked_sub(asset_amount_sold)
+                .ok_or(OrcaStrategyErrorCode::MathError)?;
+
+            let underlying_received = underlying_balance_after
+                .checked_sub(underlying_balance_before)
+                .ok_or(OrcaStrategyErrorCode::MathError)?;
+            invest_tracker_data.amount_withdrawn = invest_tracker_data.amount_withdrawn
+                .checked_add(underlying_received)
+                .ok_or(OrcaStrategyErrorCode::MathError)?;
+        }
+
+        let serialized_data = invest_tracker_data.try_to_vec()?;
+        data[8..].copy_from_slice(&serialized_data);
+
+        Ok(())
     }
 }
