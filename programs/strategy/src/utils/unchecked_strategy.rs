@@ -9,6 +9,7 @@ use crate::error::ErrorCode;
 pub trait UncheckedStrategy {
     fn get_discriminator(&self) -> Result<[u8; 8]>;
     fn underlying_mint(&self) -> Pubkey;
+    fn manager(&self) -> Pubkey;
     fn vault(&self) -> Pubkey;
     fn from_unchecked(&self) -> Result<Box<dyn Strategy>>;
     fn save_changes<T>(&self, strategy: Box<T>) -> Result<()> 
@@ -24,6 +25,11 @@ impl<'a> UncheckedStrategy for UncheckedAccount<'a> {
     fn underlying_mint(&self) -> Pubkey {
         let strategy = self.from_unchecked().unwrap();
         strategy.underlying_mint()
+    }
+
+    fn manager(&self) -> Pubkey {
+        let strategy = self.from_unchecked().unwrap();
+        strategy.manager()
     }
 
     fn vault(&self) -> Pubkey {

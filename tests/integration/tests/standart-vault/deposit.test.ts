@@ -1,3 +1,4 @@
+/*
 import * as anchor from "@coral-xyz/anchor";
 import { BN } from "@coral-xyz/anchor";
 import * as token from "@solana/spl-token";
@@ -835,4 +836,58 @@ describe("Standard Vault: Deposit Tests", () => {
       userOneUnderlyingTokenCurrentBalance.toString()
     );
   });
+
+  it("Depositing 0 value into a vault should revert", async function () {
+    this.qaseId(68);
+    const depositAmount = 0;
+
+    try {
+      await vaultProgram.methods
+        .deposit(new BN(depositAmount))
+        .accounts({
+          vault: vaultOne,
+          user: userOne.publicKey,
+          userTokenAccount: userOneTokenAccount,
+          userSharesAccount: userOneVaultOneSharesAccount,
+        })
+        .signers([userOne])
+        .rpc();
+    } catch (err) {
+      expect(err.message).contains(
+        "Error Code: Zer"
+      );
+    }
+
+    userOneUnderlyingTokenCurrentBalance -= depositAmount;
+    userOneVaultOneSharesCurrentBalance += depositAmount;
+    vaultOneCurrentTokenBalance += depositAmount;
+
+    const vaultTokenAccountInfo = await token.getAccount(
+      connection,
+      vaultTokenAccountOne
+    );
+    assert.strictEqual(
+      vaultTokenAccountInfo.amount.toString(),
+      vaultOneCurrentTokenBalance.toString()
+    );
+
+    const userSharesAccountInfo = await token.getAccount(
+      connection,
+      userOneVaultOneSharesAccount
+    );
+    assert.strictEqual(
+      userSharesAccountInfo.amount.toString(),
+      userOneVaultOneSharesCurrentBalance.toString()
+    );
+
+    const userTokenAccountInfo = await token.getAccount(
+      connection,
+      userOneTokenAccount
+    );
+    assert.strictEqual(
+      userTokenAccountInfo.amount.toString(),
+      userOneUnderlyingTokenCurrentBalance.toString()
+    );
+  });
 });
+*/

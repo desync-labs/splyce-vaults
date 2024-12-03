@@ -16,23 +16,24 @@ pub fn deposit<'a>(
     token_program: AccountInfo<'a>,
     strategy_program: AccountInfo<'a>,
     assets_to_deposit: u64,
-    seeds: &[&[u8]],
+    seeds: &[&[&[u8]]],
+    remaining_accounts: Vec<AccountInfo<'a>>,
 ) -> Result<()> {
+    let mut ctx = CpiContext::new_with_signer(
+        strategy_program,
+        Deposit {
+            strategy,
+            signer: vault,
+            underlying_token_account,
+            vault_token_account,
+            token_program,
+        },
+        seeds,  // Pass in the seeds from the previously loaded vault
+    );
+    ctx.remaining_accounts = remaining_accounts;
+
     // Perform the CPI deposit with pre-extracted data
-    strategy::cpi::deposit(
-        CpiContext::new_with_signer(
-            strategy_program,
-            Deposit {
-                strategy,
-                signer: vault,
-                underlying_token_account,
-                vault_token_account,
-                token_program,
-            },
-            &[&seeds],  // Pass in the seeds from the previously loaded vault
-        ),
-        assets_to_deposit,
-    )
+    strategy::cpi::deposit(ctx, assets_to_deposit)
 }
 
 pub fn withdraw<'a>(
@@ -48,7 +49,7 @@ pub fn withdraw<'a>(
 ) -> Result<u64> {
     let pre_balance = vault_token_account.amount;
 
-    let mut context = CpiContext::new_with_signer(
+    let mut ctx = CpiContext::new_with_signer(
         strategy_program, 
         Withdraw {
             strategy,
@@ -60,9 +61,9 @@ pub fn withdraw<'a>(
         seeds,
     );
     
-    context.remaining_accounts = remaining_accounts;
+    ctx.remaining_accounts = remaining_accounts;
 
-    strategy::cpi::withdraw(context, assets_to_withdraw)?;
+    strategy::cpi::withdraw(ctx, assets_to_withdraw)?;
 
     vault_token_account.reload()?;
     let post_balance = vault_token_account.amount;

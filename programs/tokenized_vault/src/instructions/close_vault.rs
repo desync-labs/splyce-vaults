@@ -45,5 +45,9 @@ pub fn handle_close_vault(ctx: Context<CloseVault>) -> Result<()> {
         return Err(ErrorCode::VaultHasDebt.into());
     }
 
+    if vault.strategies_amount > 0 {
+        return Err(ErrorCode::VaultHasStrategies.into());
+    }
+
     Ok(())
 }

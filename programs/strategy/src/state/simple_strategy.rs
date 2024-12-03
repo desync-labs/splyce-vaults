@@ -28,6 +28,8 @@ pub struct SimpleStrategy {
     pub total_assets: u64,
     pub deposit_limit: u64,
 
+    pub total_invested: u64,
+
     pub fee_data: FeeData,
 }
 
@@ -71,7 +73,7 @@ impl StrategyGetters for SimpleStrategy {
     }
 
     fn available_withdraw(&self) -> u64 {
-        self.deposit_limit
+        self.total_assets - self.total_invested
     }
 
     fn token_account(&self) -> Pubkey {
@@ -188,16 +190,40 @@ impl Strategy for SimpleStrategy {
         if accounts.underlying_token_account.key() != self.underlying_token_acc {
             return Err(ErrorCode::InvalidAccount.into());
         }
-        let new_total_assets = accounts.underlying_token_account.amount;
-        Ok(new_total_assets)
+        let idle_assets = accounts.underlying_token_account.amount;
+        Ok(idle_assets + self.total_invested)
     }
 
-    fn deploy_funds<'info>(&mut self, _accounts: &DeployFunds<'info>, _remaining: &[AccountInfo<'info>], _amount: u64) -> Result<()> {
+    fn deploy_funds<'info>(&mut self, accounts: &DeployFunds<'info>, remaining: &[AccountInfo<'info>], amount: u64) -> Result<()> {
+        self.total_invested += amount;
+
+        let seeds = self.seeds();
+        token::transfer_with_signer(
+            accounts.token_program.to_account_info(),
+            accounts.underlying_token_account.to_account_info(),
+            remaining[0].to_account_info(),
+            accounts.strategy.to_account_info(),
+            amount,
+            &seeds
+        )?;
+
         Ok(())
     }
 
-    fn free_funds<'info>(&mut self, _accounts: &FreeFunds<'info>, _remaining: &[AccountInfo<'info>], _amount: u64) -> Result<()> {
-        Ok(())
+    fn free_funds<'info>(&mut self, accounts: &FreeFunds<'info>, remaining: &[AccountInfo<'info>], amount: u64) -> Result<()> {
+        if self.total_invested < amount {
+            return Err(ErrorCode::InsufficientFunds.into());
+        }
+
+        self.total_invested -= amount;
+
+        token::transfer(
+            accounts.token_program.to_account_info(),
+            remaining[0].to_account_info(),
+            accounts.underlying_token_account.to_account_info(),
+            accounts.signer.to_account_info(),
+            amount,
+        )
     }
 
     fn set_total_assets(&mut self, total_assets: u64) {

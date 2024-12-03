@@ -12,11 +12,19 @@ faucet = "BALc31n5uFfE8SxJd2iRF9dk49i5ww8p5dZJAQHuDMai"
 strategy_program = "EDA9ee5UKzdqrHgSd5v64bNnbCae1t7NJfUpvS7DZod"
 tokenized_vault = "HdQsT53sANBQmPb6xWRaZXUzAXydLteNsJW1Y6kJDbMm"
 
+[programs.localnet]
+access_control = "Bcyv2YYSNBC7VqurTbM1VGmbuACKUPMQuKSsXQ17YsYB"
+accountant = "GqJdQ9KkCg31EG6GfuPgiEpSCSYvEEXW41DA9YDaXbY2"
+deposit_limit = "DERtm15fgAGFpJWqERMNCptQ6DKdP7NJtcejiPtTLovW"
+faucet = "BALc31n5uFfE8SxJd2iRF9dk49i5ww8p5dZJAQHuDMai"
+strategy_program = "EDA9ee5UKzdqrHgSd5v64bNnbCae1t7NJfUpvS7DZod"
+tokenized_vault = "HdQsT53sANBQmPb6xWRaZXUzAXydLteNsJW1Y6kJDbMm"
+
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "Devnet"
+cluster = "Localnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
@@ -29,7 +37,7 @@ initialize = "yarn run initialize"
 process_report = "yarn run process_report"
 set_roles = "yarn run set_roles"
 shutdown_vault = "yarn run shutdown_vault"
-test = "yarn run ts-mocha -r dotenv/config -p ./tsconfig.json -t 2000000 --require './tests/integration/setups/globalSetup.ts' --recursive --reporter mocha-qase-reporter 'tests/integration/**/*.test.ts'"
+test = "yarn run ts-mocha -r dotenv/config -p ./tsconfig.json -t 2000000 --require './tests/integration/setups/globalSetup.ts' --recursive 'tests/integration/**/*.test.ts'"
 underlying_mint = "yarn run underlying_mint"
 update_deposit_limit = "yarn run update-deposit-limit"
 whitelist = "yarn run whitelist"

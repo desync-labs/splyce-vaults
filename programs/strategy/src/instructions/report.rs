@@ -17,7 +17,7 @@ pub struct Report<'info> {
     #[account(mut, seeds = [UNDERLYING_SEED.as_bytes(), strategy.key().as_ref()], bump)]
     pub underlying_token_account: InterfaceAccount<'info, TokenAccount>,
 
-    #[account(mut)]
+    #[account(mut, constraint = signer.key() == strategy.manager() @ErrorCode::AccessDenied)]
     pub signer: Signer<'info>,
 
     pub token_program: Program<'info, Token>,
@@ -25,10 +25,6 @@ pub struct Report<'info> {
 
 pub fn handle_report<'info>(ctx: Context<'_, '_, '_, 'info, Report<'info>>) -> Result<()> {
     let mut strategy = ctx.accounts.strategy.from_unchecked()?;
-
-    if ctx.accounts.signer.key() != strategy.manager() {
-        return Err(ErrorCode::AccessDenied.into());
-    }
 
     strategy.report(&ctx.accounts, &ctx.remaining_accounts)?;
     strategy.save_changes(&mut &mut ctx.accounts.strategy.try_borrow_mut_data()?[8..])
