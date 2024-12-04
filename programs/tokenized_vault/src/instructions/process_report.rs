@@ -13,7 +13,6 @@ use crate::constants::{ MAX_BPS_EXTENDED, SHARES_ACCOUNT_SEED, SHARES_SEED, STRA
 use crate::events::StrategyReportedEvent;
 use crate::state::{Vault, StrategyData};
 use crate::utils::{accountant, strategy, token};
-use ::strategy::StrategyType;
 
 #[derive(Accounts)]
 pub struct ProcessReport<'info> {
@@ -71,65 +70,15 @@ pub struct ProcessReport<'info> {
 }
 
 pub fn handle_process_report(mut ctx: Context<ProcessReport>) -> Result<()> {
-    let strategy_type = strategy::get_strategy_type(&ctx.accounts.strategy)?;
+    let strategy_assets = strategy::get_total_assets(&ctx.accounts.strategy)?;
+    let strategy = &ctx.accounts.strategy;
+
+    let mut profit: u64 = 0;
+    let mut loss: u64 = 0;
+    let mut fee_shares: u64 = 0;
 
     burn_unlocked_shares(&ctx)?;
     ctx.accounts.vault_shares_token_account.reload()?;
-
-    match strategy_type {
-        StrategyType::Orca => handle_orca_strategy_report(&mut ctx),
-        _ => handle_standard_strategy_report(&mut ctx),
-    }
-}
-
-fn handle_orca_strategy_report(ctx: &mut Context<ProcessReport>) -> Result<()> {
-    let mut profit: u64 = 0;
-    let mut loss: u64 = 0;
-    let mut fee_shares: u64 = 0;
-
-    // For Orca strategy, compare total_assets (sum of invest tracker asset values) 
-    // against total_invested
-    let total_assets = strategy::get_total_assets(&ctx.accounts.strategy)?;
-    let total_invested = strategy::get_total_invested(&ctx.accounts.strategy)?;
-
-    if total_assets > total_invested {
-        profit = total_assets - total_invested;
-        let (total_fees, _) = accountant::report(&ctx.accounts.accountant, profit, 0)?;
-        fee_shares = ctx.accounts.vault.load()?.convert_to_shares(total_fees);
-
-        handle_profit(&ctx, profit, total_fees)?;
-
-        if fee_shares > 0 {
-            issue_fee_shares(&ctx, fee_shares)?;
-        }
-    } else {
-        loss = total_invested - total_assets;
-        handle_loss(&ctx, loss)?;
-    }
-
-    // Update strategy's current debt with total assets
-    ctx.accounts.strategy_data.update_current_debt(total_assets)?;
-
-    emit!(StrategyReportedEvent {
-        strategy_key: ctx.accounts.strategy.key(),
-        gain: profit,
-        loss,
-        current_debt: total_assets,
-        protocol_fees: 0,
-        total_fees: fee_shares,
-        timestamp: Clock::get()?.unix_timestamp,
-    });
-
-    Ok(())
-}
-
-fn handle_standard_strategy_report(ctx: &mut Context<ProcessReport>) -> Result<()> {
-    let mut profit: u64 = 0;
-    let mut loss: u64 = 0;
-    let mut fee_shares: u64 = 0;
-
-    // For other strategies, use the original logic comparing against current_debt
-    let strategy_assets = strategy::get_total_assets(&ctx.accounts.strategy)?;
     let current_debt = ctx.accounts.strategy_data.current_debt;
 
     if strategy_assets > current_debt {
@@ -150,11 +99,11 @@ fn handle_standard_strategy_report(ctx: &mut Context<ProcessReport>) -> Result<(
     ctx.accounts.strategy_data.update_current_debt(strategy_assets)?;
 
     emit!(StrategyReportedEvent {
-        strategy_key: ctx.accounts.strategy.key(),
+        strategy_key: strategy.key(),
         gain: profit,
         loss,
         current_debt: strategy_assets,
-        protocol_fees: 0,
+        protocol_fees: 0, //TODO: this is set as 0
         total_fees: fee_shares,
         timestamp: Clock::get()?.unix_timestamp,
     });

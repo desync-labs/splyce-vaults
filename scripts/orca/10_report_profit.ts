@@ -6,6 +6,8 @@ import { BN } from "@coral-xyz/anchor";
 import * as fs from "fs";
 import * as path from "path";
 import { PublicKey } from "@solana/web3.js";
+import { AccessControl } from "../../target/types/access_control";
+import { TOKEN_PROGRAM_ID, getAssociatedTokenAddress } from "@solana/spl-token";
 
 const WSOL_MINT = new PublicKey(
   "So11111111111111111111111111111111111111112"
@@ -92,6 +94,7 @@ async function main() {
     // Initialize Programs
     const tokenizedVaultProgram = anchor.workspace.TokenizedVault as Program<TokenizedVault>;
     const strategyProgram = anchor.workspace.Strategy as Program<Strategy>;
+    const accessControlProgram = anchor.workspace.AccessControl as Program<AccessControl>;
 
     // Get vault PDA
     const vaultIndex = 0;
@@ -196,26 +199,88 @@ async function main() {
 
     console.log("\nReport profit completed successfully!");
 
-    // Fetch and decode strategy data after report
-    const strategyAccountInfoAfter = await provider.connection.getAccountInfo(strategy);
-    if (!strategyAccountInfoAfter) {
-      throw new Error("Strategy account not found after report");
-    }
-    
-    const strategyAfter = deserializeOrcaStrategy(Buffer.from(strategyAccountInfoAfter.data));
+    // Get strategy data PDA
+    const [strategyData] = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("strategy_data"),
+        vaultPDA.toBuffer(),
+        strategy.toBuffer()
+      ],
+      tokenizedVaultProgram.programId
+    );
 
-    console.log("\nStrategy State AFTER report:");
-    console.log("Total Assets:", strategyAfter.totalAssets.toString());
-    console.log("Total Invested:", strategyAfter.totalInvested.toString());
+    // Fetch states BEFORE process report
+    const vaultBefore = await tokenizedVaultProgram.account.vault.fetch(vaultPDA);
+    const strategyDataBefore = await tokenizedVaultProgram.account.strategyData.fetch(strategyData);
+    
+    console.log("\nState BEFORE Process Report:");
+    console.log("Vault State:");
+    console.log("- Total Debt:", vaultBefore.totalDebt.toString());
+    console.log("- Total Shares:", vaultBefore.totalShares.toString());
+    console.log("- Last Profit Update:", vaultBefore.lastProfitUpdate.toString());
+    console.log("- Profit Unlocking Rate:", vaultBefore.profitUnlockingRate.toString());
+    console.log("- Full Profit Unlock Date:", vaultBefore.fullProfitUnlockDate.toString());
+
+    console.log("\nStrategy Data State:");
+    console.log("- Current Debt:", strategyDataBefore.currentDebt.toString());
+    console.log("- Max Debt:", strategyDataBefore.maxDebt.toString());
+    console.log("- Last Update:", strategyDataBefore.lastUpdate.toString());
+
+    // Get shares mint PDA
+    const [sharesMint] = PublicKey.findProgramAddressSync(
+      [Buffer.from("shares"), vaultPDA.toBuffer()],
+      tokenizedVaultProgram.programId
+    );
+
+    // Get vault shares token account PDA
+    const [vaultSharesTokenAccount] = PublicKey.findProgramAddressSync(
+      [Buffer.from("shares_account"), vaultPDA.toBuffer()],
+      tokenizedVaultProgram.programId
+    );
+
+    // Call process_report with all required accounts
+    await tokenizedVaultProgram.methods
+      .processReport()
+      .accounts({
+        vault: vaultPDA,
+        strategy,
+        accountant: admin.publicKey,
+      })
+      .signers([admin])
+      .rpc();
+
+    console.log("\nProcess report completed successfully!");
+
+    // Fetch states AFTER process report
+    const vaultAfter = await tokenizedVaultProgram.account.vault.fetch(vaultPDA);
+    const strategyDataAfter = await tokenizedVaultProgram.account.strategyData.fetch(strategyData);
+    
+    console.log("\nState AFTER Process Report:");
+    console.log("Vault State:");
+    console.log("- Total Debt:", vaultAfter.totalDebt.toString());
+    console.log("- Total Shares:", vaultAfter.totalShares.toString());
+    console.log("- Last Profit Update:", vaultAfter.lastProfitUpdate.toString());
+    console.log("- Profit Unlocking Rate:", vaultAfter.profitUnlockingRate.toString());
+    console.log("- Full Profit Unlock Date:", vaultAfter.fullProfitUnlockDate.toString());
+
+    console.log("\nStrategy Data State:");
+    console.log("- Current Debt:", strategyDataAfter.currentDebt.toString());
+    console.log("- Max Debt:", strategyDataAfter.maxDebt.toString());
+    console.log("- Last Update:", strategyDataAfter.lastUpdate.toString());
 
     // Calculate and log changes
     console.log("\nChanges:");
-    console.log("Total Assets Change:", 
-      (strategyAfter.totalAssets - strategyBefore.totalAssets).toString()
-    );
-    console.log("Total Invested Change:", 
-      (strategyAfter.totalInvested - strategyBefore.totalInvested).toString()
-    );
+    console.log("Vault Changes:");
+    console.log("- Total Debt Change:", 
+      vaultAfter.totalDebt.sub(vaultBefore.totalDebt).toString());
+    console.log("- Total Shares Change:", 
+      vaultAfter.totalShares.sub(vaultBefore.totalShares).toString());
+    
+    console.log("Strategy Data Changes:");
+    console.log("- Current Debt Change:", 
+      strategyDataAfter.currentDebt.sub(strategyDataBefore.currentDebt).toString());
+    console.log("- Last Update Change:", 
+      strategyDataAfter.lastUpdate.toNumber() - strategyDataBefore.lastUpdate.toNumber());
 
     // Log invest tracker states after report
     console.log("\nInvest Tracker States AFTER report:");
