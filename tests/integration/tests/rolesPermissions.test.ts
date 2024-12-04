@@ -7,6 +7,9 @@ import {
   provider,
   strategyProgram,
   vaultProgram,
+  GlobalIndexTracker,
+  METADATA_SEED,
+  TOKEN_METADATA_PROGRAM_ID,
 } from "../setups/globalSetup";
 import { assert, expect } from "chai";
 import { errorStrings, ROLES, ROLES_BUFFER } from "../../utils/constants";
@@ -19,7 +22,7 @@ import {
 import * as token from "@solana/spl-token";
 import { SimpleStrategyConfig } from "../../utils/schemas";
 
-describe.only("Roles and Permissions Tests", () => {
+describe("Roles and Permissions Tests", () => {
   // Test Role Accounts
   let rolesAdmin: anchor.web3.Keypair;
   let accountantAdmin: anchor.web3.Keypair;
@@ -29,11 +32,6 @@ describe.only("Roles and Permissions Tests", () => {
   let kycProvider: anchor.web3.Keypair;
   let kycVerifiedUser: anchor.web3.Keypair;
   let nonVerifiedUser: anchor.web3.Keypair;
-
-  // Next indexes
-  let nextAccountantIndex = 0;
-  let nextVaultIndex = 0;
-  let nextStrategyIndex = 0;
 
   // Accountant vars
   let accountantConfig: anchor.web3.PublicKey;
@@ -169,6 +167,7 @@ describe.only("Roles and Permissions Tests", () => {
       accountant: accountantOne,
       profitMaxUnlockTime: new BN(0),
       kycVerifiedOnly: true,
+      directDepositEnabled: false,
     };
 
     const sharesConfigOne = {
@@ -181,13 +180,11 @@ describe.only("Roles and Permissions Tests", () => {
       await initializeVault({
         vaultProgram,
         underlyingMint,
-        vaultIndex: nextVaultIndex,
+        vaultIndex: GlobalIndexTracker.nextVaultIndex,
         signer: vaultsAdmin,
         vaultConfig: vaultConfigOne,
         sharesConfig: sharesConfigOne,
       });
-
-    nextVaultIndex++;
 
     feeRecipientSharesAccountOne = await token.createAccount(
       provider.connection,
@@ -218,13 +215,13 @@ describe.only("Roles and Permissions Tests", () => {
         .signers([accountantAdmin])
         .rpc();
 
-      nextAccountantIndex++;
+      GlobalIndexTracker.nextAccountantIndex++;
 
       let accountantConfigAccount =
         await accountantProgram.account.config.fetch(accountantConfig);
       assert.strictEqual(
         accountantConfigAccount.nextAccountantIndex.toNumber(),
-        nextAccountantIndex
+        GlobalIndexTracker.nextAccountantIndex
       );
     });
 
@@ -293,11 +290,11 @@ describe.only("Roles and Permissions Tests", () => {
         vault: vaultOne,
         underlyingMint,
         signer: strategiesManager,
-        index: nextStrategyIndex,
+        index: GlobalIndexTracker.nextStrategyIndex,
         config: strategyConfig,
       });
 
-      nextStrategyIndex++;
+      GlobalIndexTracker.nextStrategyIndex++;
 
       const strategyAccount =
         await strategyProgram.account.simpleStrategy.fetch(strategy);
@@ -320,11 +317,11 @@ describe.only("Roles and Permissions Tests", () => {
         vault: vaultOne,
         underlyingMint,
         signer: strategiesManager,
-        index: nextStrategyIndex,
+        index: GlobalIndexTracker.nextStrategyIndex,
         config: strategyConfig,
       });
 
-      nextStrategyIndex++;
+      GlobalIndexTracker.nextStrategyIndex++;
 
       await vaultProgram.methods
         .addStrategy(new BN(1000000000))
@@ -362,11 +359,11 @@ describe.only("Roles and Permissions Tests", () => {
         vault: vaultOne,
         underlyingMint,
         signer: strategiesManager,
-        index: nextStrategyIndex,
+        index: GlobalIndexTracker.nextStrategyIndex,
         config: strategyConfig,
       });
 
-      nextStrategyIndex++;
+      GlobalIndexTracker.nextStrategyIndex++;
 
       await vaultProgram.methods
         .addStrategy(new BN(1000000000))
@@ -412,6 +409,118 @@ describe.only("Roles and Permissions Tests", () => {
           strategyDataAfter
         );
       assert.isNull(strategyDataAccount);
+    });
+
+    it("Vaults Admin - Calling init vault method is successful", async () => {
+      const accountant = anchor.web3.PublicKey.findProgramAddressSync(
+        [Buffer.from(new Uint8Array(new BigUint64Array([BigInt(0)]).buffer))],
+        accountantProgram.programId
+      )[0];
+
+      const vaultConfig = {
+        depositLimit: new BN(1000000000),
+        minUserDeposit: new BN(0),
+        accountant: accountant,
+        profitMaxUnlockTime: new BN(0),
+        kycVerifiedOnly: true,
+        directDepositEnabled: false,
+      };
+
+      await vaultProgram.methods
+        .initVault(vaultConfig)
+        .accounts({
+          underlyingMint,
+          signer: vaultsAdmin.publicKey,
+        })
+        .signers([vaultsAdmin])
+        .rpc();
+
+      const vault = anchor.web3.PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("vault"),
+          Buffer.from(
+            new Uint8Array(
+              new BigUint64Array([
+                BigInt(GlobalIndexTracker.nextVaultIndex),
+              ]).buffer
+            )
+          ),
+        ],
+        vaultProgram.programId
+      )[0];
+
+      let vaultAccount = await vaultProgram.account.vault.fetch(vault);
+      assert.strictEqual(vaultAccount.isShutdown, false);
+      assert.strictEqual(vaultAccount.depositLimit.toNumber(), 1000000000);
+      assert.strictEqual(vaultAccount.minUserDeposit.toNumber(), 0);
+      assert.strictEqual(
+        vaultAccount.accountant.toString(),
+        accountant.toBase58()
+      );
+      assert.strictEqual(vaultAccount.profitMaxUnlockTime.toNumber(), 0);
+      assert.strictEqual(vaultAccount.kycVerifiedOnly, true);
+      assert.strictEqual(vaultAccount.directDepositEnabled, false);
+    });
+
+    it("Vaults Admin - Calling init vault shares method is successful", async () => {
+      const vault = anchor.web3.PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("vault"),
+          Buffer.from(
+            new Uint8Array(
+              new BigUint64Array([
+                BigInt(GlobalIndexTracker.nextVaultIndex),
+              ]).buffer
+            )
+          ),
+        ],
+        vaultProgram.programId
+      )[0];
+
+      const sharesMint = anchor.web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("shares"), vault.toBuffer()],
+        vaultProgram.programId
+      )[0];
+
+      const [metadataAddress] = anchor.web3.PublicKey.findProgramAddressSync(
+        [
+          Buffer.from(METADATA_SEED),
+          TOKEN_METADATA_PROGRAM_ID.toBuffer(),
+          sharesMint.toBuffer(),
+        ],
+        TOKEN_METADATA_PROGRAM_ID
+      );
+
+      const sharesConfig = {
+        name: "Localnet Tests Token",
+        symbol: "LTT1",
+        uri: "https://gist.githubusercontent.com/vito-kovalione/08b86d3c67440070a8061ae429572494/raw/833e3d5f5988c18dce2b206a74077b2277e13ab6/PVT.json",
+      };
+
+      await vaultProgram.methods
+        .initVaultShares(
+          new BN(GlobalIndexTracker.nextVaultIndex),
+          sharesConfig
+        )
+        .accounts({
+          metadata: metadataAddress,
+          signer: vaultsAdmin.publicKey,
+        })
+        .signers([vaultsAdmin])
+        .rpc();
+
+      GlobalIndexTracker.nextVaultIndex++;
+
+      const config = anchor.web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("config")],
+        vaultProgram.programId
+      )[0];
+
+      let configAccount = await vaultProgram.account.config.fetch(config);
+      assert.strictEqual(
+        configAccount.nextVaultIndex.toNumber(),
+        GlobalIndexTracker.nextVaultIndex
+      );
     });
   });
 });

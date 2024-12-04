@@ -20,6 +20,23 @@ export const vaultProgram = workspace.TokenizedVault as Program<TokenizedVault>;
 export const strategyProgram = workspace.Strategy as Program<Strategy>;
 export const accountantProgram = workspace.Accountant as Program<Accountant>;
 
+export const TOKEN_METADATA_PROGRAM_ID = new anchor.web3.PublicKey(
+  "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"
+);
+export const METADATA_SEED = "metadata";
+
+export class GlobalIndexTracker {
+  static nextAccountantIndex: number = 0;
+  static nextVaultIndex: number = 0;
+  static nextStrategyIndex: number = 0;
+
+  static reset(): void {
+    this.nextAccountantIndex = 0;
+    this.nextVaultIndex = 0;
+    this.nextStrategyIndex = 0;
+  }
+}
+
 export async function mochaGlobalSetup() {
   console.log("-------Global Setup Started-------");
   configOwner = anchor.web3.Keypair.generate();
