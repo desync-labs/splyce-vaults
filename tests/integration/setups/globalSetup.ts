@@ -25,18 +25,6 @@ export const TOKEN_METADATA_PROGRAM_ID = new anchor.web3.PublicKey(
 );
 export const METADATA_SEED = "metadata";
 
-export class GlobalIndexTracker {
-  static nextAccountantIndex: number = 0;
-  static nextVaultIndex: number = 0;
-  static nextStrategyIndex: number = 0;
-
-  static reset(): void {
-    this.nextAccountantIndex = 0;
-    this.nextVaultIndex = 0;
-    this.nextStrategyIndex = 0;
-  }
-}
-
 export async function mochaGlobalSetup() {
   console.log("-------Global Setup Started-------");
   configOwner = anchor.web3.Keypair.generate();

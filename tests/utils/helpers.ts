@@ -4,7 +4,10 @@ import { BN, web3 } from "@coral-xyz/anchor";
 import { Strategy } from "../../target/types/strategy";
 import { SimpleStrategyConfigSchema } from "./schemas";
 import * as borsh from "borsh";
-import { GlobalIndexTracker, METADATA_SEED, TOKEN_METADATA_PROGRAM_ID } from "../integration/setups/globalSetup";
+import {
+  METADATA_SEED,
+  TOKEN_METADATA_PROGRAM_ID,
+} from "../integration/setups/globalSetup";
 
 export const airdrop = async ({
   connection,
@@ -88,8 +91,6 @@ export const initializeVault = async ({
       })
       .signers([signer])
       .rpc();
-
-    GlobalIndexTracker.nextVaultIndex++;
   }
 
   return [vault, sharesMint, metadataAddress, vaultTokenAccount];
