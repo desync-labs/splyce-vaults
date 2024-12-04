@@ -4,11 +4,7 @@ use access_control::{
     program::AccessControl,
     state::{UserRole, Role}
 };
-
-use anchor_spl::{
-    token::Token, 
-    token_interface::{Mint, TokenAccount},
-};
+use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 
 use crate::constants::{CONFIG_SEED, VAULT_SEED, UNDERLYING_SEED};
 use crate::state::{Vault, Config, VaultConfig};
@@ -58,7 +54,7 @@ pub struct InitVault<'info> {
     pub signer: Signer<'info>,
     
     pub access_control: Program<'info, AccessControl>,
-    pub token_program: Program<'info, Token>,
+    pub token_program: Interface<'info, TokenInterface>,
     pub system_program: Program<'info, System>,
     pub rent: Sysvar<'info, Rent>,
 }

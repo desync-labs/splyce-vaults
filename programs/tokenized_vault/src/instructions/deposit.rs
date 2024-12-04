@@ -4,7 +4,10 @@ use access_control::{
     state::{Role, UserRole},
 };
 use anchor_lang::prelude::*;
-use anchor_spl::token::{Mint, Token, TokenAccount};
+use anchor_spl::{
+    token::Token,
+    token_interface::{Mint, TokenAccount, TokenInterface}
+};
 
 use crate::constants::{SHARES_SEED, UNDERLYING_SEED};
 
@@ -19,21 +22,25 @@ pub struct Deposit<'info> {
     pub vault: AccountLoader<'info, Vault>,
 
     #[account(mut)]
-    pub user_token_account: Account<'info, TokenAccount>,
+    pub user_token_account: InterfaceAccount<'info, TokenAccount>,
 
     #[account(mut, seeds = [UNDERLYING_SEED.as_bytes(), vault.key().as_ref()], bump)]
-    pub vault_token_account: Account<'info, TokenAccount>,
+    pub vault_token_account: InterfaceAccount<'info, TokenAccount>,
 
     #[account(mut, seeds = [SHARES_SEED.as_bytes(), vault.key().as_ref()], bump)]
-    pub shares_mint: Account<'info, Mint>,
+    pub shares_mint: InterfaceAccount<'info, Mint>,
+
+    #[account(mut, address = vault.load()?.underlying_mint)]
+    pub underlying_mint: InterfaceAccount<'info, Mint>,
 
     #[account(mut)]
-    pub user_shares_account: Account<'info, TokenAccount>,
+    pub user_shares_account: InterfaceAccount<'info, TokenAccount>,
 
     #[account(mut)]
     pub user: Signer<'info>,
 
-    pub token_program: Program<'info, Token>,
+    pub shares_token_program: Program<'info, Token>,
+    pub token_program: Interface<'info, TokenInterface>,
     pub access_control: Program<'info, AccessControl>,
 }
 
@@ -47,11 +54,12 @@ pub fn handle_deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
         ctx.accounts.user_token_account.to_account_info(),
         ctx.accounts.vault_token_account.to_account_info(),
         ctx.accounts.user.to_account_info(),
+        &ctx.accounts.underlying_mint,
         amount,
     )?;
 
     token::mint_to(
-        ctx.accounts.token_program.to_account_info(),
+        ctx.accounts.shares_token_program.to_account_info(),
         ctx.accounts.shares_mint.to_account_info(),
         ctx.accounts.user_shares_account.to_account_info(),
         ctx.accounts.shares_mint.to_account_info(),

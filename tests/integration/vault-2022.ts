@@ -72,7 +72,19 @@ describe("tokenized_vault", () => {
 
     console.log("Airdropped 1 SOL to user:", user.publicKey.toBase58());
 
-    underlyingMint = await token.createMint(provider.connection, admin, admin.publicKey, null, 9);
+    underlyingMint = await token.createMint(
+      provider.connection, 
+      admin, 
+      admin.publicKey, 
+      null, 
+      9,
+      web3.Keypair.generate(),
+      null,
+      token.TOKEN_2022_PROGRAM_ID
+    );
+
+    // return ;
+
     console.log("Token mint public key:", underlyingMint.toBase58());
 
     vault = web3.PublicKey.findProgramAddressSync(
@@ -109,7 +121,15 @@ describe("tokenized_vault", () => {
     )[0];
     console.log("Accountant PDA:", accountant.toBase58());
 
-    adminTokenAccount = await token.createAccount(provider.connection, admin, underlyingMint, admin.publicKey);
+    adminTokenAccount = await token.createAccount(
+      provider.connection, 
+      admin, 
+      underlyingMint, 
+      admin.publicKey, 
+      null, 
+      null, 
+      token.TOKEN_2022_PROGRAM_ID
+    );
   });
 
   it("initialize access control", async () => {
@@ -275,6 +295,41 @@ describe("tokenized_vault", () => {
     assert.isTrue(rolesAccount.hasRole);
   });
 
+  it("init accountants", async () => {
+    await accountantProgram.methods.initialize()
+      .accounts({
+        admin: admin.publicKey,
+      })
+      .signers([admin])
+      .rpc();
+  });
+
+  it("generic accountant", async () => {
+    const accountantType = { generic: {} };
+
+    await accountantProgram.methods.initAccountant(accountantType)
+      .accounts({
+        signer: admin.publicKey,
+      })
+      .signers([admin])
+      .rpc();
+
+      console.log("Accountant inited");
+
+    await accountantProgram.methods.setFee(new BN(500))
+      .accounts({
+        accountant: accountant,
+        signer: admin.publicKey,
+      })
+      .signers([admin])
+      .rpc();
+
+    let genericAccountant = await accountantProgram.account.genericAccountant.fetch(accountant);
+    assert.strictEqual(genericAccountant.performanceFee.toNumber(), 500);
+    console.log("Performance fee:", genericAccountant.performanceFee.toNumber());
+  });
+
+
   it("Initializes the vault", async () => {
     const vaultConfig = {
       depositLimit: new BN(1000000000),
@@ -303,7 +358,7 @@ describe("tokenized_vault", () => {
       .accounts({
         underlyingMint,
         signer: admin.publicKey,
-        tokenProgram: token.TOKEN_PROGRAM_ID,
+        tokenProgram: token.TOKEN_2022_PROGRAM_ID,
       })
       .signers([admin])
       .rpc();
@@ -337,54 +392,27 @@ describe("tokenized_vault", () => {
     console.log("minUserDeposit: ", vaultAccount.minUserDeposit.toString());
   });
 
-  it("init accountants", async () => {
-    await accountantProgram.methods.initialize()
-      .accounts({
-        admin: admin.publicKey,
-      })
-      .signers([admin])
-      .rpc();
-  });
-
-  it("generic accountant", async () => {
-    const accountantType = { generic: {} };
-
+  it("generic accountant - token acc", async () => {
     const provider = AnchorProvider.env();
     feeRecipientSharesAccount = await token.createAccount(provider.connection, feeRecipient, sharesMint, feeRecipient.publicKey);
-    feeRecipientTokenAccount = await token.createAccount(provider.connection, feeRecipient, underlyingMint, feeRecipient.publicKey);
+    feeRecipientTokenAccount = await token.createAccount(
+      provider.connection, 
+      feeRecipient, 
+      underlyingMint, 
+      feeRecipient.publicKey,
+      null, 
+      null, 
+      token.TOKEN_2022_PROGRAM_ID
+    );
 
-    await accountantProgram.methods.initAccountant(accountantType)
+    await accountantProgram.methods.initTokenAccount()
       .accounts({
+        accountant: accountant,
         signer: admin.publicKey,
         underlyingMint: sharesMint,
-      })
+      }) 
       .signers([admin])
       .rpc();
-
-    await accountantProgram.methods.setFee(new BN(500))
-      .accounts({
-        accountant: accountant,
-        signer: admin.publicKey,
-      })
-      .signers([admin])
-      .rpc();
-
-    let genericAccountant = await accountantProgram.account.genericAccountant.fetch(accountant);
-    assert.strictEqual(genericAccountant.performanceFee.toNumber(), 500);
-    console.log("Performance fee:", genericAccountant.performanceFee.toNumber());
-
-    await accountantProgram.methods.setFeeRecipient(feeRecipientSharesAccount)
-      .accounts({
-        accountant: accountant,
-        signer: admin.publicKey,
-      })
-      .signers([admin])
-      .rpc();
-
-    genericAccountant = await accountantProgram.account.genericAccountant.fetch(accountant);
-    assert.strictEqual(genericAccountant.feeRecipient.toString(), feeRecipientSharesAccount.toBase58());
-
-    console.log("Fee recipient:", genericAccountant.feeRecipient.toString());
   });
 
   it("Initializes the strategy", async () => {
@@ -425,7 +453,7 @@ describe("tokenized_vault", () => {
         underlyingMint,
         vault,
         signer: admin.publicKey,
-        tokenProgram: token.TOKEN_PROGRAM_ID,
+        tokenProgram: token.TOKEN_2022_PROGRAM_ID,
       })
       .signers([admin])
       .rpc();
@@ -509,13 +537,21 @@ describe("tokenized_vault", () => {
   it("Deposits tokens into the vault", async () => {
     const provider = AnchorProvider.env();
 
-    userTokenAccount = await token.createAccount(provider.connection, user, underlyingMint, user.publicKey);
+    userTokenAccount = await token.createAccount(
+      provider.connection, 
+      user, 
+      underlyingMint, 
+      user.publicKey,
+      null, 
+      null, 
+      token.TOKEN_2022_PROGRAM_ID
+    );
     console.log("User token account:", userTokenAccount.toBase58());
 
     userSharesAccount = await token.createAccount(provider.connection, user, sharesMint, user.publicKey);
     console.log("User shares account:", userSharesAccount.toBase58());
 
-    await token.mintTo(provider.connection, admin, underlyingMint, userTokenAccount, admin.publicKey, 1000);
+    await token.mintTo(provider.connection, admin, underlyingMint, userTokenAccount, admin.publicKey, 1000, [], null, token.TOKEN_2022_PROGRAM_ID);
     console.log("Minted 1000 tokens to user:", userTokenAccount.toBase58());
 
     const kycVerified = web3.PublicKey.findProgramAddressSync(
@@ -529,11 +565,11 @@ describe("tokenized_vault", () => {
     await vaultProgram.methods.deposit(new BN(100))
       .accounts({
         vault,
-        underlyingMint,
         user: user.publicKey,
+        underlyingMint,
         userTokenAccount,
         userSharesAccount,
-        tokenProgram: token.TOKEN_PROGRAM_ID,
+        tokenProgram: token.TOKEN_2022_PROGRAM_ID,
       })
       .signers([user])
       .remainingAccounts([
@@ -545,11 +581,11 @@ describe("tokenized_vault", () => {
     console.log("Vault balance after deposit:", vaultAccount.totalDebt.toString());
 
     // Fetch the vault token account balance to verify the deposit
-    let vaultTokenAccountInfo = await token.getAccount(provider.connection, vaultTokenAccount);
+    let vaultTokenAccountInfo = await token.getAccount(provider.connection, vaultTokenAccount, null, token.TOKEN_2022_PROGRAM_ID);
     assert.strictEqual(vaultTokenAccountInfo.amount.toString(), '100');
 
     // Fetch the user's token account balance to verify the deduction
-    let userTokenAccountInfo = await token.getAccount(provider.connection, userTokenAccount);
+    let userTokenAccountInfo = await token.getAccount(provider.connection, userTokenAccount, null, token.TOKEN_2022_PROGRAM_ID);
     assert.strictEqual(userTokenAccountInfo.amount.toString(), '900');
 
     // check the user shares account balance
@@ -566,7 +602,7 @@ describe("tokenized_vault", () => {
         strategy,
         underlyingMint,
         signer: admin.publicKey,
-        tokenProgram: token.TOKEN_PROGRAM_ID,
+        tokenProgram: token.TOKEN_2022_PROGRAM_ID,
       })
       .signers([admin])
       .rpc();
@@ -574,11 +610,11 @@ describe("tokenized_vault", () => {
     console.log("Updated debt");
 
     // Fetch the vault token account balance to verify the allocation
-    let vaultTokenAccountInfo = await token.getAccount(provider.connection, vaultTokenAccount);
+    let vaultTokenAccountInfo = await token.getAccount(provider.connection, vaultTokenAccount, null, token.TOKEN_2022_PROGRAM_ID);
     assert.strictEqual(vaultTokenAccountInfo.amount.toString(), '10');
 
     // Fetch the strategy token account balance to verify the allocation
-    let strategyTokenAccountInfo = await token.getAccount(provider.connection, strategyTokenAccount);
+    let strategyTokenAccountInfo = await token.getAccount(provider.connection, strategyTokenAccount, null, token.TOKEN_2022_PROGRAM_ID);
     assert.strictEqual(strategyTokenAccountInfo.amount.toString(), '90');
 
     // Fetch the strategy account to verify the state change
@@ -607,9 +643,9 @@ describe("tokenized_vault", () => {
     await strategyProgram.methods.deployFunds(new BN(90))
       .accounts({
         strategy,
-        underlyingMint,
         signer: admin.publicKey,
-        tokenProgram: token.TOKEN_PROGRAM_ID,
+        underlyingMint,
+        tokenProgram: token.TOKEN_2022_PROGRAM_ID,
       })
       .remainingAccounts([
         { pubkey: adminTokenAccount, isWritable: true, isSigner: false },
@@ -620,14 +656,14 @@ describe("tokenized_vault", () => {
     console.log("Deployed funds");
 
     // check the strategy token account balance
-    let strategyTokenAccountInfo = await token.getAccount(provider.connection, strategyTokenAccount);
+    let strategyTokenAccountInfo = await token.getAccount(provider.connection, strategyTokenAccount, null, token.TOKEN_2022_PROGRAM_ID);
     assert.strictEqual(strategyTokenAccountInfo.amount.toString(), '0');
 
     let strategyAccount = await strategyProgram.account.simpleStrategy.fetch(strategy);
     assert.strictEqual(strategyAccount.totalInvested.toString(), '90');
 
     // check the admin token account balance
-    let adminTokenAccountInfo = await token.getAccount(provider.connection, adminTokenAccount);
+    let adminTokenAccountInfo = await token.getAccount(provider.connection, adminTokenAccount, null, token.TOKEN_2022_PROGRAM_ID);
     assert.strictEqual(adminTokenAccountInfo.amount.toString(), '90');
 
     // free funds 
@@ -636,7 +672,7 @@ describe("tokenized_vault", () => {
         strategy,
         underlyingMint,
         signer: admin.publicKey,
-        tokenProgram: token.TOKEN_PROGRAM_ID,
+        tokenProgram: token.TOKEN_2022_PROGRAM_ID,
       })
       .remainingAccounts([
         { pubkey: adminTokenAccount, isWritable: true, isSigner: false },
@@ -647,11 +683,11 @@ describe("tokenized_vault", () => {
     console.log("Freed funds");
 
     // check the strategy token account balance
-    strategyTokenAccountInfo = await token.getAccount(provider.connection, strategyTokenAccount);
+    strategyTokenAccountInfo = await token.getAccount(provider.connection, strategyTokenAccount, null, token.TOKEN_2022_PROGRAM_ID);
     assert.strictEqual(strategyTokenAccountInfo.amount.toString(), '90');
 
     // check the admin token account balance
-    adminTokenAccountInfo = await token.getAccount(provider.connection, adminTokenAccount);
+    adminTokenAccountInfo = await token.getAccount(provider.connection, adminTokenAccount, null, token.TOKEN_2022_PROGRAM_ID);
     assert.strictEqual(adminTokenAccountInfo.amount.toString(), '0');
   });
 
@@ -664,17 +700,17 @@ describe("tokenized_vault", () => {
         strategy,
         underlyingMint,
         signer: admin.publicKey,
-        tokenProgram: token.TOKEN_PROGRAM_ID,
+        tokenProgram: token.TOKEN_2022_PROGRAM_ID,
       })
       .signers([admin])
       .rpc();
 
     // Fetch the vault token account balance to verify the allocation
-    let vaultTokenAccountInfo = await token.getAccount(provider.connection, vaultTokenAccount);
+    let vaultTokenAccountInfo = await token.getAccount(provider.connection, vaultTokenAccount, null, token.TOKEN_2022_PROGRAM_ID);
     assert.strictEqual(vaultTokenAccountInfo.amount.toString(), '20');
 
     // Fetch the strategy token account balance to verify the allocation
-    let strategyTokenAccountInfo = await token.getAccount(provider.connection, strategyTokenAccount);
+    let strategyTokenAccountInfo = await token.getAccount(provider.connection, strategyTokenAccount, null, token.TOKEN_2022_PROGRAM_ID);
     assert.strictEqual(strategyTokenAccountInfo.amount.toString(), '80');
 
     // Fetch the strategy account to verify the state change
@@ -725,7 +761,7 @@ describe("tokenized_vault", () => {
         user: user.publicKey,
         userTokenAccount,
         userSharesAccount,
-        tokenProgram: token.TOKEN_PROGRAM_ID,
+        tokenProgram: token.TOKEN_2022_PROGRAM_ID,
       })
       .remainingAccounts([
         { pubkey: strategy, isWritable: true, isSigner: false },
@@ -741,7 +777,7 @@ describe("tokenized_vault", () => {
     console.log("Vault debt after withdraw:", vaultAccount.totalDebt.toString());
     assert.strictEqual(vaultAccount.totalIdle.toString(), '0');
 
-    let vaultTokenAccountInfo = await token.getAccount(provider.connection, vaultTokenAccount);
+    let vaultTokenAccountInfo = await token.getAccount(provider.connection, vaultTokenAccount, null, token.TOKEN_2022_PROGRAM_ID);
     console.log("Vault token account balance after withdraw:", vaultTokenAccountInfo.amount.toString());
     assert.strictEqual(vaultTokenAccountInfo.amount.toString(), '0');
 
@@ -751,7 +787,7 @@ describe("tokenized_vault", () => {
     assert.strictEqual(userSharesAccountInfo.amount.toString(), '70');
 
     // check the user token account balance
-    let userTokenAccountInfo = await token.getAccount(provider.connection, userTokenAccount);
+    let userTokenAccountInfo = await token.getAccount(provider.connection, userTokenAccount, null, token.TOKEN_2022_PROGRAM_ID);
     console.log("User token account balance after withdraw:", userTokenAccountInfo.amount.toString());
     assert.strictEqual(userTokenAccountInfo.amount.toString(), '930');
   });
@@ -764,7 +800,7 @@ describe("tokenized_vault", () => {
           underlyingMint,
           signer: admin.publicKey,
           vaultTokenAccount: userTokenAccount,
-          tokenProgram: token.TOKEN_PROGRAM_ID,
+          tokenProgram: token.TOKEN_2022_PROGRAM_ID,
         })
         .signers([admin])
         .rpc();
@@ -782,7 +818,15 @@ describe("tokenized_vault", () => {
     await provider.connection.confirmTransaction(airdropSignature);
 
     const newOwnerSharesAccount = await token.createAccount(provider.connection, newOwner, sharesMint, newOwner.publicKey);
-    const newOwnerTokenAccount = await token.createAccount(provider.connection, newOwner, underlyingMint, newOwner.publicKey);
+    const newOwnerTokenAccount = await token.createAccount(
+      provider.connection, 
+      newOwner, 
+      underlyingMint, 
+      newOwner.publicKey,
+      null, 
+      null, 
+      token.TOKEN_2022_PROGRAM_ID
+    );
 
     console.log("New owner public key:", newOwner.publicKey.toBase58());
     const shares = new BN(10);
@@ -820,7 +864,7 @@ describe("tokenized_vault", () => {
         user: newOwner.publicKey,
         userTokenAccount: newOwnerTokenAccount,
         userSharesAccount: newOwnerSharesAccount,
-        tokenProgram: token.TOKEN_PROGRAM_ID,
+        tokenProgram: token.TOKEN_2022_PROGRAM_ID,
       })
       .remainingAccounts([
         { pubkey: strategy, isWritable: true, isSigner: false },
@@ -835,7 +879,7 @@ describe("tokenized_vault", () => {
     assert.strictEqual(newOwnerSharesAccountInfo.amount.toString(), '0');
 
     // check the user token account balance
-    let userTokenAccountInfo = await token.getAccount(provider.connection, newOwnerTokenAccount);
+    let userTokenAccountInfo = await token.getAccount(provider.connection, newOwnerTokenAccount, null, token.TOKEN_2022_PROGRAM_ID);
     assert.strictEqual(userTokenAccountInfo.amount.toString(), '10');
   });
 
@@ -843,7 +887,7 @@ describe("tokenized_vault", () => {
     const provider = AnchorProvider.env();
 
     // 60 tokens profit for the strategy
-    await token.mintTo(provider.connection, admin, underlyingMint, adminTokenAccount, admin.publicKey, 60);
+    await token.mintTo(provider.connection, admin, underlyingMint, adminTokenAccount, admin.publicKey, 60, [], null, token.TOKEN_2022_PROGRAM_ID);
 
     // check total shares before report
     let vaultAccount = await vaultProgram.account.vault.fetch(vault);
@@ -851,9 +895,9 @@ describe("tokenized_vault", () => {
     await strategyProgram.methods.reportProfit(new BN(60))
       .accounts({
         strategy,
-        underlyingMint,
         signer: admin.publicKey,
-        tokenProgram: token.TOKEN_PROGRAM_ID,
+        underlyingMint,
+        tokenProgram: token.TOKEN_2022_PROGRAM_ID,
       })
       .remainingAccounts([
         { pubkey: adminTokenAccount, isWritable: true, isSigner: false },
@@ -879,11 +923,11 @@ describe("tokenized_vault", () => {
     assert.strictEqual(strategyAccount.feeData.feeBalance.toString(), '6');
 
     // check the strategy token account balance
-    let strategyTokenAccountInfo = await token.getAccount(provider.connection, strategyTokenAccount);
+    let strategyTokenAccountInfo = await token.getAccount(provider.connection, strategyTokenAccount, null, token.TOKEN_2022_PROGRAM_ID);
     assert.strictEqual(strategyTokenAccountInfo.amount.toString(), '120');
 
     // check the vault token account balance
-    let vaultTokenAccountInfo = await token.getAccount(provider.connection, vaultTokenAccount);
+    let vaultTokenAccountInfo = await token.getAccount(provider.connection, vaultTokenAccount, null, token.TOKEN_2022_PROGRAM_ID);
     assert.strictEqual(vaultTokenAccountInfo.amount.toString(), '0');
 
     // withdraw
@@ -909,7 +953,7 @@ describe("tokenized_vault", () => {
         user: user.publicKey,
         userTokenAccount,
         userSharesAccount,
-        tokenProgram: token.TOKEN_PROGRAM_ID,
+        tokenProgram: token.TOKEN_2022_PROGRAM_ID,
       })
       .remainingAccounts([
         { pubkey: strategy, isWritable: true, isSigner: false },
@@ -924,7 +968,7 @@ describe("tokenized_vault", () => {
     assert.strictEqual(userSharesAccountInfo.amount.toString(), '50');
 
     // check the user token account balance (received 19 tokens)
-    let userTokenAccountInfo = await token.getAccount(provider.connection, userTokenAccount);
+    let userTokenAccountInfo = await token.getAccount(provider.connection, userTokenAccount, null, token.TOKEN_2022_PROGRAM_ID);
     assert.strictEqual(userTokenAccountInfo.amount.toString(), '948');
 
     console.log("User shares account balance after withdraw:", userSharesAccountInfo.amount.toString());
@@ -952,7 +996,7 @@ describe("tokenized_vault", () => {
         user: feeRecipient.publicKey,
         userTokenAccount: feeRecipientTokenAccount,
         userSharesAccount: feeRecipientSharesAccount,
-        tokenProgram: token.TOKEN_PROGRAM_ID,
+        tokenProgram: token.TOKEN_2022_PROGRAM_ID,
       })
       .remainingAccounts([
         { pubkey: strategy, isWritable: true, isSigner: false },
@@ -967,7 +1011,7 @@ describe("tokenized_vault", () => {
     assert.strictEqual(feeRecipientSharesAccountInfo.amount.toString(), '0');
 
     // check the fee recipient token account balance (received 3 tokens)
-    let feeRecipientTokenAccountInfo = await token.getAccount(provider.connection, feeRecipientTokenAccount);
+    let feeRecipientTokenAccountInfo = await token.getAccount(provider.connection, feeRecipientTokenAccount, null, token.TOKEN_2022_PROGRAM_ID);
     assert.strictEqual(feeRecipientTokenAccountInfo.amount.toString(), '3');
   });
 
@@ -984,7 +1028,7 @@ describe("tokenized_vault", () => {
           strategy,
           underlyingMint,
           signer: newUser.publicKey,
-          tokenProgram: token.TOKEN_PROGRAM_ID,
+          tokenProgram: token.TOKEN_2022_PROGRAM_ID,
         })
         .remainingAccounts([
           { pubkey: strategyTokenAccount, isWritable: true, isSigner: false },
@@ -1047,7 +1091,7 @@ describe("tokenized_vault", () => {
   it("withdraw strategy fees", async () => {
     const provider = AnchorProvider.env();
 
-    await token.mintTo(provider.connection, admin, underlyingMint, adminTokenAccount, admin.publicKey, 100);
+    await token.mintTo(provider.connection, admin, underlyingMint, adminTokenAccount, admin.publicKey, 100, [], null, token.TOKEN_2022_PROGRAM_ID);
 
     let strategyAccount = await strategyProgram.account.simpleStrategy.fetch(strategy);
     let totalFees = strategyAccount.feeData.feeBalance;
@@ -1060,7 +1104,7 @@ describe("tokenized_vault", () => {
         underlyingMint,
         recipient: adminTokenAccount,
         signer: strategyFeeManager.publicKey,
-        tokenProgram: token.TOKEN_PROGRAM_ID,
+        tokenProgram: token.TOKEN_2022_PROGRAM_ID,
       })
       .remainingAccounts([
         { pubkey: adminTokenAccount, isWritable: true, isSigner: false },
@@ -1071,7 +1115,7 @@ describe("tokenized_vault", () => {
     strategyAccount = await strategyProgram.account.simpleStrategy.fetch(strategy);
     assert.strictEqual(strategyAccount.feeData.feeBalance.toString(), '0');
 
-    const adminTokenAccountInfo = await token.getAccount(provider.connection, adminTokenAccount);
+    const adminTokenAccountInfo = await token.getAccount(provider.connection, adminTokenAccount, null, token.TOKEN_2022_PROGRAM_ID);
     assert.strictEqual(adminTokenAccountInfo.amount.toString(), '106');
   });
 
@@ -1098,7 +1142,7 @@ describe("tokenized_vault", () => {
         user: user.publicKey,
         userTokenAccount,
         userSharesAccount,
-        tokenProgram: token.TOKEN_PROGRAM_ID,
+        tokenProgram: token.TOKEN_2022_PROGRAM_ID,
       })
       .signers([user])
       .remainingAccounts([
@@ -1106,7 +1150,7 @@ describe("tokenized_vault", () => {
       ])
       .rpc();
 
-    let strategyTokenAccountInfo = await token.getAccount(provider.connection, strategyTokenAccount);
+    let strategyTokenAccountInfo = await token.getAccount(provider.connection, strategyTokenAccount, null, token.TOKEN_2022_PROGRAM_ID);
 
     await vaultProgram.methods.updateDebt(new BN(100))
       .accounts({
@@ -1114,13 +1158,13 @@ describe("tokenized_vault", () => {
         strategy,
         underlyingMint,
         signer: admin.publicKey,
-        tokenProgram: token.TOKEN_PROGRAM_ID,
+        tokenProgram: token.TOKEN_2022_PROGRAM_ID,
       })
       .signers([admin])
       .rpc();
 
     // Fetch the strategy token account balance to verify the allocation
-    strategyTokenAccountInfo = await token.getAccount(provider.connection, strategyTokenAccount);
+    strategyTokenAccountInfo = await token.getAccount(provider.connection, strategyTokenAccount, null, token.TOKEN_2022_PROGRAM_ID);
     assert.strictEqual(strategyTokenAccountInfo.amount.toString(), new BN(100).toString());
 
     await strategyProgram.methods.reportLoss(new BN(10))
@@ -1128,7 +1172,7 @@ describe("tokenized_vault", () => {
         strategy,
         underlyingMint,
         signer: admin.publicKey,
-        tokenProgram: token.TOKEN_PROGRAM_ID,
+        tokenProgram: token.TOKEN_2022_PROGRAM_ID,
       })
       .remainingAccounts([
         { pubkey: adminTokenAccount, isWritable: true, isSigner: false },
@@ -1147,7 +1191,7 @@ describe("tokenized_vault", () => {
       .rpc();
 
     // check the strategy token account balance
-    strategyTokenAccountInfo = await token.getAccount(provider.connection, strategyTokenAccount);
+    strategyTokenAccountInfo = await token.getAccount(provider.connection, strategyTokenAccount, null, token.TOKEN_2022_PROGRAM_ID);
     assert.strictEqual(strategyTokenAccountInfo.amount.toString(), '90');
 
 

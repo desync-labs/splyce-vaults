@@ -1,9 +1,6 @@
 use std::cell::Ref;
 use anchor_lang::prelude::*;
-use anchor_spl::{
-    token::Token,
-    token_interface::TokenAccount,
-};
+use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 use access_control::{
     constants::USER_ROLE_SEED,
     program::AccessControl,
@@ -29,6 +26,9 @@ pub struct UpdateStrategyDebt<'info> {
 
     #[account(mut, seeds = [UNDERLYING_SEED.as_bytes(), vault.key().as_ref()], bump)]
     pub vault_token_account: InterfaceAccount<'info, TokenAccount>,
+
+    #[account(mut, address = vault.load()?.underlying_mint)]
+    pub underlying_mint: InterfaceAccount<'info, Mint>,
 
     /// CHECK: Should this be mut?
     #[account(mut)]
@@ -67,7 +67,7 @@ pub struct UpdateStrategyDebt<'info> {
     pub signer: Signer<'info>,
 
     pub access_control: Program<'info, AccessControl>,
-    pub token_program: Program<'info, Token>,
+    pub token_program: Interface<'info, TokenInterface>,
     pub strategy_program: Program<'info, Strategy>
 }
 
@@ -87,7 +87,7 @@ pub fn handle_update_debt<'a, 'b, 'c, 'info>(
         vault_key: vault_mut.key,
         strategy_key: ctx.accounts.strategy.key(),
         total_idle: total_idle,
-        total_debt: total_debt,
+        total_debt: total_debt, 
         new_debt,
     });
 
@@ -120,6 +120,7 @@ fn handle_internal<'a, 'b, 'c, 'info>(
             ctx.accounts.strategy.to_account_info(),
             ctx.accounts.vault.to_account_info(),
             ctx.accounts.strategy_token_account.to_account_info(),
+            ctx.accounts.underlying_mint.to_account_info(),
             &mut ctx.accounts.vault_token_account,
             ctx.accounts.token_program.to_account_info(),
             ctx.accounts.strategy_program.to_account_info(),
@@ -152,6 +153,8 @@ fn handle_internal<'a, 'b, 'c, 'info>(
             ctx.accounts.strategy.to_account_info(),
             ctx.accounts.vault.to_account_info(),
             ctx.accounts.strategy_token_account.to_account_info(),
+            ctx.accounts.underlying_mint.to_account_info(),
+
             ctx.accounts.vault_token_account.to_account_info(),
             ctx.accounts.token_program.to_account_info(),
             ctx.accounts.strategy_program.to_account_info(),
