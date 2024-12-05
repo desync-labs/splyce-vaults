@@ -1130,6 +1130,7 @@ describe.only("Roles and Permissions Tests", () => {
             },
           ])
           .rpc();
+        assert.fail("Error was not thrown");
       } catch (err) {
         expect(err.message).to.contain(errorStrings.kycRequired);
       }
