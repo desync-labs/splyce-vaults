@@ -37,15 +37,15 @@ pub mod accountant {
         handle_init_accountant(ctx, accountant_type)
     }
 
+    pub fn init_token_account(ctx: Context<InitTokenAccount>) -> Result<()> {
+        handle_init_token_account(ctx)
+    }
+
     pub fn distribute(ctx: Context<Distribute>) -> Result<()> {
         handle_distribute(ctx)
     }
 
     pub fn set_fee(ctx: Context<SetFee>, fee: u64) -> Result<()> {
         handle_set_fee(ctx, fee)
-    }
-
-    pub fn set_fee_recipient(ctx: Context<SetFeeRecipient>, recipient: Pubkey) -> Result<()> {
-        handle_set_fee_recipient(ctx, recipient)
     }
 }

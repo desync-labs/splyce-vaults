@@ -39,10 +39,6 @@ impl Accountant for GenericAccountant {
     fn distribute(&mut self, accounts: &Distribute) -> Result<()> {
         let total = accounts.token_account.amount;
 
-        if accounts.recipient.key() != self.fee_recipient {
-           return Err(ErrorCode::InvalidRecipient.into());
-        }
-
         token::transfer(
             CpiContext::new_with_signer(
                 accounts.token_program.to_account_info(),
