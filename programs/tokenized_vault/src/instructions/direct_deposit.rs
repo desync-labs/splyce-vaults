@@ -6,19 +6,21 @@ use access_control::{
 use anchor_lang::prelude::*;
 use anchor_spl::{
     token::Token,
-    token_interface::{Mint, TokenAccount, TokenInterface}
+    token_interface::{Mint, TokenAccount},
 };
+use strategy::program::Strategy;
 
-use crate::constants::{SHARES_SEED, UNDERLYING_SEED};
+use crate::constants::{SHARES_SEED, STRATEGY_DATA_SEED, UNDERLYING_SEED};
 
 use crate::errors::ErrorCode;
-use crate::events::VaultDepositEvent;
-use crate::state::Vault;
+use crate::events::{VaultDepositEvent, UpdatedCurrentDebtForStrategyEvent};
+use crate::state::{Vault, StrategyData};
 use crate::utils::token;
+use crate::utils::strategy as strategy_utils;
 use crate::utils::access_control::RolesAccInfo;
 
 #[derive(Accounts)]
-pub struct Deposit<'info> {
+pub struct DirectDeposit<'info> {
     #[account(mut)]
     pub vault: AccountLoader<'info, Vault>,
 
@@ -31,11 +33,31 @@ pub struct Deposit<'info> {
     #[account(mut, seeds = [SHARES_SEED.as_bytes(), vault.key().as_ref()], bump)]
     pub shares_mint: InterfaceAccount<'info, Mint>,
 
-    #[account(mut, address = vault.load()?.underlying_mint)]
-    pub underlying_mint: InterfaceAccount<'info, Mint>,
-
     #[account(mut)]
-    pub user_shares_account: InterfaceAccount<'info, TokenAccount>,
+    pub user_shares_account: InterfaceAccount <'info, TokenAccount>,
+
+    /// CHECK: Should this be mut?
+    #[account(mut)]
+    pub strategy: UncheckedAccount<'info>,
+
+    #[account(
+        mut,
+        seeds = [
+            STRATEGY_DATA_SEED.as_bytes(),
+            vault.key().as_ref(),
+            strategy.key().as_ref()
+        ],
+        bump,
+    )]
+    pub strategy_data: Account<'info, StrategyData>,
+
+    #[account(
+        mut, 
+        seeds = [UNDERLYING_SEED.as_bytes(), strategy.key().as_ref()],
+        bump,
+        seeds::program = strategy_program.key(),
+    )]
+    pub strategy_token_account: InterfaceAccount<'info, TokenAccount>,
 
     /// CHECK: this account may not exist
     #[account(
@@ -48,17 +70,17 @@ pub struct Deposit<'info> {
         seeds::program = access_control.key()
     )]
     pub kyc_verified: UncheckedAccount<'info>,
-    
+
     #[account(mut)]
     pub user: Signer<'info>,
 
-    pub shares_token_program: Program<'info, Token>,
-    pub token_program: Interface<'info, TokenInterface>,
+    pub token_program: Program<'info, Token>,
     pub access_control: Program<'info, AccessControl>,
+    pub strategy_program: Program<'info, Strategy>,
 }
 
-pub fn handle_deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
-    validate_deposit(&ctx, amount)?;
+pub fn handle_direct_deposit<'info>(ctx: Context<'_, '_, '_, 'info, DirectDeposit<'info>>, amount: u64) -> Result<()> {
+    validate_direct_deposit(&ctx, amount)?;
 
     let shares = ctx.accounts.vault.load()?.convert_to_shares(amount);
 
@@ -67,12 +89,25 @@ pub fn handle_deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
         ctx.accounts.user_token_account.to_account_info(),
         ctx.accounts.vault_token_account.to_account_info(),
         ctx.accounts.user.to_account_info(),
-        &ctx.accounts.underlying_mint,
         amount,
     )?;
 
+    ctx.accounts.vault_token_account.reload()?;
+
+    strategy_utils::deposit(
+        ctx.accounts.strategy.to_account_info(),
+        ctx.accounts.vault.to_account_info(),
+        ctx.accounts.strategy_token_account.to_account_info(),
+        ctx.accounts.vault_token_account.to_account_info(),
+        ctx.accounts.token_program.to_account_info(),
+        ctx.accounts.strategy_program.to_account_info(),
+        amount,
+        &[&ctx.accounts.vault.load()?.seeds()],
+        ctx.remaining_accounts.to_vec(),
+    )?;
+
     token::mint_to(
-        ctx.accounts.shares_token_program.to_account_info(),
+        ctx.accounts.token_program.to_account_info(),
         ctx.accounts.shares_mint.to_account_info(),
         ctx.accounts.user_shares_account.to_account_info(),
         ctx.accounts.shares_mint.to_account_info(),
@@ -81,7 +116,11 @@ pub fn handle_deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
     )?;
 
     let mut vault = ctx.accounts.vault.load_mut()?;
-    vault.handle_deposit(amount, shares);
+
+
+    ctx.accounts.strategy_data.increase_current_debt(amount)?;
+
+    vault.handle_direct_deposit(amount, shares);
 
     emit!(VaultDepositEvent {
         vault_key: vault.key,
@@ -97,10 +136,18 @@ pub fn handle_deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
         authority: ctx.accounts.user.to_account_info().key(),
     });
 
+    emit!(UpdatedCurrentDebtForStrategyEvent {
+        vault_key: vault.key,
+        strategy_key: ctx.accounts.strategy.key(),
+        total_idle: vault.total_idle,
+        total_debt: vault.total_debt,
+        new_debt: ctx.accounts.strategy_data.current_debt,
+    });
+
     Ok(())
 }
 
-fn validate_deposit(ctx: &Context<Deposit>, amount: u64) -> Result<()> {
+fn validate_direct_deposit(ctx: &Context<DirectDeposit>, amount: u64) -> Result<()> {
     if amount == 0 {
         return Err(ErrorCode::ZeroValue.into());
     }
@@ -109,6 +156,10 @@ fn validate_deposit(ctx: &Context<Deposit>, amount: u64) -> Result<()> {
 
     if vault.is_shutdown {
         return Err(ErrorCode::VaultShutdown.into());
+    }
+
+    if !vault.direct_deposit_enabled {
+        return Err(ErrorCode::DirectDepositDisabled.into());
     }
 
     if amount < vault.min_user_deposit {

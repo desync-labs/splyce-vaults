@@ -97,7 +97,7 @@ pub fn handle_process_report(ctx: Context<ProcessReport>) -> Result<()> {
         handle_loss(&ctx, loss)?;
     }
 
-    ctx.accounts.strategy_data.update_strategy_current_debt(strategy_assets)?;
+    ctx.accounts.strategy_data.update_current_debt(strategy_assets)?;
 
     emit!(StrategyReportedEvent {
         strategy_key: strategy.key(),
