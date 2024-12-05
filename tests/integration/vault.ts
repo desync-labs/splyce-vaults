@@ -275,6 +275,41 @@ describe("tokenized_vault", () => {
     assert.isTrue(rolesAccount.hasRole);
   });
 
+  it("init accountants", async () => {
+    await accountantProgram.methods.initialize()
+      .accounts({
+        admin: admin.publicKey,
+      })
+      .signers([admin])
+      .rpc();
+  });
+
+  it("generic accountant", async () => {
+    const accountantType = { generic: {} };
+
+    await accountantProgram.methods.initAccountant(accountantType)
+      .accounts({
+        signer: admin.publicKey,
+      })
+      .signers([admin])
+      .rpc();
+
+      console.log("Accountant inited");
+
+    await accountantProgram.methods.setFee(new BN(500))
+      .accounts({
+        accountant: accountant,
+        signer: admin.publicKey,
+      })
+      .signers([admin])
+      .rpc();
+
+    let genericAccountant = await accountantProgram.account.genericAccountant.fetch(accountant);
+    assert.strictEqual(genericAccountant.performanceFee.toNumber(), 500);
+    console.log("Performance fee:", genericAccountant.performanceFee.toNumber());
+  });
+
+
   it("Initializes the vault", async () => {
     const vaultConfig = {
       depositLimit: new BN(1000000000),
@@ -337,54 +372,28 @@ describe("tokenized_vault", () => {
     console.log("minUserDeposit: ", vaultAccount.minUserDeposit.toString());
   });
 
-  it("init accountants", async () => {
-    await accountantProgram.methods.initialize()
-      .accounts({
-        admin: admin.publicKey,
-      })
-      .signers([admin])
-      .rpc();
-  });
-
-  it("generic accountant", async () => {
-    const accountantType = { generic: {} };
-
+  it("generic accountant - token acc", async () => {
     const provider = AnchorProvider.env();
     feeRecipientSharesAccount = await token.createAccount(provider.connection, feeRecipient, sharesMint, feeRecipient.publicKey);
     feeRecipientTokenAccount = await token.createAccount(provider.connection, feeRecipient, underlyingMint, feeRecipient.publicKey);
 
-    await accountantProgram.methods.initAccountant(accountantType)
+    await accountantProgram.methods.initTokenAccount()
       .accounts({
+        accountant: accountant,
         signer: admin.publicKey,
         underlyingMint: sharesMint,
-      })
+      }) 
       .signers([admin])
       .rpc();
 
-    await accountantProgram.methods.setFee(new BN(500))
+      await accountantProgram.methods.initTokenAccount()
       .accounts({
         accountant: accountant,
         signer: admin.publicKey,
-      })
+        underlyingMint: underlyingMint,
+      }) 
       .signers([admin])
       .rpc();
-
-    let genericAccountant = await accountantProgram.account.genericAccountant.fetch(accountant);
-    assert.strictEqual(genericAccountant.performanceFee.toNumber(), 500);
-    console.log("Performance fee:", genericAccountant.performanceFee.toNumber());
-
-    await accountantProgram.methods.setFeeRecipient(feeRecipientSharesAccount)
-      .accounts({
-        accountant: accountant,
-        signer: admin.publicKey,
-      })
-      .signers([admin])
-      .rpc();
-
-    genericAccountant = await accountantProgram.account.genericAccountant.fetch(accountant);
-    assert.strictEqual(genericAccountant.feeRecipient.toString(), feeRecipientSharesAccount.toBase58());
-
-    console.log("Fee recipient:", genericAccountant.feeRecipient.toString());
   });
 
   it("Initializes the strategy", async () => {
