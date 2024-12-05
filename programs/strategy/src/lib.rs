@@ -41,7 +41,10 @@ pub mod strategy {
         handle_init_strategy(ctx, strategy_type, config)
     }
 
-    pub fn deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
+    pub fn deposit<'info>(
+        ctx: Context<'_, '_, '_, 'info, Deposit<'info>>, 
+        amount: u64
+    ) -> Result<()> {
         handle_deposit(ctx, amount)
     }
 

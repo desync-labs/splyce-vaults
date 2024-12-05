@@ -204,7 +204,7 @@ async function main() {
     console.log("\nInvest Tracker States BEFORE purchase:");
     const tmacTrackerBefore = await strategyProgram.account.investTracker.fetch(INVEST_TRACKER_ACCOUNT_TMAC);
     const wsolTrackerBefore = await strategyProgram.account.investTracker.fetch(INVEST_TRACKER_ACCOUNT_WSOL);
-    
+
     console.log("TMAC Tracker:", {
       whirlpool_id: tmacTrackerBefore.whirlpoolId.toString(),
       asset_mint: tmacTrackerBefore.assetMint.toString(),
@@ -220,7 +220,7 @@ async function main() {
       assigned_weight: tmacTrackerBefore.assignedWeight,
       current_weight: tmacTrackerBefore.currentWeight,
     });
-    
+
     console.log("WSOL Tracker:", {
       whirlpool_id: wsolTrackerBefore.whirlpoolId.toString(),
       asset_mint: wsolTrackerBefore.assetMint.toString(),
@@ -398,7 +398,7 @@ async function main() {
       console.log("\nInvest Tracker States AFTER purchase:");
       const tmacTrackerAfter = await strategyProgram.account.investTracker.fetch(INVEST_TRACKER_ACCOUNT_TMAC);
       const wsolTrackerAfter = await strategyProgram.account.investTracker.fetch(INVEST_TRACKER_ACCOUNT_WSOL);
-      
+
       console.log("TMAC Tracker:", {
         whirlpool_id: tmacTrackerAfter.whirlpoolId.toString(),
         asset_mint: tmacTrackerAfter.assetMint.toString(),
@@ -414,7 +414,7 @@ async function main() {
         assigned_weight: tmacTrackerAfter.assignedWeight,
         current_weight: tmacTrackerAfter.currentWeight,
       });
-      
+
       console.log("WSOL Tracker:", {
         whirlpool_id: wsolTrackerAfter.whirlpoolId.toString(),
         asset_mint: wsolTrackerAfter.assetMint.toString(),

@@ -196,7 +196,8 @@ async function main() {
         minUserDeposit: new BN(1000000),     // Adjust value as needed
         accountant: admin.publicKey,          // Using admin as accountant
         profitMaxUnlockTime: new BN(7 * 24 * 60 * 60), // 7 days in seconds
-        kycVerifiedOnly: false
+        kycVerifiedOnly: false,
+        directDepositEnabled: true,
     };
 
     // 9. Initialize Vault

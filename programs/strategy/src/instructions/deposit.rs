@@ -8,6 +8,8 @@ use crate::error::ErrorCode;
 use crate::utils::token::transfer;
 use crate::utils::unchecked_strategy::UncheckedStrategy;
 use crate::constants::UNDERLYING_SEED;
+use crate::StrategyType;
+use crate::instructions::deploy_funds::DeployFunds;
 
 #[derive(Accounts)]
 pub struct Deposit<'info> {
@@ -28,7 +30,7 @@ pub struct Deposit<'info> {
 }
 
 pub fn handle_deposit<'info>(
-    ctx: Context<Deposit<'info>>,
+    ctx: Context<'_, '_, '_, 'info, Deposit<'info>>,
     amount: u64,
 ) -> Result<()> {
     let mut strategy = ctx.accounts.strategy.from_unchecked()?;
@@ -39,14 +41,29 @@ pub fn handle_deposit<'info>(
         return Err(ErrorCode::MaxDepositReached.into());
     }
 
-    strategy.deposit(amount)?;
-    strategy.save_changes(&mut &mut ctx.accounts.strategy.try_borrow_mut_data()?[8..])?;
-
     transfer(
         ctx.accounts.token_program.to_account_info(),
-        ctx.accounts.vault_token_account.to_account_info(), 
-        ctx.accounts.underlying_token_account.to_account_info(), 
-        ctx.accounts.signer.to_account_info(), 
+        ctx.accounts.vault_token_account.to_account_info(),  //from
+        ctx.accounts.underlying_token_account.to_account_info(),  //to
+        ctx.accounts.signer.to_account_info(),  //authority
         amount
-    )
+    )?;
+
+    strategy.deposit(amount)?;
+
+    //if strategy type is orca, we need to call deploy_funds
+    if strategy.strategy_type() == StrategyType::Orca {
+        // Create DeployFunds accounts struct from existing Deposit accounts
+        let deploy_funds = DeployFunds {
+            strategy: ctx.accounts.strategy.clone(),
+            underlying_token_account: ctx.accounts.underlying_token_account.clone(),
+            signer: ctx.accounts.signer.clone(),
+            token_program: ctx.accounts.token_program.clone(),
+        };
+        strategy.deploy_funds(&deploy_funds, &ctx.remaining_accounts, amount)?;
+    }
+
+    strategy.save_changes(&mut &mut ctx.accounts.strategy.try_borrow_mut_data()?[8..])?;
+    
+    Ok(())
 }

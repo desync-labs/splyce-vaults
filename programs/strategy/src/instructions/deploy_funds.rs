@@ -17,7 +17,11 @@ pub struct DeployFunds<'info> {
     #[account(mut, seeds = [UNDERLYING_SEED.as_bytes(), strategy.key().as_ref()], bump)]
     pub underlying_token_account: InterfaceAccount<'info, TokenAccount>,
 
-    #[account(mut, constraint = signer.key() == strategy.manager() @ErrorCode::AccessDenied)]
+    #[account(mut, constraint = 
+        signer.key() == strategy.manager() || 
+        signer.key() == strategy.vault() 
+        @ErrorCode::AccessDenied
+    )]
     pub signer: Signer<'info>,
 
     pub token_program: Program<'info, Token>,

@@ -33,9 +33,9 @@ pub struct OrcaStrategy {
     pub underlying_token_acc: Pubkey,
     pub underlying_decimals: u8,
 
-    pub total_invested: u64, //
+    pub total_invested: u64,
     pub total_assets: u64, // In orca, this is not actual total assets but total asset value in underlying token units (total asset value)
-    pub deposit_limit: u64, //TODO later use or delete
+    pub deposit_limit: u64, // Use it when testing beta version
 
     pub fee_data: FeeData,
 }   
@@ -471,7 +471,6 @@ impl Strategy for OrcaStrategy {
                 weights[i] as u128,
                 MAX_ASSIGNED_WEIGHT as u128
             );
-
             // Extract accounts from remaining array
             let whirlpool_program = &remaining[start];
             let whirlpool = &remaining[start + 1];
