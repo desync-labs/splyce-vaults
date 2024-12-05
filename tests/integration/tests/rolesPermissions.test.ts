@@ -648,7 +648,7 @@ describe.only("Roles and Permissions Tests", () => {
 
     it("Vaults Admin - Calling update debt method is successful", async () => {
       const depositAmount = 100;
-      const allocationAmount = 90;
+      const allocationAmount = 100;
       const kycVerified = anchor.web3.PublicKey.findProgramAddressSync(
         [
           Buffer.from("user_role"),
@@ -737,7 +737,7 @@ describe.only("Roles and Permissions Tests", () => {
       );
     });
 
-    it("Vaults Admin - Calling set deposit limit method is successfull", async () => {
+    it("Vaults Admin - Calling set deposit limit method is successful", async () => {
       const newDepositLimit = new BN(2000000000);
 
       await vaultProgram.methods
@@ -756,8 +756,8 @@ describe.only("Roles and Permissions Tests", () => {
       );
     });
 
-    it("Vaults Admin - Calling set min user deposit method is successfull", async () => {
-      const newMinUserDeposit = 100000000;
+    it("Vaults Admin - Calling set min user deposit method is successful", async () => {
+      const newMinUserDeposit = 100;
       await vaultProgram.methods
         .setMinUserDeposit(new BN(newMinUserDeposit))
         .accounts({
@@ -774,40 +774,131 @@ describe.only("Roles and Permissions Tests", () => {
       );
     });
 
-    it("Vaults Admin - Calling set profit max unlock time method is successfull", async () => {
+    it("Vaults Admin - Calling set profit max unlock time method is successful", async () => {
+      const accountant = anchor.web3.PublicKey.findProgramAddressSync(
+        [Buffer.from(new Uint8Array(new BigUint64Array([BigInt(4)]).buffer))],
+        accountantProgram.programId
+      )[0];
+
+      const vaultConfig = {
+        depositLimit: new BN(1000000000),
+        minUserDeposit: new BN(0),
+        accountant: accountant,
+        profitMaxUnlockTime: new BN(0),
+        kycVerifiedOnly: true,
+        directDepositEnabled: false,
+      };
+
+      const sharesConfig = {
+        name: "Test Roles and Permissions One",
+        symbol: "TRPV1",
+        uri: "https://gist.githubusercontent.com/vito-kovalione/08b86d3c67440070a8061ae429572494/raw/833e3d5f5988c18dce2b206a74077b2277e13ab6/PVT.json",
+      };
+
+      const [vault, sharesMint, metadataAccount, vaultTokenAccount] =
+        await initializeVault({
+          vaultProgram,
+          underlyingMint,
+          vaultIndex: 4,
+          signer: vaultsAdmin,
+          vaultConfig: vaultConfig,
+          sharesConfig: sharesConfig,
+        });
+
       const newProfitMaxUnlockTime = 1;
       await vaultProgram.methods
         .setProfitMaxUnlockTime(new BN(1))
         .accounts({
-          vault: vaultOne,
+          vault: vault,
           signer: vaultsAdmin.publicKey,
         })
         .signers([vaultsAdmin])
         .rpc();
 
-      const vaultAccount = await vaultProgram.account.vault.fetch(vaultOne);
+      const vaultAccount = await vaultProgram.account.vault.fetch(vault);
       assert.strictEqual(
         vaultAccount.profitMaxUnlockTime.toString(),
         newProfitMaxUnlockTime.toString()
       );
     });
 
-    it("Vaults Admin - Calling set min total idle method is successfull", async () => {
+    it("Vaults Admin - Calling set min total idle method is successful", async () => {
+      const accountant = anchor.web3.PublicKey.findProgramAddressSync(
+        [Buffer.from(new Uint8Array(new BigUint64Array([BigInt(4)]).buffer))],
+        accountantProgram.programId
+      )[0];
+
+      const vaultConfig = {
+        depositLimit: new BN(1000000000),
+        minUserDeposit: new BN(0),
+        accountant: accountant,
+        profitMaxUnlockTime: new BN(0),
+        kycVerifiedOnly: true,
+        directDepositEnabled: false,
+      };
+
+      const sharesConfig = {
+        name: "Test Roles and Permissions One",
+        symbol: "TRPV1",
+        uri: "https://gist.githubusercontent.com/vito-kovalione/08b86d3c67440070a8061ae429572494/raw/833e3d5f5988c18dce2b206a74077b2277e13ab6/PVT.json",
+      };
+
+      const [vault, sharesMint, metadataAccount, vaultTokenAccount] =
+        await initializeVault({
+          vaultProgram,
+          underlyingMint,
+          vaultIndex: 5,
+          signer: vaultsAdmin,
+          vaultConfig: vaultConfig,
+          sharesConfig: sharesConfig,
+        });
+
       const newMinTotalIdle = 1;
       await vaultProgram.methods
         .setMinTotalIdle(new BN(1))
         .accounts({
-          vault: vaultOne,
+          vault: vault,
           signer: vaultsAdmin.publicKey,
         })
         .signers([vaultsAdmin])
         .rpc();
 
-      const vaultAccount = await vaultProgram.account.vault.fetch(vaultOne);
+      const vaultAccount = await vaultProgram.account.vault.fetch(vault);
       assert.strictEqual(
         vaultAccount.minimumTotalIdle.toString(),
         newMinTotalIdle.toString()
       );
+    });
+  });
+
+  describe("Reporting Manager Role Tests", () => {
+    it("Reporting Manager - Calling process report method is successful", async () => {
+      await strategyProgram.methods
+        .reportProfit(new BN(10))
+        .accounts({
+          strategy: strategyOne,
+          signer: strategiesManager.publicKey,
+        })
+        .remainingAccounts([
+          {
+            pubkey: strategiesManager.publicKey,
+            isWritable: true,
+            isSigner: false,
+          },
+        ])
+        .signers([strategiesManager])
+        .rpc();
+
+      await vaultProgram.methods
+        .processReport()
+        .accounts({
+          vault: vaultOne,
+          strategy: strategyOne,
+          signer: reportingManager.publicKey,
+          accountant: accountantOne,
+        })
+        .signers([reportingManager])
+        .rpc();
     });
   });
 });
