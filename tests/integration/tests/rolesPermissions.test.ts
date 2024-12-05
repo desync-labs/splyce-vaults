@@ -20,6 +20,7 @@ import {
 } from "../../utils/helpers";
 import * as token from "@solana/spl-token";
 import { SimpleStrategyConfig } from "../../utils/schemas";
+import { min } from "bn.js";
 
 describe.only("Roles and Permissions Tests", () => {
   // Test Role Accounts
@@ -43,6 +44,11 @@ describe.only("Roles and Permissions Tests", () => {
   // User token and shares accounts
   let kycVerifiedUserTokenAccount: anchor.web3.PublicKey;
   let kycVerifiedUserSharesAccountVaultOne: anchor.web3.PublicKey;
+  let kycVerifiedUserCurrentAmount: number;
+  let strategiesManagerOneTokenAccount: anchor.web3.PublicKey;
+  let strategiesManagerCurrentAmount: number;
+  let nonVerifiedUserTokenAccount: anchor.web3.PublicKey;
+  let nonVerifiedUserCurrentAmount: number;
 
   // First Test Vault
   let vaultOne: anchor.web3.PublicKey;
@@ -204,7 +210,7 @@ describe.only("Roles and Permissions Tests", () => {
 
     const strategyConfigOne = new SimpleStrategyConfig({
       depositLimit: new BN(1000),
-      performanceFee: new BN(1),
+      performanceFee: new BN(1000),
       feeManager: strategiesManager.publicKey,
     });
 
@@ -229,7 +235,7 @@ describe.only("Roles and Permissions Tests", () => {
 
     console.log("Initialized vaults and strategies successfully");
 
-    // Create KYC verified user token accounts and mint underlying tokens
+    // Create token accounts and mint underlying tokens
     kycVerifiedUserTokenAccount = await token.createAccount(
       connection,
       kycVerifiedUser,
@@ -244,9 +250,23 @@ describe.only("Roles and Permissions Tests", () => {
       kycVerifiedUser.publicKey
     );
 
-    console.log(
-      "KYC verified user's token account and shares accounts created successfully"
+    strategiesManagerOneTokenAccount = await token.createAccount(
+      connection,
+      strategiesManager,
+      underlyingMint,
+      strategiesManager.publicKey
     );
+
+    nonVerifiedUserTokenAccount = await token.createAccount(
+      connection,
+      nonVerifiedUser,
+      underlyingMint,
+      nonVerifiedUser.publicKey
+    );
+
+    console.log("Token accounts and shares accounts created successfully");
+
+    const mintAmount = 1000;
 
     await token.mintTo(
       connection,
@@ -254,8 +274,30 @@ describe.only("Roles and Permissions Tests", () => {
       underlyingMint,
       kycVerifiedUserTokenAccount,
       underlyingMintOwner.publicKey,
-      1000
+      mintAmount
     );
+
+    await token.mintTo(
+      connection,
+      underlyingMintOwner,
+      underlyingMint,
+      strategiesManagerOneTokenAccount,
+      underlyingMintOwner.publicKey,
+      mintAmount
+    );
+
+    await token.mintTo(
+      connection,
+      underlyingMintOwner,
+      underlyingMint,
+      nonVerifiedUserTokenAccount,
+      underlyingMintOwner.publicKey,
+      mintAmount
+    );
+
+    kycVerifiedUserCurrentAmount = mintAmount;
+    strategiesManagerCurrentAmount = mintAmount;
+    nonVerifiedUserCurrentAmount = mintAmount;
 
     console.log("Minted underlying token to KYC Verified user successfully");
 
@@ -672,6 +714,8 @@ describe.only("Roles and Permissions Tests", () => {
         ])
         .rpc();
 
+      kycVerifiedUserCurrentAmount -= depositAmount;
+
       await vaultProgram.methods
         .updateDebt(new BN(allocationAmount))
         .accounts({
@@ -881,7 +925,7 @@ describe.only("Roles and Permissions Tests", () => {
         })
         .remainingAccounts([
           {
-            pubkey: strategiesManager.publicKey,
+            pubkey: strategiesManagerOneTokenAccount,
             isWritable: true,
             isSigner: false,
           },
@@ -899,6 +943,218 @@ describe.only("Roles and Permissions Tests", () => {
         })
         .signers([reportingManager])
         .rpc();
+
+      const vaultAccount = await vaultProgram.account.vault.fetch(vaultOne);
+      assert.strictEqual(vaultAccount.totalShares.toString(), "100");
+
+      let strategyAccount = await strategyProgram.account.simpleStrategy.fetch(
+        strategyOne
+      );
+      assert.strictEqual(strategyAccount.feeData.feeBalance.toString(), "1");
+
+      let strategyTokenAccountInfo = await token.getAccount(
+        provider.connection,
+        strategyTokenAccountOne
+      );
+      assert.strictEqual(strategyTokenAccountInfo.amount.toString(), "110");
+
+      let vaultTokenAccountInfo = await token.getAccount(
+        provider.connection,
+        vaultTokenAccountOne
+      );
+      assert.strictEqual(vaultTokenAccountInfo.amount.toString(), "0");
+    });
+  });
+
+  describe("KYC Verified User Role Tests", () => {
+    it("KYC Verified User - Calling deposit method for kyc verified only vault is successful", async () => {
+      const depositAmount = 50;
+
+      const accountant = anchor.web3.PublicKey.findProgramAddressSync(
+        [Buffer.from(new Uint8Array(new BigUint64Array([BigInt(6)]).buffer))],
+        accountantProgram.programId
+      )[0];
+
+      const vaultConfig = {
+        depositLimit: new BN(1000000000),
+        minUserDeposit: new BN(0),
+        accountant: accountant,
+        profitMaxUnlockTime: new BN(0),
+        kycVerifiedOnly: true,
+        directDepositEnabled: false,
+      };
+
+      const sharesConfig = {
+        name: "Test Roles and Permissions One",
+        symbol: "TRPV1",
+        uri: "https://gist.githubusercontent.com/vito-kovalione/08b86d3c67440070a8061ae429572494/raw/833e3d5f5988c18dce2b206a74077b2277e13ab6/PVT.json",
+      };
+
+      const [vault, sharesMint, metadataAccount, vaultTokenAccount] =
+        await initializeVault({
+          vaultProgram,
+          underlyingMint,
+          vaultIndex: 6,
+          signer: vaultsAdmin,
+          vaultConfig: vaultConfig,
+          sharesConfig: sharesConfig,
+        });
+
+      const userSharesAccount = await token.createAccount(
+        provider.connection,
+        kycVerifiedUser,
+        sharesMint,
+        kycVerifiedUser.publicKey
+      );
+
+      const kycVerified = anchor.web3.PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("user_role"),
+          kycVerifiedUser.publicKey.toBuffer(),
+          ROLES_BUFFER.KYC_VERIFIED,
+        ],
+        accessControlProgram.programId
+      )[0];
+
+      await vaultProgram.methods
+        .deposit(new BN(depositAmount))
+        .accounts({
+          vault: vault,
+          user: kycVerifiedUser.publicKey,
+          userTokenAccount: kycVerifiedUserTokenAccount,
+          userSharesAccount: userSharesAccount,
+        })
+        .signers([kycVerifiedUser])
+        .remainingAccounts([
+          { pubkey: kycVerified, isWritable: false, isSigner: false },
+        ])
+        .rpc();
+
+      kycVerifiedUserCurrentAmount -= depositAmount;
+
+      let vaultTokenAccountInfo = await token.getAccount(
+        provider.connection,
+        vaultTokenAccount
+      );
+
+      assert.strictEqual(
+        vaultTokenAccountInfo.amount.toString(),
+        depositAmount.toString()
+      );
+
+      let userTokenAccountInfo = await token.getAccount(
+        provider.connection,
+        kycVerifiedUserTokenAccount
+      );
+      assert.strictEqual(
+        userTokenAccountInfo.amount.toString(),
+        kycVerifiedUserCurrentAmount.toString()
+      );
+
+      let userSharesAccountInfo = await token.getAccount(
+        provider.connection,
+        userSharesAccount
+      );
+      assert.strictEqual(
+        userSharesAccountInfo.amount.toString(),
+        depositAmount.toString()
+      );
+    });
+  });
+
+  describe("Non-KYC Verified User Role Tests", () => {
+    it("Non-KYC Verified User - Calling deposit method for kyc verified only vault should revert", async () => {
+      const depositAmount = 50;
+
+      const accountant = anchor.web3.PublicKey.findProgramAddressSync(
+        [Buffer.from(new Uint8Array(new BigUint64Array([BigInt(7)]).buffer))],
+        accountantProgram.programId
+      )[0];
+
+      const vaultConfig = {
+        depositLimit: new BN(1000000000),
+        minUserDeposit: new BN(0),
+        accountant: accountant,
+        profitMaxUnlockTime: new BN(0),
+        kycVerifiedOnly: true,
+        directDepositEnabled: false,
+      };
+
+      const sharesConfig = {
+        name: "Test Roles and Permissions One",
+        symbol: "TRPV1",
+        uri: "https://gist.githubusercontent.com/vito-kovalione/08b86d3c67440070a8061ae429572494/raw/833e3d5f5988c18dce2b206a74077b2277e13ab6/PVT.json",
+      };
+
+      const [vault, sharesMint, metadataAccount, vaultTokenAccount] =
+        await initializeVault({
+          vaultProgram,
+          underlyingMint,
+          vaultIndex: 7,
+          signer: vaultsAdmin,
+          vaultConfig: vaultConfig,
+          sharesConfig: sharesConfig,
+        });
+
+      const userSharesAccount = await token.createAccount(
+        provider.connection,
+        nonVerifiedUser,
+        sharesMint,
+        nonVerifiedUser.publicKey
+      );
+
+      const kycVerified = anchor.web3.PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("user_role"),
+          nonVerifiedUser.publicKey.toBuffer(),
+          ROLES_BUFFER.KYC_VERIFIED,
+        ],
+        accessControlProgram.programId
+      )[0];
+
+      try {
+        await vaultProgram.methods
+          .deposit(new BN(depositAmount))
+          .accounts({
+            vault: vault,
+            user: nonVerifiedUser.publicKey,
+            userTokenAccount: nonVerifiedUserTokenAccount,
+            userSharesAccount: userSharesAccount,
+          })
+          .signers([nonVerifiedUser])
+          .remainingAccounts([
+            {
+              pubkey: kycVerified,
+              isWritable: false,
+              isSigner: false,
+            },
+          ])
+          .rpc();
+      } catch (err) {
+        expect(err.message).to.contain(errorStrings.kycRequired);
+      }
+
+      let vaultTokenAccountInfo = await token.getAccount(
+        provider.connection,
+        vaultTokenAccount
+      );
+
+      assert.strictEqual(vaultTokenAccountInfo.amount.toString(), "0");
+
+      let userTokenAccountInfo = await token.getAccount(
+        provider.connection,
+        nonVerifiedUserTokenAccount
+      );
+      assert.strictEqual(
+        userTokenAccountInfo.amount.toString(),
+        nonVerifiedUserCurrentAmount.toString()
+      );
+
+      let userSharesAccountInfo = await token.getAccount(
+        provider.connection,
+        userSharesAccount
+      );
+      assert.strictEqual(userSharesAccountInfo.amount.toString(), "0");
     });
   });
 });
