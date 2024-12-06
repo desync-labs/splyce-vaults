@@ -223,13 +223,14 @@ impl Strategy for OrcaStrategy {
 
         for i in 0..num_swaps {
             let start = i * ORCA_ACCOUNTS_PER_SWAP;
-            let amount_per_swap = amounts[i];
-
-            // Get is_a_to_b from invest tracker
             let invest_tracker_account = &remaining[start + ORCA_INVEST_TRACKER_OFFSET];
-            let data = invest_tracker_account.try_borrow_data()?;
-            let invest_tracker_data = InvestTracker::try_from_slice(&data[8..])?;
-            let is_a_to_b = invest_tracker_data.a_to_b_for_purchase;
+
+            // Extract required data in a limited scope to avoid double borrowing
+            let (is_a_to_b, asset_mint) = {
+                let data = invest_tracker_account.try_borrow_data()?;
+                let invest_tracker_data = InvestTracker::try_from_slice(&data[8..])?;
+                (invest_tracker_data.a_to_b_for_purchase, invest_tracker_data.asset_mint)
+            }; // Data borrow is dropped here
 
             let swap_ctx = SwapContext {
                 whirlpool_program: remaining[start].clone(),
@@ -249,11 +250,13 @@ impl Strategy for OrcaStrategy {
 
             self.execute_swap_operation(
                 &swap_ctx,
-                amount_per_swap,
+                amounts[i],
                 SwapDirection::Sell,
-                false, // !amount_specified_is_input
+                false,
                 if is_a_to_b { MIN_SQRT_PRICE_X64 } else { MAX_SQRT_PRICE_X64 },
                 u64::MAX,
+                asset_mint,    // Pass asset_mint
+                is_a_to_b,     // Pass is_a_to_b
             )?;
         }
 
@@ -275,6 +278,15 @@ impl Strategy for OrcaStrategy {
                 MAX_ASSIGNED_WEIGHT as u128
             );
 
+            let invest_tracker_account = &remaining[start + ORCA_INVEST_TRACKER_OFFSET];
+            
+            // Extract required data in a limited scope
+            let (is_a_to_b, asset_mint) = {
+                let data = invest_tracker_account.try_borrow_data()?;
+                let invest_tracker_data = InvestTracker::try_from_slice(&data[8..])?;
+                (invest_tracker_data.a_to_b_for_purchase, invest_tracker_data.asset_mint)
+            }; // Data borrow is dropped here
+
             let swap_ctx = SwapContext {
                 whirlpool_program: remaining[start].clone(),
                 whirlpool: remaining[start + 1].clone(),
@@ -286,7 +298,7 @@ impl Strategy for OrcaStrategy {
                 tick_array_1: remaining[start + 7].clone(),
                 tick_array_2: remaining[start + 8].clone(),
                 oracle: remaining[start + 9].clone(),
-                invest_tracker_account: remaining[start + ORCA_INVEST_TRACKER_OFFSET].clone(),
+                invest_tracker_account: invest_tracker_account.clone(),
                 token_program: accounts.token_program.to_account_info(),
                 strategy: accounts.strategy.to_account_info(),
             };
@@ -295,9 +307,11 @@ impl Strategy for OrcaStrategy {
                 &swap_ctx,
                 amount_per_swap,
                 SwapDirection::Buy,
-                true, // amount_specified_is_input
+                true,
                 NO_EXPLICIT_SQRT_PRICE_LIMIT,
                 0,
+                asset_mint,    // Pass asset_mint
+                is_a_to_b,     // Pass is_a_to_b
             )?;
         }
 
@@ -352,11 +366,13 @@ impl Strategy for OrcaStrategy {
             let start = i * ORCA_ACCOUNTS_PER_SWAP;
             let amount_per_swap = delta_value as u64;
 
-            // Get is_a_to_b from invest tracker
+            // Extract required data in a limited scope
             let invest_tracker_account = &remaining[start + ORCA_INVEST_TRACKER_OFFSET];
-            let data = invest_tracker_account.try_borrow_data()?;
-            let invest_tracker_data = InvestTracker::try_from_slice(&data[8..])?;
-            let is_a_to_b = invest_tracker_data.a_to_b_for_purchase;
+            let (is_a_to_b, asset_mint) = {
+                let data = invest_tracker_account.try_borrow_data()?;
+                let invest_tracker_data = InvestTracker::try_from_slice(&data[8..])?;
+                (invest_tracker_data.a_to_b_for_purchase, invest_tracker_data.asset_mint)
+            }; // Data borrow is dropped here
 
             let swap_ctx = SwapContext {
                 whirlpool_program: remaining[start].clone(),
@@ -381,6 +397,8 @@ impl Strategy for OrcaStrategy {
                 false,
                 if is_a_to_b { MIN_SQRT_PRICE_X64 } else { MAX_SQRT_PRICE_X64 },
                 u64::MAX,
+                asset_mint,    // Add asset_mint parameter
+                is_a_to_b,     // Add is_a_to_b parameter
             )?;
         }
 
@@ -398,6 +416,7 @@ impl Strategy for OrcaStrategy {
         // Calculate total delta_value for buys
         let total_buy_value: u128 = buy_list.iter().map(|&(_, delta_value)| delta_value).sum();
 
+        // Process buying assets
         for (i, delta_value) in buy_list {
             let start = i * ORCA_ACCOUNTS_PER_SWAP;
             let amount_per_swap = compute_asset_per_swap(
@@ -405,6 +424,14 @@ impl Strategy for OrcaStrategy {
                 delta_value,
                 total_buy_value,
             );
+
+            // Extract required data in a limited scope
+            let invest_tracker_account = &remaining[start + ORCA_INVEST_TRACKER_OFFSET];
+            let (is_a_to_b, asset_mint) = {
+                let data = invest_tracker_account.try_borrow_data()?;
+                let invest_tracker_data = InvestTracker::try_from_slice(&data[8..])?;
+                (invest_tracker_data.a_to_b_for_purchase, invest_tracker_data.asset_mint)
+            }; // Data borrow is dropped here
 
             let swap_ctx = SwapContext {
                 whirlpool_program: remaining[start].clone(),
@@ -417,7 +444,7 @@ impl Strategy for OrcaStrategy {
                 tick_array_1: remaining[start + 7].clone(),
                 tick_array_2: remaining[start + 8].clone(),
                 oracle: remaining[start + 9].clone(),
-                invest_tracker_account: remaining[start + ORCA_INVEST_TRACKER_OFFSET].clone(),
+                invest_tracker_account: invest_tracker_account.clone(),
                 token_program: accounts.token_program.to_account_info(),
                 strategy: accounts.strategy.to_account_info(),
             };
@@ -429,6 +456,8 @@ impl Strategy for OrcaStrategy {
                 true,
                 NO_EXPLICIT_SQRT_PRICE_LIMIT,
                 0,
+                asset_mint,    // Add asset_mint parameter
+                is_a_to_b,     // Add is_a_to_b parameter
             )?;
         }
 
@@ -584,15 +613,10 @@ impl OrcaStrategy {
         use_amount_as_input: bool,
         sqrt_price_limit: u128,
         other_amount_threshold: u64,
+        asset_mint: Pubkey,  // Added parameter
+        is_a_to_b: bool,     // Added parameter
     ) -> Result<()> {
-        // Extract required data in a limited scope to avoid double borrowing
-        let (asset_mint, is_a_to_b) = {
-            let data = swap_ctx.invest_tracker_account.try_borrow_data()?;
-            let invest_tracker_data = InvestTracker::try_from_slice(&data[8..])?;
-            (invest_tracker_data.asset_mint, invest_tracker_data.a_to_b_for_purchase)
-        };
-
-        // Verify invest tracker after releasing the borrow
+        // Verify invest tracker without borrowing data again
         self.verify_invest_tracker(
             &swap_ctx.invest_tracker_account,
             asset_mint,
@@ -602,11 +626,9 @@ impl OrcaStrategy {
         // Determine a_to_b and sqrt_price_limit based on direction and is_a_to_b
         let (a_to_b, final_sqrt_price_limit, final_amount_specified_is_input) = match direction {
             SwapDirection::Buy => {
-                // For deploy_funds or rebalance buys:
                 (is_a_to_b, NO_EXPLICIT_SQRT_PRICE_LIMIT, true)
             }
             SwapDirection::Sell => {
-                // For free_funds or rebalance sells:
                 let a_to_b = !is_a_to_b;
                 let sqrt_limit = if !is_a_to_b { MIN_SQRT_PRICE_X64 } else { MAX_SQRT_PRICE_X64 };
                 (a_to_b, sqrt_limit, false)

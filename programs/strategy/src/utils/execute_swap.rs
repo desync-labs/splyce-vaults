@@ -2,7 +2,6 @@ use anchor_lang::prelude::*;
 use whirlpool_cpi::{ self };
 
 use crate::error::ErrorCode;
-use crate::state::invest_tracker::*;
 use crate::utils::get_token_balance;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
