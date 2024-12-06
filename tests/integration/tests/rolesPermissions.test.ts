@@ -20,9 +20,8 @@ import {
 } from "../../utils/helpers";
 import * as token from "@solana/spl-token";
 import { SimpleStrategyConfig } from "../../utils/schemas";
-import { min } from "bn.js";
 
-describe.only("Roles and Permissions Tests", () => {
+describe("Roles and Permissions Tests", () => {
   // Test Role Accounts
   let rolesAdmin: anchor.web3.Keypair;
   let accountantAdmin: anchor.web3.Keypair;
@@ -170,6 +169,14 @@ describe.only("Roles and Permissions Tests", () => {
       accountantProgram.programId
     )[0];
 
+    await accountantProgram.methods
+      .initAccountant(accountantType)
+      .accounts({
+        signer: accountantAdmin.publicKey,
+      })
+      .signers([accountantAdmin])
+      .rpc();
+
     const vaultConfigOne = {
       depositLimit: new BN(1000000000),
       minUserDeposit: new BN(0),
@@ -231,6 +238,26 @@ describe.only("Roles and Permissions Tests", () => {
         signer: vaultsAdmin.publicKey,
       })
       .signers([vaultsAdmin])
+      .rpc();
+
+    await accountantProgram.methods
+      .initTokenAccount()
+      .accounts({
+        accountant: accountantOne,
+        signer: accountantAdmin.publicKey,
+        underlyingMint: sharesMintOne,
+      })
+      .signers([accountantAdmin])
+      .rpc();
+
+    await accountantProgram.methods
+      .initTokenAccount()
+      .accounts({
+        accountant: accountantOne,
+        signer: accountantAdmin.publicKey,
+        underlyingMint: underlyingMint,
+      })
+      .signers([accountantAdmin])
       .rpc();
 
     console.log("Initialized vaults and strategies successfully");
@@ -310,7 +337,6 @@ describe.only("Roles and Permissions Tests", () => {
         .initAccountant(accountantType)
         .accounts({
           signer: accountantAdmin.publicKey,
-          underlyingMint: sharesMintOne,
         })
         .signers([accountantAdmin])
         .rpc();
@@ -319,7 +345,7 @@ describe.only("Roles and Permissions Tests", () => {
         await accountantProgram.account.config.fetch(accountantConfig);
       assert.strictEqual(
         accountantConfigAccount.nextAccountantIndex.toNumber(),
-        1
+        2
       );
     });
 
@@ -336,24 +362,6 @@ describe.only("Roles and Permissions Tests", () => {
       let genericAccountant =
         await accountantProgram.account.genericAccountant.fetch(accountantOne);
       assert.strictEqual(genericAccountant.performanceFee.toNumber(), 500);
-    });
-
-    it("Accountant Admin - Calling set fee recipient is successful", async function () {
-      await accountantProgram.methods
-        .setFeeRecipient(feeRecipientSharesAccountOne)
-        .accounts({
-          accountant: accountantOne,
-          signer: accountantAdmin.publicKey,
-        })
-        .signers([accountantAdmin])
-        .rpc();
-
-      const genericAccountant =
-        await accountantProgram.account.genericAccountant.fetch(accountantOne);
-      assert.strictEqual(
-        genericAccountant.feeRecipient.toString(),
-        feeRecipientSharesAccountOne.toBase58()
-      );
     });
 
     it("Accountant Admin - Calling distribute method is successful", async function () {
@@ -505,7 +513,7 @@ describe.only("Roles and Permissions Tests", () => {
 
     it("Vaults Admin - Calling init vault method is successful", async () => {
       const accountant = anchor.web3.PublicKey.findProgramAddressSync(
-        [Buffer.from(new Uint8Array(new BigUint64Array([BigInt(0)]).buffer))],
+        [Buffer.from(new Uint8Array(new BigUint64Array([BigInt(1)]).buffer))],
         accountantProgram.programId
       )[0];
 
@@ -597,7 +605,7 @@ describe.only("Roles and Permissions Tests", () => {
 
     it("Vaults Admin - Calling shutdown vault method is successful", async () => {
       const accountant = anchor.web3.PublicKey.findProgramAddressSync(
-        [Buffer.from(new Uint8Array(new BigUint64Array([BigInt(0)]).buffer))],
+        [Buffer.from(new Uint8Array(new BigUint64Array([BigInt(2)]).buffer))],
         accountantProgram.programId
       )[0];
 
@@ -868,7 +876,7 @@ describe.only("Roles and Permissions Tests", () => {
 
     it("Vaults Admin - Calling set min total idle method is successful", async () => {
       const accountant = anchor.web3.PublicKey.findProgramAddressSync(
-        [Buffer.from(new Uint8Array(new BigUint64Array([BigInt(4)]).buffer))],
+        [Buffer.from(new Uint8Array(new BigUint64Array([BigInt(5)]).buffer))],
         accountantProgram.programId
       )[0];
 
