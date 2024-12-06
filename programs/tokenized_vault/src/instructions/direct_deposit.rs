@@ -1,7 +1,7 @@
 use access_control::{
     constants::USER_ROLE_SEED,
     program::AccessControl,
-    state::Role,
+    state::Role
 };
 use anchor_lang::prelude::*;
 use anchor_spl::{
@@ -10,14 +10,12 @@ use anchor_spl::{
 };
 use strategy::program::Strategy;
 
-use crate::constants::{SHARES_SEED, STRATEGY_DATA_SEED, UNDERLYING_SEED};
+use crate::constants::{SHARES_SEED, STRATEGY_DATA_SEED, UNDERLYING_SEED, WHITELISTED_SEED};
 
-use crate::errors::ErrorCode;
 use crate::events::{VaultDepositEvent, UpdatedCurrentDebtForStrategyEvent};
 use crate::state::{Vault, StrategyData};
-use crate::utils::token;
+use crate::utils::{token, vault};
 use crate::utils::strategy as strategy_utils;
-use crate::utils::access_control::RolesAccInfo;
 
 #[derive(Accounts)]
 pub struct DirectDeposit<'info> {
@@ -71,6 +69,17 @@ pub struct DirectDeposit<'info> {
     )]
     pub kyc_verified: UncheckedAccount<'info>,
 
+    /// CHECK: this account may not exist
+    #[account(
+        seeds = [
+            WHITELISTED_SEED.as_bytes(), 
+            vault.key().as_ref(),
+            user.key().as_ref(),
+        ], 
+        bump,
+    )]
+    pub whitelisted: UncheckedAccount<'info>,
+        
     #[account(mut)]
     pub user: Signer<'info>,
 
@@ -80,7 +89,13 @@ pub struct DirectDeposit<'info> {
 }
 
 pub fn handle_direct_deposit<'info>(ctx: Context<'_, '_, '_, 'info, DirectDeposit<'info>>, amount: u64) -> Result<()> {
-    validate_direct_deposit(&ctx, amount)?;
+    vault::validate_deposit(
+        &ctx.accounts.vault, 
+        ctx.accounts.kyc_verified.to_account_info(),
+        ctx.accounts.whitelisted.to_account_info(),
+        true,
+        amount
+    )?;
 
     let shares = ctx.accounts.vault.load()?.convert_to_shares(amount);
 
@@ -117,7 +132,6 @@ pub fn handle_direct_deposit<'info>(ctx: Context<'_, '_, '_, 'info, DirectDeposi
 
     let mut vault = ctx.accounts.vault.load_mut()?;
 
-
     ctx.accounts.strategy_data.increase_current_debt(amount)?;
 
     vault.handle_direct_deposit(amount, shares);
@@ -143,37 +157,6 @@ pub fn handle_direct_deposit<'info>(ctx: Context<'_, '_, '_, 'info, DirectDeposi
         total_debt: vault.total_debt,
         new_debt: ctx.accounts.strategy_data.current_debt,
     });
-
-    Ok(())
-}
-
-fn validate_direct_deposit(ctx: &Context<DirectDeposit>, amount: u64) -> Result<()> {
-    if amount == 0 {
-        return Err(ErrorCode::ZeroValue.into());
-    }
-
-    let vault = ctx.accounts.vault.load()?;
-
-    if vault.is_shutdown {
-        return Err(ErrorCode::VaultShutdown.into());
-    }
-
-    if !vault.direct_deposit_enabled {
-        return Err(ErrorCode::DirectDepositDisabled.into());
-    }
-
-    if amount < vault.min_user_deposit {
-        return Err(ErrorCode::MinDepositNotReached.into());
-    }
-
-    // todo: introduce deposit limit module
-    if amount > vault.max_deposit() {
-        return Err(ErrorCode::ExceedDepositLimit.into());
-    }
-
-    if vault.kyc_verified_only && !ctx.accounts.kyc_verified.has_role() {
-        return Err(ErrorCode::KYCRequired.into());
-    }
 
     Ok(())
 }
