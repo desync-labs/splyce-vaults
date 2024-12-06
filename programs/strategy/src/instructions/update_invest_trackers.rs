@@ -9,7 +9,7 @@ use access_control::{
     state::{UserRole, Role}
 };
 
-use crate::constants::{INVEST_TRACKER_SEED, MAX_ASSIGNED_WEIGHT};
+use crate::constants::{INVEST_TRACKER_SEED, MAX_ASSIGNED_WEIGHT, ASSET_VALUE_DISCOUNT_BPS, FEE_BPS};
 use crate::state::invest_tracker::*;
 use crate::state::whirlpool::*;
 use crate::error::ErrorCode;
@@ -98,16 +98,24 @@ pub fn handle_update_invest_trackers(ctx: Context<UpdateInvestTrackers>) -> Resu
             b_decimals,
         );
 
-        // Update asset value using compute_asset_value function
-        current_data.asset_value = compute_asset_value(
+        // Calculate full asset value first
+        let full_asset_value = compute_asset_value(
             current_data.asset_amount,
             current_data.asset_price,
             current_data.asset_decimals
         );
 
+        // Apply discount more efficiently: value * (10000 - 30) / 10000
+        current_data.asset_value = full_asset_value
+            .checked_mul((FEE_BPS - ASSET_VALUE_DISCOUNT_BPS as u64) as u128)
+            .ok_or(ErrorCode::MathOverflow)?
+            .checked_div(FEE_BPS as u128)
+            .ok_or(ErrorCode::MathOverflow)?;
+
         // Add to totals
         total_weight += current_data.assigned_weight as u16;
-        total_asset_value = total_asset_value.checked_add(current_data.asset_value)
+        total_asset_value = total_asset_value
+            .checked_add(current_data.asset_value)
             .ok_or(ErrorCode::MathOverflow)?;
 
         // Serialize the updated data

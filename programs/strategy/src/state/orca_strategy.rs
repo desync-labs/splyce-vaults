@@ -8,16 +8,18 @@ use super::fee_data::*;
 use crate::error::ErrorCode;
 use crate::events::{StrategyDepositEvent, AMMStrategyInitEvent, StrategyWithdrawEvent, HarvestAndReportDTF, InvestTrackerSwapEvent};
 use crate::instructions::{Report, ReportProfit, ReportLoss, DeployFunds, FreeFunds, Rebalance};
-use crate::constants::{AMOUNT_SPECIFIED_IS_INPUT, REMAINING_ACCOUNTS_MIN, MAX_SQRT_PRICE_X64, MIN_SQRT_PRICE_X64, INVEST_TRACKER_SEED, NO_EXPLICIT_SQRT_PRICE_LIMIT, MAX_ASSIGNED_WEIGHT};
+use crate::constants::{
+    AMOUNT_SPECIFIED_IS_INPUT, REMAINING_ACCOUNTS_MIN, MAX_SQRT_PRICE_X64, 
+    MIN_SQRT_PRICE_X64, INVEST_TRACKER_SEED, NO_EXPLICIT_SQRT_PRICE_LIMIT, 
+    MAX_ASSIGNED_WEIGHT,
+    ORCA_ACCOUNTS_PER_SWAP, ORCA_INVEST_TRACKER_OFFSET
+};
 use crate::state::invest_tracker::*;
 use crate::utils::{
     orca_swap_handler,
     get_token_balance,
     orca_utils::compute_asset_per_swap,
 };
-
-const ACCOUNTS_PER_SWAP: usize = 12;
-const INVEST_TRACKER_OFFSET: usize = 10;
 
 #[account]
 #[derive(Default, Debug, InitSpace)]
@@ -104,7 +106,7 @@ impl OrcaStrategy {
         let mut weights = Vec::with_capacity(num_swaps);
 
         for i in 0..num_swaps {
-            let invest_tracker_account = &remaining[i * ACCOUNTS_PER_SWAP + INVEST_TRACKER_OFFSET];
+            let invest_tracker_account = &remaining[i * ORCA_ACCOUNTS_PER_SWAP + ORCA_INVEST_TRACKER_OFFSET];
             let data = invest_tracker_account.try_borrow_data()?;
             let invest_tracker_data = InvestTracker::try_from_slice(&data[8..])?;
             
@@ -257,8 +259,8 @@ impl Strategy for OrcaStrategy {
     //Make sure sales would happen based on the current weight from the invest tracker
     fn free_funds<'info>(&mut self, accounts: &FreeFunds<'info>, remaining: &[AccountInfo<'info>], amount: u64) -> Result<()> {
         // Calculate number of swaps based on remaining accounts length
-        let num_swaps = remaining.len() / ACCOUNTS_PER_SWAP;
-        if remaining.len() != num_swaps * ACCOUNTS_PER_SWAP {
+        let num_swaps = remaining.len() / ORCA_ACCOUNTS_PER_SWAP;
+        if remaining.len() != num_swaps * ORCA_ACCOUNTS_PER_SWAP {
             return Err(OrcaStrategyErrorCode::NotEnoughAccounts.into());
         }
 
@@ -268,7 +270,7 @@ impl Strategy for OrcaStrategy {
         let mut highest_weight_index = 0;
 
         for i in 0..num_swaps {
-            let invest_tracker_account = &remaining[i * ACCOUNTS_PER_SWAP + INVEST_TRACKER_OFFSET];
+            let invest_tracker_account = &remaining[i * ORCA_ACCOUNTS_PER_SWAP + ORCA_INVEST_TRACKER_OFFSET];
             let data = invest_tracker_account.try_borrow_data()?;
             let invest_tracker_data = InvestTracker::try_from_slice(&data[8..])?;
             
@@ -320,7 +322,7 @@ impl Strategy for OrcaStrategy {
 
         // Iterate through each swap operation using adjusted amounts
         for i in 0..num_swaps {
-            let start = i * ACCOUNTS_PER_SWAP;
+            let start = i * ORCA_ACCOUNTS_PER_SWAP;
             let amount_per_swap = amounts[i];
 
             // Extract accounts from remaining array
@@ -334,7 +336,7 @@ impl Strategy for OrcaStrategy {
             let tick_array_1 = &remaining[start + 7];
             let tick_array_2 = &remaining[start + 8];
             let oracle = &remaining[start + 9];
-            let invest_tracker_account = &remaining[start + INVEST_TRACKER_OFFSET];
+            let invest_tracker_account = &remaining[start + ORCA_INVEST_TRACKER_OFFSET];
 
             // Get the invest tracker data and verify PDA in its own scope
             let (is_a_to_b, asset_mint) = {
@@ -455,8 +457,8 @@ impl Strategy for OrcaStrategy {
 
     fn deploy_funds<'info>(&mut self, accounts: &DeployFunds<'info>, remaining: &[AccountInfo<'info>], amount: u64) -> Result<()> {
         // Calculate number of swaps based on remaining accounts length
-        let num_swaps = remaining.len() / ACCOUNTS_PER_SWAP;
-        if remaining.len() != num_swaps * ACCOUNTS_PER_SWAP {
+        let num_swaps = remaining.len() / ORCA_ACCOUNTS_PER_SWAP;
+        if remaining.len() != num_swaps * ORCA_ACCOUNTS_PER_SWAP {
             return Err(OrcaStrategyErrorCode::NotEnoughAccounts.into());
         }
 
@@ -465,7 +467,7 @@ impl Strategy for OrcaStrategy {
 
         // Iterate through each swap operation
         for i in 0..num_swaps {
-            let start = i * ACCOUNTS_PER_SWAP;
+            let start = i * ORCA_ACCOUNTS_PER_SWAP;
             let amount_per_swap = compute_asset_per_swap(
                 amount,
                 weights[i] as u128,
@@ -482,7 +484,7 @@ impl Strategy for OrcaStrategy {
             let tick_array_1 = &remaining[start + 7];
             let tick_array_2 = &remaining[start + 8];
             let oracle = &remaining[start + 9];
-            let invest_tracker_account = &remaining[start + INVEST_TRACKER_OFFSET];
+            let invest_tracker_account = &remaining[start + ORCA_INVEST_TRACKER_OFFSET];
 
             // Get the invest tracker data in its own scope
             let (is_a_to_b, asset_mint) = {
@@ -607,8 +609,8 @@ impl Strategy for OrcaStrategy {
 
     fn rebalance<'info>(&mut self, accounts: &Rebalance<'info>, remaining: &[AccountInfo<'info>], _amount: u64) -> Result<()> {
         // Calculate number of swaps based on remaining accounts length
-        let num_swaps = remaining.len() / ACCOUNTS_PER_SWAP;
-        if remaining.len() != num_swaps * ACCOUNTS_PER_SWAP {
+        let num_swaps = remaining.len() / ORCA_ACCOUNTS_PER_SWAP;
+        if remaining.len() != num_swaps * ORCA_ACCOUNTS_PER_SWAP {
             return Err(OrcaStrategyErrorCode::NotEnoughAccounts.into());
         }
 
@@ -646,8 +648,8 @@ impl Strategy for OrcaStrategy {
         let mut total_underlying_obtained: u64 = 0;
 
         for (i, delta_value) in sell_list {
-            let start = i * ACCOUNTS_PER_SWAP;
-            let invest_tracker_account = &remaining[start + INVEST_TRACKER_OFFSET];
+            let start = i * ORCA_ACCOUNTS_PER_SWAP;
+            let invest_tracker_account = &remaining[start + ORCA_INVEST_TRACKER_OFFSET];
             let invest_tracker_data = &mut invest_tracker_data_vec[i];
 
             // Ensure delta_value fits into u64
@@ -733,8 +735,8 @@ impl Strategy for OrcaStrategy {
         let total_buy_value: u128 = buy_list.iter().map(|&(_, delta_value)| delta_value).sum();
 
         for (i, delta_value) in buy_list {
-            let start = i * ACCOUNTS_PER_SWAP;
-            let invest_tracker_account = &remaining[start + INVEST_TRACKER_OFFSET];
+            let start = i * ORCA_ACCOUNTS_PER_SWAP;
+            let invest_tracker_account = &remaining[start + ORCA_INVEST_TRACKER_OFFSET];
             let invest_tracker_data = &mut invest_tracker_data_vec[i];
 
             // Calculate amount_per_swap_u64 proportionally
@@ -918,8 +920,8 @@ impl OrcaStrategy {
         let mut invest_tracker_data_vec = Vec::with_capacity(num_swaps);
 
         for i in 0..num_swaps {
-            let start = i * ACCOUNTS_PER_SWAP;
-            let invest_tracker_account = &remaining[start + INVEST_TRACKER_OFFSET];
+            let start = i * ORCA_ACCOUNTS_PER_SWAP;
+            let invest_tracker_account = &remaining[start + ORCA_INVEST_TRACKER_OFFSET];
 
             let data = invest_tracker_account.try_borrow_data()?;
             let invest_tracker_data = InvestTracker::try_from_slice(&data[8..])?;
