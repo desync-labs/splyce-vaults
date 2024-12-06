@@ -1,8 +1,5 @@
 use anchor_lang::prelude::*;
-use anchor_spl::{
-    token::Token,
-    token_interface::TokenAccount,
-};
+use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 
 use crate::error::ErrorCode;
 use crate::utils::token::transfer;
@@ -21,10 +18,13 @@ pub struct Deposit<'info> {
     #[account(mut)]
     pub vault_token_account: InterfaceAccount<'info, TokenAccount>,
 
+    #[account(mut, constraint = underlying_mint.key() == strategy.underlying_mint())]
+    pub underlying_mint: InterfaceAccount<'info, Mint>,
+
     #[account(constraint = signer.key() == strategy.vault() @ErrorCode::AccessDenied)]
     pub signer: Signer<'info>,
 
-    pub token_program: Program<'info, Token>,
+    pub token_program: Interface<'info, TokenInterface>,
 }
 
 pub fn handle_deposit<'info>(
@@ -47,6 +47,7 @@ pub fn handle_deposit<'info>(
         ctx.accounts.vault_token_account.to_account_info(), 
         ctx.accounts.underlying_token_account.to_account_info(), 
         ctx.accounts.signer.to_account_info(), 
+        &ctx.accounts.underlying_mint,
         amount
     )
 }

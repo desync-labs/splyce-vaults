@@ -8,6 +8,7 @@ use access_control::{
 use crate::errors::ErrorCode;
 use crate::state::Vault;
 
+// TODO: close token accounts
 #[derive(Accounts)]
 pub struct CloseVault<'info> {
     #[account(mut, close = recipient)]
