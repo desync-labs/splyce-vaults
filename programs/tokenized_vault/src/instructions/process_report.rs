@@ -69,7 +69,7 @@ pub struct ProcessReport<'info> {
     pub token_program: Program<'info, Token>,
 }
 
-pub fn handle_process_report(mut ctx: Context<ProcessReport>) -> Result<()> {
+pub fn handle_process_report(ctx: Context<ProcessReport>) -> Result<()> {
     let strategy_assets = strategy::get_total_assets(&ctx.accounts.strategy)?;
     let strategy = &ctx.accounts.strategy;
 

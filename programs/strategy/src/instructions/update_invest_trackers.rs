@@ -1,7 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_spl::{
-    token::{ Token, TokenAccount},
-    token_interface::Mint,
+    token::{ Token },
 };
 use access_control::{
     constants::USER_ROLE_SEED,
@@ -9,13 +8,12 @@ use access_control::{
     state::{UserRole, Role}
 };
 
-use crate::constants::{INVEST_TRACKER_SEED, MAX_ASSIGNED_WEIGHT, ASSET_VALUE_DISCOUNT_BPS, FEE_BPS};
+use crate::constants::{MAX_ASSIGNED_WEIGHT, ASSET_VALUE_DISCOUNT_BPS, FEE_BPS};
 use crate::state::invest_tracker::*;
 use crate::state::whirlpool::*;
 use crate::error::ErrorCode;
 use crate::utils::orca_utils::{compute_asset_value, get_price_in_underlying_decimals};
 use crate::events::InvestTrackerUpdateEvent;
-use crate::ID;
 
 //This instruction initializes an invest tracker for the strategy
 #[derive(Accounts)]
