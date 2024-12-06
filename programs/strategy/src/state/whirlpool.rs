@@ -1,5 +1,4 @@
 use anchor_lang::prelude::*;
-use crate::error::ErrorCode;
 use crate::state::whirlpool_reward_info::*;
 use crate::constants::*;
 #[account]

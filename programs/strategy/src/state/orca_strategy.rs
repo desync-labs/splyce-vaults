@@ -9,7 +9,7 @@ use crate::error::ErrorCode;
 use crate::events::{StrategyDepositEvent, AMMStrategyInitEvent, StrategyWithdrawEvent, HarvestAndReportDTF, InvestTrackerSwapEvent};
 use crate::instructions::{Report, ReportProfit, ReportLoss, DeployFunds, FreeFunds, Rebalance};
 use crate::constants::{
-    AMOUNT_SPECIFIED_IS_INPUT, REMAINING_ACCOUNTS_MIN, MAX_SQRT_PRICE_X64, 
+    AMOUNT_SPECIFIED_IS_INPUT, MAX_SQRT_PRICE_X64, 
     MIN_SQRT_PRICE_X64, INVEST_TRACKER_SEED, NO_EXPLICIT_SQRT_PRICE_LIMIT, 
     MAX_ASSIGNED_WEIGHT,
     ORCA_ACCOUNTS_PER_SWAP, ORCA_INVEST_TRACKER_OFFSET
@@ -488,7 +488,7 @@ impl Strategy for OrcaStrategy {
 
             // Get the invest tracker data in its own scope
             let (is_a_to_b, asset_mint) = {
-                let mut data = invest_tracker_account.try_borrow_mut_data()?;
+                let data = invest_tracker_account.try_borrow_mut_data()?;
                 let invest_tracker_data = InvestTracker::try_from_slice(&data[8..])?;
                 let is_a_to_b = invest_tracker_data.a_to_b_for_purchase;
                 

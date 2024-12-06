@@ -1,5 +1,4 @@
 use anchor_lang::prelude::*;
-use crate::constants::*;
 #[derive(Copy, Clone, AnchorSerialize, AnchorDeserialize, Default, Debug, PartialEq)]
 pub struct WhirlpoolRewardInfo {
     /// Reward token mint.
