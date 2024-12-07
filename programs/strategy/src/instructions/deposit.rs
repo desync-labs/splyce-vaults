@@ -13,7 +13,7 @@ use crate::instructions::deploy_funds::DeployFunds;
 
 #[derive(Accounts)]
 pub struct Deposit<'info> {
-    /// CHECK: can be any strategy
+    /// CHECK: can by any strategy
     #[account(mut)]
     pub strategy: UncheckedAccount<'info>,
 

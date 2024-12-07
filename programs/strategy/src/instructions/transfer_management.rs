@@ -5,7 +5,7 @@ use crate::error::ErrorCode;
 
 #[derive(Accounts)]
 pub struct TransferManagement<'info> {
-    /// CHECK: can be any strategy
+    /// CHECK: can by any strategy
     #[account(mut)]
     pub strategy: UncheckedAccount<'info>,
     

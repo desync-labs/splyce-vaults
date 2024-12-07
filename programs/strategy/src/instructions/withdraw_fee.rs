@@ -13,7 +13,7 @@ use super::FreeFunds;
 
 #[derive(Accounts)]
 pub struct WithdrawFee<'info> {
-    /// CHECK: can be any strategy
+    /// CHECK: can by any strategy
     #[account(mut)]
     pub strategy: UncheckedAccount<'info>,
 
