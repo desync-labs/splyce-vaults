@@ -59,6 +59,9 @@ pub enum ErrorCode {
     #[msg("Strategy cannot be added")]
     InvalidStrategyToAdd,
 
+    #[msg("Invalid strategy")]
+    InvalidStrategy,
+
     #[msg("All strategy data pda must be closed before vault closure")]
     VaultHasStrategies,
 

@@ -79,7 +79,6 @@ pub fn handle_process_report(ctx: Context<ProcessReport>) -> Result<()> {
 
     burn_unlocked_shares(&ctx)?;
     ctx.accounts.vault_shares_token_account.reload()?;
-
     let current_debt = ctx.accounts.strategy_data.current_debt;
 
     if strategy_assets > current_debt {
