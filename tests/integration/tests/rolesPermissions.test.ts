@@ -184,6 +184,7 @@ describe("Roles and Permissions Tests", () => {
       profitMaxUnlockTime: new BN(0),
       kycVerifiedOnly: true,
       directDepositEnabled: false,
+      whitelistedOnly: false,
     };
 
     const sharesConfigOne = {
@@ -196,7 +197,6 @@ describe("Roles and Permissions Tests", () => {
       await initializeVault({
         vaultProgram,
         underlyingMint,
-        vaultIndex: 0,
         signer: vaultsAdmin,
         vaultConfig: vaultConfigOne,
         sharesConfig: sharesConfigOne,
@@ -226,7 +226,6 @@ describe("Roles and Permissions Tests", () => {
       vault: vaultOne,
       underlyingMint,
       signer: strategiesManager,
-      index: 0,
       config: strategyConfigOne,
     });
 
@@ -240,6 +239,9 @@ describe("Roles and Permissions Tests", () => {
       .signers([vaultsAdmin])
       .rpc();
 
+    console.log("Initialized vaults and strategies successfully");
+
+    // Create token accounts and mint underlying tokens
     await accountantProgram.methods
       .initTokenAccount()
       .accounts({
@@ -260,9 +262,6 @@ describe("Roles and Permissions Tests", () => {
       .signers([accountantAdmin])
       .rpc();
 
-    console.log("Initialized vaults and strategies successfully");
-
-    // Create token accounts and mint underlying tokens
     kycVerifiedUserTokenAccount = await token.createAccount(
       connection,
       kycVerifiedUser,
@@ -326,7 +325,7 @@ describe("Roles and Permissions Tests", () => {
     strategiesManagerCurrentAmount = mintAmount;
     nonVerifiedUserCurrentAmount = mintAmount;
 
-    console.log("Minted underlying token to KYC Verified user successfully");
+    console.log("Minted underlying token to all users successfully");
 
     console.log("-------Before Step Finished-------");
   });
@@ -396,7 +395,6 @@ describe("Roles and Permissions Tests", () => {
         vault: vaultOne,
         underlyingMint,
         signer: strategiesManager,
-        index: 1,
         config: strategyConfig,
       });
 
@@ -421,7 +419,6 @@ describe("Roles and Permissions Tests", () => {
         vault: vaultOne,
         underlyingMint,
         signer: strategiesManager,
-        index: 2,
         config: strategyConfig,
       });
 
@@ -461,7 +458,6 @@ describe("Roles and Permissions Tests", () => {
         vault: vaultOne,
         underlyingMint,
         signer: strategiesManager,
-        index: 3,
         config: strategyConfig,
       });
 
@@ -517,6 +513,15 @@ describe("Roles and Permissions Tests", () => {
         accountantProgram.programId
       )[0];
 
+      const config = anchor.web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("config")],
+        vaultProgram.programId
+      )[0];
+
+      let configAccount = await vaultProgram.account.config.fetch(config);
+
+      const nextVaultIndex = configAccount.nextVaultIndex.toNumber();
+
       const vaultConfig = {
         depositLimit: new BN(1000000000),
         minUserDeposit: new BN(0),
@@ -524,6 +529,7 @@ describe("Roles and Permissions Tests", () => {
         profitMaxUnlockTime: new BN(0),
         kycVerifiedOnly: true,
         directDepositEnabled: false,
+        whitelistedOnly: false,
       };
 
       await vaultProgram.methods
@@ -538,7 +544,9 @@ describe("Roles and Permissions Tests", () => {
       const vault = anchor.web3.PublicKey.findProgramAddressSync(
         [
           Buffer.from("vault"),
-          Buffer.from(new Uint8Array(new BigUint64Array([BigInt(1)]).buffer)),
+          Buffer.from(
+            new Uint8Array(new BigUint64Array([BigInt(nextVaultIndex)]).buffer)
+          ),
         ],
         vaultProgram.programId
       )[0];
@@ -557,10 +565,21 @@ describe("Roles and Permissions Tests", () => {
     });
 
     it("Vaults Admin - Calling init vault shares method is successful", async () => {
+      const config = anchor.web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("config")],
+        vaultProgram.programId
+      )[0];
+
+      let configAccount = await vaultProgram.account.config.fetch(config);
+
+      const nextVaultIndex = configAccount.nextVaultIndex.toNumber();
+
       const vault = anchor.web3.PublicKey.findProgramAddressSync(
         [
           Buffer.from("vault"),
-          Buffer.from(new Uint8Array(new BigUint64Array([BigInt(1)]).buffer)),
+          Buffer.from(
+            new Uint8Array(new BigUint64Array([BigInt(nextVaultIndex)]).buffer)
+          ),
         ],
         vaultProgram.programId
       )[0];
@@ -594,13 +613,12 @@ describe("Roles and Permissions Tests", () => {
         .signers([vaultsAdmin])
         .rpc();
 
-      const config = anchor.web3.PublicKey.findProgramAddressSync(
-        [Buffer.from("config")],
-        vaultProgram.programId
-      )[0];
+      let configAccountAfter = await vaultProgram.account.config.fetch(config);
 
-      let configAccount = await vaultProgram.account.config.fetch(config);
-      assert.strictEqual(configAccount.nextVaultIndex.toNumber(), 2);
+      assert.strictEqual(
+        configAccountAfter.nextVaultIndex.toNumber(),
+        nextVaultIndex + 1
+      );
     });
 
     it("Vaults Admin - Calling shutdown vault method is successful", async () => {
@@ -628,7 +646,6 @@ describe("Roles and Permissions Tests", () => {
         await initializeVault({
           vaultProgram,
           underlyingMint,
-          vaultIndex: 2,
           signer: vaultsAdmin,
           vaultConfig: vaultConfig,
           sharesConfig: sharesConfig,
@@ -670,7 +687,6 @@ describe("Roles and Permissions Tests", () => {
         await initializeVault({
           vaultProgram,
           underlyingMint,
-          vaultIndex: 3,
           signer: vaultsAdmin,
           vaultConfig: vaultConfig,
           sharesConfig: sharesConfig,
@@ -851,7 +867,6 @@ describe("Roles and Permissions Tests", () => {
         await initializeVault({
           vaultProgram,
           underlyingMint,
-          vaultIndex: 4,
           signer: vaultsAdmin,
           vaultConfig: vaultConfig,
           sharesConfig: sharesConfig,
@@ -899,7 +914,6 @@ describe("Roles and Permissions Tests", () => {
         await initializeVault({
           vaultProgram,
           underlyingMint,
-          vaultIndex: 5,
           signer: vaultsAdmin,
           vaultConfig: vaultConfig,
           sharesConfig: sharesConfig,
@@ -1002,7 +1016,6 @@ describe("Roles and Permissions Tests", () => {
         await initializeVault({
           vaultProgram,
           underlyingMint,
-          vaultIndex: 6,
           signer: vaultsAdmin,
           vaultConfig: vaultConfig,
           sharesConfig: sharesConfig,
@@ -1098,7 +1111,6 @@ describe("Roles and Permissions Tests", () => {
         await initializeVault({
           vaultProgram,
           underlyingMint,
-          vaultIndex: 7,
           signer: vaultsAdmin,
           vaultConfig: vaultConfig,
           sharesConfig: sharesConfig,
