@@ -112,6 +112,7 @@ impl Strategy for TradeFintechStrategy {
             remaining[0].to_account_info(),
             accounts.underlying_token_account.to_account_info(),
             accounts.signer.to_account_info(),
+            &accounts.underlying_mint,
             amount_to_repay,
         )?;
 
@@ -122,6 +123,7 @@ impl Strategy for TradeFintechStrategy {
             &mut Report {
             strategy: accounts.strategy.clone(),
             underlying_token_account: underlying_token_account.clone(),
+            underlying_mint: accounts.underlying_mint.clone(),
             token_program: accounts.token_program.clone(),
             signer: accounts.signer.clone(),
             }, 
@@ -150,6 +152,7 @@ impl Strategy for TradeFintechStrategy {
             remaining[0].to_account_info(),
             accounts.underlying_token_account.to_account_info(),
             accounts.signer.to_account_info(),
+            &accounts.underlying_mint,
             amount_to_repay,
         )?;
 
@@ -160,6 +163,7 @@ impl Strategy for TradeFintechStrategy {
             &mut Report {
             strategy: accounts.strategy.clone(),
             underlying_token_account: underlying_token_account.clone(),
+            underlying_mint: accounts.underlying_mint.clone(),
             token_program: accounts.token_program.clone(),
             signer: accounts.signer.clone(),
             }, 
@@ -196,6 +200,7 @@ impl Strategy for TradeFintechStrategy {
             accounts.underlying_token_account.to_account_info(),
             remaining[0].to_account_info(),
             accounts.strategy.to_account_info(),
+            &accounts.underlying_mint,
             amount,
             &seeds
         )?;

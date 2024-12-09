@@ -8,6 +8,7 @@ import {
   METADATA_SEED,
   TOKEN_METADATA_PROGRAM_ID,
 } from "../integration/setups/globalSetup";
+import * as token from "@solana/spl-token";
 
 export const airdrop = async ({
   connection,
@@ -78,6 +79,7 @@ export const initializeVault = async ({
     .accounts({
       underlyingMint,
       signer: signer.publicKey,
+      tokenProgram: token.TOKEN_PROGRAM_ID
     })
     .signers([signer])
     .rpc();
@@ -136,6 +138,7 @@ export const initializeSimpleStrategy = async ({
       vault,
       signer: signer.publicKey,
       underlyingMint,
+      tokenProgram: token.TOKEN_PROGRAM_ID
     })
     .signers([signer])
     .rpc();
