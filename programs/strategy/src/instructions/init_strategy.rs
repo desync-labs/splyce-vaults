@@ -77,6 +77,9 @@ pub fn handle_init_strategy(ctx: Context<InitStrategy>, strategy_type: StrategyT
         StrategyType::TradeFintech => {
             return init_strategy_internal::<TradeFintechStrategy>(ctx, config)
         }
+        StrategyType::Orca => {
+            return init_strategy_internal::<OrcaStrategy>(ctx, config)
+        }
         _ => {
             return Err(ErrorCode::InvalidStrategyData.into())
         }

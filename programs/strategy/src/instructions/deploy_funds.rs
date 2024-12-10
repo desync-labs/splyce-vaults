@@ -17,7 +17,11 @@ pub struct DeployFunds<'info> {
     #[account(mut, constraint = underlying_mint.key() == strategy.underlying_mint())]
     pub underlying_mint: InterfaceAccount<'info, Mint>,
     
-    #[account(mut, constraint = signer.key() == strategy.manager() @ErrorCode::AccessDenied)]
+    #[account(mut, constraint = 
+        signer.key() == strategy.manager() || 
+        signer.key() == strategy.vault() 
+        @ErrorCode::AccessDenied
+    )]
     pub signer: Signer<'info>,
 
     pub token_program: Interface<'info, TokenInterface>,

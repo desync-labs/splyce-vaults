@@ -8,7 +8,7 @@ use super::fee_data::*;
 use crate::error::ErrorCode;
 use crate::events::{StrategyDepositEvent, StrategyInitEvent, StrategyWithdrawEvent};
 use crate::utils::token;
-use crate::instructions::{Report, ReportProfit, ReportLoss, DeployFunds, FreeFunds};
+use crate::instructions::{Report, ReportProfit, ReportLoss, DeployFunds, FreeFunds, Rebalance};
 
 #[account()]
 #[derive(Default, Debug, InitSpace)]
@@ -62,6 +62,10 @@ impl StrategyGetters for SimpleStrategy {
 
     fn total_assets(&self) -> u64 {
         self.total_assets
+    }
+
+    fn total_invested(&self) -> u64 {
+        0
     }
 
     fn available_deposit(&self) -> u64 {
@@ -230,6 +234,10 @@ impl Strategy for SimpleStrategy {
 
     fn set_total_assets(&mut self, total_assets: u64) {
         self.total_assets = total_assets;
+    }
+
+    fn rebalance<'info>(&mut self, _accounts: &Rebalance<'info>, _remaining: &[AccountInfo<'info>], _amount: u64) -> Result<()> {
+        Ok(())
     }
 }
 
