@@ -1,8 +1,5 @@
 use anchor_lang::prelude::*;
-use anchor_spl::{
-    token::Token,
-    token_interface::TokenAccount,
-};
+use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 
 use crate::utils::unchecked_strategy::UncheckedStrategy;
 use crate::error::ErrorCode;
@@ -17,10 +14,13 @@ pub struct Report<'info> {
     #[account(mut, seeds = [UNDERLYING_SEED.as_bytes(), strategy.key().as_ref()], bump)]
     pub underlying_token_account: InterfaceAccount<'info, TokenAccount>,
 
+    #[account(mut, constraint = underlying_mint.key() == strategy.underlying_mint())]
+    pub underlying_mint: InterfaceAccount<'info, Mint>,
+    
     #[account(mut, constraint = signer.key() == strategy.manager() @ErrorCode::AccessDenied)]
     pub signer: Signer<'info>,
 
-    pub token_program: Program<'info, Token>,
+    pub token_program: Interface<'info, TokenInterface>,
 }
 
 pub fn handle_report<'info>(ctx: Context<'_, '_, '_, 'info, Report<'info>>) -> Result<()> {

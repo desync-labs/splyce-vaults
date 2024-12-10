@@ -1,9 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_lang::Discriminator;
-use anchor_spl::{
-    token::{ Token, TokenAccount},
-    token_interface::Mint,
-};
+use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 use access_control::{
     constants::USER_ROLE_SEED,
     program::AccessControl,
@@ -40,7 +37,7 @@ pub struct InitStrategy<'info> {
         token::mint = underlying_mint, 
         token::authority = strategy,
     )]
-    pub token_account: Box<Account<'info, TokenAccount>>,
+    pub token_account: Box<InterfaceAccount<'info, TokenAccount>>,
 
     #[account(mut, seeds = [CONFIG_SEED.as_bytes()], bump)]
     pub config: Account<'info, Config>,
@@ -66,7 +63,7 @@ pub struct InitStrategy<'info> {
     #[account(mut, constraint = roles.check_role()?)]
     pub signer: Signer<'info>,
 
-    pub token_program: Program<'info, Token>,
+    pub token_program: Interface<'info, TokenInterface>,
     pub system_program: Program<'info, System>,
     pub rent: Sysvar<'info, Rent>,
     pub access_control: Program<'info, AccessControl>,
