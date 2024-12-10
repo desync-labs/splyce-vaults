@@ -42,4 +42,6 @@ export const errorStrings = {
     "Error Code: CannotSetRoleAdmin. Error Number: 6001. Error Message: set_role_admin fn must be called by the owner.",
   accountExpectedToAlreadyBeIntiialzied:
     "Error Code: AccountNotInitialized. Error Number: 3012. Error Message: The program expected this account to be already initialized.",
+  kycRequired:
+    "Error Code: KYCRequired. Error Number: 6017. Error Message: Only KYC verified users can deposit.",
 };

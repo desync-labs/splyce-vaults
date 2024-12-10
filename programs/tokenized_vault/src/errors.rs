@@ -67,4 +67,7 @@ pub enum ErrorCode {
 
     #[msg("Direct deposit is disabled")]
     DirectDepositDisabled,
+
+    #[msg("Account is not whitelisted")]
+    NotWhitelisted,
 }

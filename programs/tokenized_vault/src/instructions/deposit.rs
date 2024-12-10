@@ -1,18 +1,16 @@
 use access_control::{
     constants::USER_ROLE_SEED,
     program::AccessControl,
-    state::Role,
+    state::Role
 };
 use anchor_lang::prelude::*;
 use anchor_spl::token::{Mint, Token, TokenAccount};
 
-use crate::constants::{SHARES_SEED, UNDERLYING_SEED};
+use crate::constants::{SHARES_SEED, UNDERLYING_SEED, WHITELISTED_SEED};
 
-use crate::errors::ErrorCode;
 use crate::events::VaultDepositEvent;
 use crate::state::Vault;
-use crate::utils::token;
-use crate::utils::access_control::RolesAccInfo;
+use crate::utils::{token, vault};
 
 #[derive(Accounts)]
 pub struct Deposit<'info> {
@@ -42,6 +40,17 @@ pub struct Deposit<'info> {
         seeds::program = access_control.key()
     )]
     pub kyc_verified: UncheckedAccount<'info>,
+
+    /// CHECK: this account may not exist
+    #[account(
+        seeds = [
+            WHITELISTED_SEED.as_bytes(), 
+            vault.key().as_ref(),
+            user.key().as_ref(),
+        ], 
+        bump,
+    )]
+    pub whitelisted: UncheckedAccount<'info>,
     
     #[account(mut)]
     pub user: Signer<'info>,
@@ -51,7 +60,13 @@ pub struct Deposit<'info> {
 }
 
 pub fn handle_deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
-    validate_deposit(&ctx, amount)?;
+    vault::validate_deposit(
+        &ctx.accounts.vault, 
+        ctx.accounts.kyc_verified.to_account_info(),
+        ctx.accounts.whitelisted.to_account_info(),
+        false,
+        amount
+    )?;
 
     let shares = ctx.accounts.vault.load()?.convert_to_shares(amount);
 
@@ -88,33 +103,6 @@ pub fn handle_deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
         share_mint: ctx.accounts.shares_mint.to_account_info().key(),
         authority: ctx.accounts.user.to_account_info().key(),
     });
-
-    Ok(())
-}
-
-fn validate_deposit(ctx: &Context<Deposit>, amount: u64) -> Result<()> {
-    if amount == 0 {
-        return Err(ErrorCode::ZeroValue.into());
-    }
-
-    let vault = ctx.accounts.vault.load()?;
-
-    if vault.is_shutdown {
-        return Err(ErrorCode::VaultShutdown.into());
-    }
-
-    if amount < vault.min_user_deposit {
-        return Err(ErrorCode::MinDepositNotReached.into());
-    }
-
-    // todo: introduce deposit limit module
-    if amount > vault.max_deposit() {
-        return Err(ErrorCode::ExceedDepositLimit.into());
-    }
-
-    if vault.kyc_verified_only && !ctx.accounts.kyc_verified.has_role() {
-        return Err(ErrorCode::KYCRequired.into());
-    }
 
     Ok(())
 }
