@@ -10,6 +10,10 @@ pub mod strategy_setters;
 pub mod transfer_management;
 pub mod withdraw;
 pub mod withdraw_fee;
+pub mod init_token_account;
+pub mod init_invest_tracker;
+pub mod update_invest_trackers;
+pub mod rebalance;
 
 pub use deploy_funds::*;
 pub use deposit::*;
@@ -23,3 +27,7 @@ pub use strategy_setters::*;
 pub use transfer_management::*;
 pub use withdraw::*;
 pub use withdraw_fee::*;
+pub use init_token_account::*;
+pub use init_invest_tracker::*;
+pub use update_invest_trackers::*;
+pub use rebalance::*;

@@ -7,7 +7,7 @@ use super::fee_data::*;
 use crate::error::ErrorCode;
 use crate::events::{StrategyDepositEvent, StrategyInitEvent, StrategyWithdrawEvent};
 use crate::utils::token;
-use crate::instructions::{Report, ReportProfit, ReportLoss, DeployFunds, FreeFunds};
+use crate::instructions::{Report, ReportProfit, ReportLoss, DeployFunds, FreeFunds, Rebalance};
 
 #[account]
 #[derive(Default, Debug, InitSpace)]
@@ -112,6 +112,7 @@ impl Strategy for TradeFintechStrategy {
             remaining[0].to_account_info(),
             accounts.underlying_token_account.to_account_info(),
             accounts.signer.to_account_info(),
+            &accounts.underlying_mint,
             amount_to_repay,
         )?;
 
@@ -122,6 +123,7 @@ impl Strategy for TradeFintechStrategy {
             &mut Report {
             strategy: accounts.strategy.clone(),
             underlying_token_account: underlying_token_account.clone(),
+            underlying_mint: accounts.underlying_mint.clone(),
             token_program: accounts.token_program.clone(),
             signer: accounts.signer.clone(),
             }, 
@@ -150,6 +152,7 @@ impl Strategy for TradeFintechStrategy {
             remaining[0].to_account_info(),
             accounts.underlying_token_account.to_account_info(),
             accounts.signer.to_account_info(),
+            &accounts.underlying_mint,
             amount_to_repay,
         )?;
 
@@ -160,6 +163,7 @@ impl Strategy for TradeFintechStrategy {
             &mut Report {
             strategy: accounts.strategy.clone(),
             underlying_token_account: underlying_token_account.clone(),
+            underlying_mint: accounts.underlying_mint.clone(),
             token_program: accounts.token_program.clone(),
             signer: accounts.signer.clone(),
             }, 
@@ -196,6 +200,7 @@ impl Strategy for TradeFintechStrategy {
             accounts.underlying_token_account.to_account_info(),
             remaining[0].to_account_info(),
             accounts.strategy.to_account_info(),
+            &accounts.underlying_mint,
             amount,
             &seeds
         )?;
@@ -206,6 +211,10 @@ impl Strategy for TradeFintechStrategy {
 
     fn set_total_assets(&mut self, total_assets: u64) {
         self.total_assets = total_assets;
+    }
+
+    fn rebalance<'info>(&mut self, _accounts: &Rebalance<'info>, _remaining: &[AccountInfo<'info>], _amount: u64) -> Result<()> {
+        Ok(())
     }
 }
 
@@ -220,6 +229,10 @@ impl StrategyGetters for TradeFintechStrategy {
 
     fn total_assets(&self) -> u64 {
         self.total_assets
+    }
+
+    fn total_invested(&self) -> u64 {
+        self.total_invested
     }
 
     fn available_deposit(&self) -> u64 {

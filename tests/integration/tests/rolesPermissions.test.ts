@@ -206,7 +206,7 @@ describe("Roles and Permissions Tests", () => {
       provider.connection,
       feeRecipientOne,
       sharesMintOne,
-      feeRecipientOne.publicKey
+      feeRecipientOne.publicKey,
     );
     feeRecipientTokenAccountOne = await token.createAccount(
       provider.connection,
@@ -537,6 +537,7 @@ describe("Roles and Permissions Tests", () => {
         .accounts({
           underlyingMint,
           signer: vaultsAdmin.publicKey,
+          tokenProgram: token.TOKEN_PROGRAM_ID
         })
         .signers([vaultsAdmin])
         .rpc();
@@ -634,6 +635,7 @@ describe("Roles and Permissions Tests", () => {
         profitMaxUnlockTime: new BN(0),
         kycVerifiedOnly: true,
         directDepositEnabled: false,
+        whitelistedOnly: false,
       };
 
       const sharesConfig = {
@@ -675,6 +677,7 @@ describe("Roles and Permissions Tests", () => {
         profitMaxUnlockTime: new BN(0),
         kycVerifiedOnly: true,
         directDepositEnabled: false,
+        whitelistedOnly: false,
       };
 
       const sharesConfig = {
@@ -731,6 +734,8 @@ describe("Roles and Permissions Tests", () => {
           user: kycVerifiedUser.publicKey,
           userTokenAccount: kycVerifiedUserTokenAccount,
           userSharesAccount: kycVerifiedUserSharesAccountVaultOne,
+          underlyingMint: underlyingMint,
+          tokenProgram: token.TOKEN_PROGRAM_ID
         })
         .signers([kycVerifiedUser])
         .remainingAccounts([
@@ -746,6 +751,8 @@ describe("Roles and Permissions Tests", () => {
           vault: vaultOne,
           strategy: strategyOne,
           signer: vaultsAdmin.publicKey,
+          underlyingMint: underlyingMint,
+          tokenProgram: token.TOKEN_PROGRAM_ID
         })
         .signers([vaultsAdmin])
         .rpc();
@@ -855,6 +862,7 @@ describe("Roles and Permissions Tests", () => {
         profitMaxUnlockTime: new BN(0),
         kycVerifiedOnly: true,
         directDepositEnabled: false,
+        whitelistedOnly: false,
       };
 
       const sharesConfig = {
@@ -902,6 +910,7 @@ describe("Roles and Permissions Tests", () => {
         profitMaxUnlockTime: new BN(0),
         kycVerifiedOnly: true,
         directDepositEnabled: false,
+        whitelistedOnly: false,
       };
 
       const sharesConfig = {
@@ -944,6 +953,8 @@ describe("Roles and Permissions Tests", () => {
         .accounts({
           strategy: strategyOne,
           signer: strategiesManager.publicKey,
+          underlyingMint: underlyingMint,
+          tokenProgram: token.TOKEN_PROGRAM_ID
         })
         .remainingAccounts([
           {
@@ -1004,6 +1015,7 @@ describe("Roles and Permissions Tests", () => {
         profitMaxUnlockTime: new BN(0),
         kycVerifiedOnly: true,
         directDepositEnabled: false,
+        whitelistedOnly: false,
       };
 
       const sharesConfig = {
@@ -1044,6 +1056,8 @@ describe("Roles and Permissions Tests", () => {
           user: kycVerifiedUser.publicKey,
           userTokenAccount: kycVerifiedUserTokenAccount,
           userSharesAccount: userSharesAccount,
+          underlyingMint: underlyingMint,
+          tokenProgram: token.TOKEN_PROGRAM_ID
         })
         .signers([kycVerifiedUser])
         .remainingAccounts([
@@ -1099,6 +1113,7 @@ describe("Roles and Permissions Tests", () => {
         profitMaxUnlockTime: new BN(0),
         kycVerifiedOnly: true,
         directDepositEnabled: false,
+        whitelistedOnly: false,
       };
 
       const sharesConfig = {
@@ -1140,6 +1155,8 @@ describe("Roles and Permissions Tests", () => {
             user: nonVerifiedUser.publicKey,
             userTokenAccount: nonVerifiedUserTokenAccount,
             userSharesAccount: userSharesAccount,
+            underlyingMint: underlyingMint,
+            tokenProgram: token.TOKEN_PROGRAM_ID
           })
           .signers([nonVerifiedUser])
           .remainingAccounts([
