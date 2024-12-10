@@ -124,6 +124,8 @@ pub fn handle_update_invest_trackers(ctx: Context<UpdateInvestTrackers>) -> Resu
 
         // Emit event with asset mint, value and timestamp
         emit!(InvestTrackerUpdateEvent {
+            account_key: invest_tracker_info.key(),
+            invest_tracker_account_key: invest_tracker_info.key(),
             asset_mint: current_data.asset_mint,
             asset_amount: current_data.asset_amount,
             asset_price: current_data.asset_price,

@@ -46,6 +46,8 @@ pub struct AMMStrategyInitEvent {
 
 #[event]
 pub struct InvestTrackerUpdateEvent {
+    pub account_key: Pubkey, // strategy account key
+    pub invest_tracker_account_key: Pubkey, // invest tracker account key
     pub asset_mint: Pubkey,
     pub asset_amount: u64,
     pub asset_price: u128,
@@ -55,12 +57,15 @@ pub struct InvestTrackerUpdateEvent {
 
 #[event]
 pub struct HarvestAndReportDTF {
+    pub account_key: Pubkey,
     pub total_assets: u128,
     pub timestamp: i64,
 }
 
 #[event]
 pub struct InvestTrackerSwapEvent {
+    pub account_key: Pubkey,
+    pub invest_tracker_account_key: Pubkey,
     pub asset_mint: Pubkey,
     pub invested_underlying_amount: u64,
     pub asset_amount: u64,

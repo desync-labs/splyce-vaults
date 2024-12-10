@@ -207,6 +207,7 @@ impl Strategy for OrcaStrategy {
 
         // Emit event with total assets and timestamp
         emit!(HarvestAndReportDTF {
+            account_key: self.key(),
             total_assets: new_total_assets as u128, //basically total asset value in USDC which is the underlying token
             timestamp: Clock::get()?.unix_timestamp,
         });
@@ -818,6 +819,8 @@ impl OrcaStrategy {
     
         // Emit event with the latest state
         emit!(InvestTrackerSwapEvent {
+            account_key: self.key(),
+            invest_tracker_account_key: invest_tracker_account.key(),
             asset_mint: invest_tracker_data.asset_mint,
             invested_underlying_amount: invest_tracker_data.amount_invested
                 .checked_sub(invest_tracker_data.amount_withdrawn)
