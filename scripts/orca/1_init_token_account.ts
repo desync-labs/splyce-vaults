@@ -13,6 +13,17 @@ const WSOL_MINT = new PublicKey(
   "So11111111111111111111111111111111111111112"
 );
 
+const TMAC_MINT = new PublicKey(
+  "Afn8YB1p4NsoZeS5XJBZ18LTfEy5NFPwN46wapZcBQr6"
+);
+
+const USDT_MINT = new PublicKey(
+  "H8UekPGwePSmQ3ttuYGPU1szyFfjZR4N53rymSFwpLPm"
+);
+const SAMO_MINT = new PublicKey(
+  "Jd4M8bfJG3sAkd82RsGWyEXoaBXQP7njFzBwEaCTuDa"
+);
+
 async function main() {
   try {
     // Setup Provider and Programs
@@ -68,9 +79,33 @@ async function main() {
 
     console.log("Token account initialized successfully for WSOL");
 
-    const TMAC_MINT = new PublicKey(
-      "Afn8YB1p4NsoZeS5XJBZ18LTfEy5NFPwN46wapZcBQr6"
-    );
+    // Initialize token account for USDT
+    await strategyProgram.methods
+      .initTokenAccount()
+      .accounts({
+        strategy: strategy,
+        assetMint: USDT_MINT,
+        signer: admin.publicKey,
+      })
+      .signers([admin])
+      .rpc();
+
+    console.log("Token account initialized successfully for USDT");
+
+    // Initialize token account for SAMO
+    await strategyProgram.methods
+      .initTokenAccount()
+      .accounts({
+        strategy: strategy,
+        assetMint: SAMO_MINT,
+        signer: admin.publicKey,
+      })
+      .signers([admin])
+      .rpc();
+
+    console.log("Token account initialized successfully for SAMO");
+
+
     // Initialize token account for TMAC
     await strategyProgram.methods
       .initTokenAccount()
