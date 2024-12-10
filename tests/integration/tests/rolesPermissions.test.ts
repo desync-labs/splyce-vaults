@@ -34,6 +34,7 @@ describe("Roles and Permissions Tests", () => {
 
   // Accountant vars
   let accountantConfig: anchor.web3.PublicKey;
+  let accountantConfigAccount: { nextAccountantIndex: BN };
   const accountantType = { generic: {} };
 
   // Common underlying mint and owner
@@ -164,8 +165,19 @@ describe("Roles and Permissions Tests", () => {
 
     // Set up test vaults and strategies
     // Vault One
+    accountantConfigAccount = await accountantProgram.account.config.fetch(
+      accountantConfig
+    );
     accountantOne = anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from(new Uint8Array(new BigUint64Array([BigInt(0)]).buffer))],
+      [
+        Buffer.from(
+          new Uint8Array(
+            new BigUint64Array([
+              BigInt(accountantConfigAccount.nextAccountantIndex.toNumber()),
+            ]).buffer
+          )
+        ),
+      ],
       accountantProgram.programId
     )[0];
 
@@ -206,7 +218,7 @@ describe("Roles and Permissions Tests", () => {
       provider.connection,
       feeRecipientOne,
       sharesMintOne,
-      feeRecipientOne.publicKey,
+      feeRecipientOne.publicKey
     );
     feeRecipientTokenAccountOne = await token.createAccount(
       provider.connection,
@@ -332,6 +344,11 @@ describe("Roles and Permissions Tests", () => {
 
   describe("Accountant Admin Role Tests", () => {
     it("Accountant Admin - Init accountant is successful", async function () {
+      accountantConfigAccount = await accountantProgram.account.config.fetch(
+        accountantConfig
+      );
+      const nextAccountantIndexBefore =
+        accountantConfigAccount.nextAccountantIndex.toNumber();
       await accountantProgram.methods
         .initAccountant(accountantType)
         .accounts({
@@ -340,11 +357,14 @@ describe("Roles and Permissions Tests", () => {
         .signers([accountantAdmin])
         .rpc();
 
-      let accountantConfigAccount =
-        await accountantProgram.account.config.fetch(accountantConfig);
+      accountantConfigAccount = await accountantProgram.account.config.fetch(
+        accountantConfig
+      );
+      const nextAccountantIndexAfter =
+        accountantConfigAccount.nextAccountantIndex.toNumber();
       assert.strictEqual(
-        accountantConfigAccount.nextAccountantIndex.toNumber(),
-        2
+        nextAccountantIndexAfter,
+        nextAccountantIndexBefore + 1
       );
     });
 
@@ -508,8 +528,18 @@ describe("Roles and Permissions Tests", () => {
     });
 
     it("Vaults Admin - Calling init vault method is successful", async () => {
+      accountantConfigAccount = await accountantProgram.account.config.fetch(
+        accountantConfig
+      );
+      const accountantIndex =
+        accountantConfigAccount.nextAccountantIndex.toNumber();
+
       const accountant = anchor.web3.PublicKey.findProgramAddressSync(
-        [Buffer.from(new Uint8Array(new BigUint64Array([BigInt(1)]).buffer))],
+        [
+          Buffer.from(
+            new Uint8Array(new BigUint64Array([BigInt(accountantIndex)]).buffer)
+          ),
+        ],
         accountantProgram.programId
       )[0];
 
@@ -537,7 +567,7 @@ describe("Roles and Permissions Tests", () => {
         .accounts({
           underlyingMint,
           signer: vaultsAdmin.publicKey,
-          tokenProgram: token.TOKEN_PROGRAM_ID
+          tokenProgram: token.TOKEN_PROGRAM_ID,
         })
         .signers([vaultsAdmin])
         .rpc();
@@ -623,8 +653,17 @@ describe("Roles and Permissions Tests", () => {
     });
 
     it("Vaults Admin - Calling shutdown vault method is successful", async () => {
+      accountantConfigAccount = await accountantProgram.account.config.fetch(
+        accountantConfig
+      );
+      const accountantIndex =
+        accountantConfigAccount.nextAccountantIndex.toNumber();
       const accountant = anchor.web3.PublicKey.findProgramAddressSync(
-        [Buffer.from(new Uint8Array(new BigUint64Array([BigInt(2)]).buffer))],
+        [
+          Buffer.from(
+            new Uint8Array(new BigUint64Array([BigInt(accountantIndex)]).buffer)
+          ),
+        ],
         accountantProgram.programId
       )[0];
 
@@ -665,8 +704,17 @@ describe("Roles and Permissions Tests", () => {
     });
 
     it("Vaults Admin - Calling close vault method is successful", async () => {
+      accountantConfigAccount = await accountantProgram.account.config.fetch(
+        accountantConfig
+      );
+      const accountantIndex =
+        accountantConfigAccount.nextAccountantIndex.toNumber();
       const accountant = anchor.web3.PublicKey.findProgramAddressSync(
-        [Buffer.from(new Uint8Array(new BigUint64Array([BigInt(3)]).buffer))],
+        [
+          Buffer.from(
+            new Uint8Array(new BigUint64Array([BigInt(accountantIndex)]).buffer)
+          ),
+        ],
         accountantProgram.programId
       )[0];
 
@@ -735,7 +783,7 @@ describe("Roles and Permissions Tests", () => {
           userTokenAccount: kycVerifiedUserTokenAccount,
           userSharesAccount: kycVerifiedUserSharesAccountVaultOne,
           underlyingMint: underlyingMint,
-          tokenProgram: token.TOKEN_PROGRAM_ID
+          tokenProgram: token.TOKEN_PROGRAM_ID,
         })
         .signers([kycVerifiedUser])
         .remainingAccounts([
@@ -752,7 +800,7 @@ describe("Roles and Permissions Tests", () => {
           strategy: strategyOne,
           signer: vaultsAdmin.publicKey,
           underlyingMint: underlyingMint,
-          tokenProgram: token.TOKEN_PROGRAM_ID
+          tokenProgram: token.TOKEN_PROGRAM_ID,
         })
         .signers([vaultsAdmin])
         .rpc();
@@ -850,8 +898,17 @@ describe("Roles and Permissions Tests", () => {
     });
 
     it("Vaults Admin - Calling set profit max unlock time method is successful", async () => {
+      accountantConfigAccount = await accountantProgram.account.config.fetch(
+        accountantConfig
+      );
+      const accountantIndex =
+        accountantConfigAccount.nextAccountantIndex.toNumber();
       const accountant = anchor.web3.PublicKey.findProgramAddressSync(
-        [Buffer.from(new Uint8Array(new BigUint64Array([BigInt(4)]).buffer))],
+        [
+          Buffer.from(
+            new Uint8Array(new BigUint64Array([BigInt(accountantIndex)]).buffer)
+          ),
+        ],
         accountantProgram.programId
       )[0];
 
@@ -898,8 +955,17 @@ describe("Roles and Permissions Tests", () => {
     });
 
     it("Vaults Admin - Calling set min total idle method is successful", async () => {
+      accountantConfigAccount = await accountantProgram.account.config.fetch(
+        accountantConfig
+      );
+      const accountantIndex =
+        accountantConfigAccount.nextAccountantIndex.toNumber();
       const accountant = anchor.web3.PublicKey.findProgramAddressSync(
-        [Buffer.from(new Uint8Array(new BigUint64Array([BigInt(5)]).buffer))],
+        [
+          Buffer.from(
+            new Uint8Array(new BigUint64Array([BigInt(accountantIndex)]).buffer)
+          ),
+        ],
         accountantProgram.programId
       )[0];
 
@@ -954,7 +1020,7 @@ describe("Roles and Permissions Tests", () => {
           strategy: strategyOne,
           signer: strategiesManager.publicKey,
           underlyingMint: underlyingMint,
-          tokenProgram: token.TOKEN_PROGRAM_ID
+          tokenProgram: token.TOKEN_PROGRAM_ID,
         })
         .remainingAccounts([
           {
@@ -1003,8 +1069,18 @@ describe("Roles and Permissions Tests", () => {
     it("KYC Verified User - Calling deposit method for kyc verified only vault is successful", async () => {
       const depositAmount = 50;
 
+      accountantConfigAccount = await accountantProgram.account.config.fetch(
+        accountantConfig
+      );
+      const accountantIndex =
+        accountantConfigAccount.nextAccountantIndex.toNumber();
+
       const accountant = anchor.web3.PublicKey.findProgramAddressSync(
-        [Buffer.from(new Uint8Array(new BigUint64Array([BigInt(6)]).buffer))],
+        [
+          Buffer.from(
+            new Uint8Array(new BigUint64Array([BigInt(accountantIndex)]).buffer)
+          ),
+        ],
         accountantProgram.programId
       )[0];
 
@@ -1057,7 +1133,7 @@ describe("Roles and Permissions Tests", () => {
           userTokenAccount: kycVerifiedUserTokenAccount,
           userSharesAccount: userSharesAccount,
           underlyingMint: underlyingMint,
-          tokenProgram: token.TOKEN_PROGRAM_ID
+          tokenProgram: token.TOKEN_PROGRAM_ID,
         })
         .signers([kycVerifiedUser])
         .remainingAccounts([
@@ -1101,8 +1177,18 @@ describe("Roles and Permissions Tests", () => {
     it("Non-KYC Verified User - Calling deposit method for kyc verified only vault should revert", async () => {
       const depositAmount = 50;
 
+      accountantConfigAccount = await accountantProgram.account.config.fetch(
+        accountantConfig
+      );
+      const accountantIndex =
+        accountantConfigAccount.nextAccountantIndex.toNumber();
+
       const accountant = anchor.web3.PublicKey.findProgramAddressSync(
-        [Buffer.from(new Uint8Array(new BigUint64Array([BigInt(7)]).buffer))],
+        [
+          Buffer.from(
+            new Uint8Array(new BigUint64Array([BigInt(accountantIndex)]).buffer)
+          ),
+        ],
         accountantProgram.programId
       )[0];
 
@@ -1156,7 +1242,7 @@ describe("Roles and Permissions Tests", () => {
             userTokenAccount: nonVerifiedUserTokenAccount,
             userSharesAccount: userSharesAccount,
             underlyingMint: underlyingMint,
-            tokenProgram: token.TOKEN_PROGRAM_ID
+            tokenProgram: token.TOKEN_PROGRAM_ID,
           })
           .signers([nonVerifiedUser])
           .remainingAccounts([
