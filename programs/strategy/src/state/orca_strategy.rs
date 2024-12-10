@@ -5,7 +5,7 @@ use super::base_strategy::*;
 use super::StrategyType;
 use super::fee_data::*;
 use crate::error::ErrorCode;
-use crate::events::{StrategyDepositEvent, AMMStrategyInitEvent, StrategyWithdrawEvent, HarvestAndReportDTF, InvestTrackerSwapEvent};
+use crate::events::{StrategyDepositEvent, AMMStrategyInitEvent, StrategyWithdrawEvent, HarvestAndReportDTFEvent, InvestTrackerSwapEvent};
 use crate::instructions::{Report, ReportProfit, ReportLoss, DeployFunds, FreeFunds, Rebalance};
 use crate::constants::{
     MAX_SQRT_PRICE_X64, 
@@ -206,8 +206,9 @@ impl Strategy for OrcaStrategy {
         let new_total_assets = total_asset_value as u64;
 
         // Emit event with total assets and timestamp
-        emit!(HarvestAndReportDTF {
-            total_assets: new_total_assets as u128, //basically total asset value in USDC which is the underlying token
+        emit!(HarvestAndReportDTFEvent {
+            account_key: self.key(),
+            total_assets: new_total_assets, //basically total asset value in USDC which is the underlying token
             timestamp: Clock::get()?.unix_timestamp,
         });
 
@@ -818,12 +819,14 @@ impl OrcaStrategy {
     
         // Emit event with the latest state
         emit!(InvestTrackerSwapEvent {
+            account_key: self.key(),
+            invest_tracker_account_key: invest_tracker_account.key(),
             asset_mint: invest_tracker_data.asset_mint,
             invested_underlying_amount: invest_tracker_data.amount_invested
                 .checked_sub(invest_tracker_data.amount_withdrawn)
                 .ok_or(OrcaStrategyErrorCode::MathError)?,
             asset_amount: invest_tracker_data.asset_amount,
-            asset_price: invest_tracker_data.sqrt_price,
+            asset_price: invest_tracker_data.sqrt_price as u64,
             timestamp: Clock::get()?.unix_timestamp,
         });
         
