@@ -58,6 +58,7 @@ pub fn handle_deposit<'info>(
         let deploy_funds = DeployFunds {
             strategy: ctx.accounts.strategy.clone(),
             underlying_token_account: ctx.accounts.underlying_token_account.clone(),
+            underlying_mint: ctx.accounts.underlying_mint.clone(),
             signer: ctx.accounts.signer.clone(),
             token_program: ctx.accounts.token_program.clone(),
         };

@@ -190,6 +190,7 @@ async function main() {
         userSharesAccount: userSharesATA.address,
         strategy: strategy,
         user: admin.publicKey,
+        underlyingMint: USDC_MINT,
       })
       .remainingAccounts(combinedRemainingAccounts)
       .preInstructions([computeUnitIx, computePriceIx])

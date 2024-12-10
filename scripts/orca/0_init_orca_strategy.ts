@@ -5,6 +5,8 @@ import { Strategy } from "../../target/types/strategy";
 import { OrcaStrategyConfig, OrcaStrategyConfigSchema } from "../../tests/utils/schemas";
 import { BN } from "@coral-xyz/anchor";
 import * as token from "@solana/spl-token";
+import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
+
 import * as borsh from 'borsh';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -205,7 +207,8 @@ async function main() {
     await vaultProgram.methods.initVault(vaultConfig)
       .accounts({
         underlyingMint,
-        signer: admin.publicKey
+        signer: admin.publicKey,
+        tokenProgram: TOKEN_PROGRAM_ID,
       })
       .signers([admin])
       .rpc();
@@ -294,6 +297,7 @@ async function main() {
         underlyingMint,
         vault,
         signer: admin.publicKey,
+        tokenProgram: TOKEN_PROGRAM_ID,
       })
       .signers([admin])
       .rpc();

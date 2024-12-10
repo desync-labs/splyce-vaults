@@ -500,6 +500,8 @@ async function main() {
         userTokenAccount: userUsdcATA,
         userSharesAccount: userSharesATA,
         user: admin.publicKey,
+        underlyingMint: USDC_MINT,
+        tokenProgram: TOKEN_PROGRAM_ID,
       })
       .remainingAccounts(combinedRemainingAccounts)
       .instruction();

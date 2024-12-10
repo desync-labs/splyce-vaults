@@ -377,6 +377,7 @@ async function main() {
         .deployFunds(amount)
         .accounts({
           strategy: strategy,
+          underlyingMint: USDC_MINT,
           signer: admin.publicKey,
         })
         .remainingAccounts(combinedRemainingAccounts)

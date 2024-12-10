@@ -16,6 +16,9 @@ const TMAC_MINT = new PublicKey(
   "Afn8YB1p4NsoZeS5XJBZ18LTfEy5NFPwN46wapZcBQr6"
 );
 
+const USDC_MINT = new PublicKey("BRjpCHtyQLNCo8gqRUr8jtdAj5AjPYQaoqbvcZiHok1k");
+
+
 function deserializeOrcaStrategy(data: Buffer) {
     // Skip 8 byte discriminator
     let offset = 8;
@@ -171,6 +174,8 @@ async function main() {
       .accounts({
         strategy,
         signer: admin.publicKey,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        underlyingMint: USDC_MINT,
       })
       .remainingAccounts([
         {

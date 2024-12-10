@@ -192,6 +192,8 @@ async function main() {
       .accounts({
         strategy: strategy,
         signer: admin.publicKey,
+        underlyingMint: USDC_MINT,
+        tokenProgram: TOKEN_PROGRAM_ID,
       })
       .remainingAccounts(remainingAccounts)
       .signers([admin])

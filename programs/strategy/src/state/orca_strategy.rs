@@ -128,6 +128,7 @@ impl Strategy for OrcaStrategy {
             &mut Report {
                 strategy: accounts.strategy.clone(),
                 underlying_token_account: accounts.underlying_token_account.clone(),
+                underlying_mint: accounts.underlying_mint.clone(),
                 token_program: accounts.token_program.clone(),
                 signer: accounts.signer.clone(),
             },
@@ -148,6 +149,7 @@ impl Strategy for OrcaStrategy {
             &mut Report {
                 strategy: accounts.strategy.clone(),
                 underlying_token_account: accounts.underlying_token_account.clone(),
+                underlying_mint: accounts.underlying_mint.clone(),
                 token_program: accounts.token_program.clone(),
                 signer: accounts.signer.clone(),
             },
