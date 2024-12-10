@@ -198,6 +198,7 @@ async function main() {
         profitMaxUnlockTime: new BN(7 * 24 * 60 * 60), // 7 days in seconds
         kycVerifiedOnly: false,
         directDepositEnabled: true,
+        whitelistedOnly: true,
     };
 
     // 9. Initialize Vault
@@ -209,6 +210,16 @@ async function main() {
       .signers([admin])
       .rpc();
     console.log("Vault initialized.");
+
+    // Whitelist admin for vault operations
+    await vaultProgram.methods.whitelist(admin.publicKey)
+      .accounts({
+        vault: vault,
+      })
+      .signers([admin])
+      .rpc();
+
+    console.log("Admin whitelisted for vault operations");
 
     // 10. Initialize Vault Shares
     const sharesConfig = {
