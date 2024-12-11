@@ -50,3 +50,37 @@ pub struct InvestTrackerSwapEvent {
     pub asset_price: u64,
     pub timestamp: i64,
 }
+
+#[event]
+pub struct InvestTrackerUpdateEvent {
+    pub account_key: Pubkey,
+    pub invest_tracker_account_key: Pubkey,
+    pub whirlpool_id: Pubkey,
+    pub asset_mint: Pubkey,
+    pub amount_invested: u64,
+    pub amount_withdrawn: u64,
+    pub asset_amount: u64,
+    pub asset_price: u128,
+    pub sqrt_price: u128,
+    pub asset_value: u128,
+    pub asset_decimals: u8,
+    pub underlying_decimals: u8,
+    pub a_to_b_for_purchase: bool,
+    pub assigned_weight: u16,
+    pub current_weight: u16,
+    pub timestamp: i64,
+}
+
+#[event]
+pub struct StrategyDeployFundsEvent {
+    pub account_key: Pubkey,
+    pub amount: u64,
+    pub timestamp: i64,
+}
+
+#[event]
+pub struct StrategyFreeFundsEvent {
+    pub account_key: Pubkey,
+    pub amount: u64,
+    pub timestamp: i64,
+}

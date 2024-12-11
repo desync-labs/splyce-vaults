@@ -13,6 +13,7 @@ use crate::state::invest_tracker::*;
 use crate::state::whirlpool::*;
 use crate::error::ErrorCode;
 use crate::utils::orca_utils::{compute_asset_value, get_price_in_underlying_decimals};
+use crate::events::InvestTrackerUpdateEvent;
 
 //This instruction initializes an invest tracker for the strategy
 #[derive(Accounts)]
@@ -114,6 +115,26 @@ pub fn handle_update_invest_trackers(ctx: Context<UpdateInvestTrackers>) -> Resu
         total_asset_value = total_asset_value
             .checked_add(current_data.asset_value)
             .ok_or(ErrorCode::MathOverflow)?;
+
+        // Emit the update event
+        emit!(InvestTrackerUpdateEvent {
+            account_key: invest_tracker_info.key(),
+            invest_tracker_account_key: invest_tracker_info.key(),
+            whirlpool_id: current_data.whirlpool_id,
+            asset_mint: current_data.asset_mint,
+            amount_invested: current_data.amount_invested,
+            amount_withdrawn: current_data.amount_withdrawn,
+            asset_amount: current_data.asset_amount,
+            asset_price: current_data.asset_price,
+            sqrt_price: current_data.sqrt_price,
+            asset_value: current_data.asset_value,
+            asset_decimals: current_data.asset_decimals,
+            underlying_decimals: current_data.underlying_decimals,
+            a_to_b_for_purchase: current_data.a_to_b_for_purchase,
+            assigned_weight: current_data.assigned_weight,
+            current_weight: current_data.current_weight,
+            timestamp: Clock::get()?.unix_timestamp,
+        });
 
         // Serialize the updated data
         let serialized = current_data.try_to_vec()?;

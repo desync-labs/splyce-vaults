@@ -5,7 +5,7 @@ use super::base_strategy::*;
 use super::StrategyType;
 use super::fee_data::*;
 use crate::error::ErrorCode;
-use crate::events::{StrategyDepositEvent, StrategyInitEvent, StrategyWithdrawEvent, HarvestAndReportDTFEvent, InvestTrackerSwapEvent};
+use crate::events::{StrategyDepositEvent, StrategyInitEvent, StrategyWithdrawEvent, HarvestAndReportDTFEvent, InvestTrackerSwapEvent, StrategyDeployFundsEvent, StrategyFreeFundsEvent};
 use crate::instructions::{Report, ReportProfit, ReportLoss, DeployFunds, FreeFunds, Rebalance};
 use crate::constants::{
     MAX_SQRT_PRICE_X64, 
@@ -263,6 +263,12 @@ impl Strategy for OrcaStrategy {
             )?;
         }
 
+        emit!(StrategyFreeFundsEvent {
+            account_key: self.key(),
+            amount,
+            timestamp: Clock::get()?.unix_timestamp,
+        });
+
         Ok(())
     }
 
@@ -317,6 +323,12 @@ impl Strategy for OrcaStrategy {
                 is_a_to_b,     // Pass is_a_to_b
             )?;
         }
+
+        emit!(StrategyDeployFundsEvent {
+            account_key: self.key(),
+            amount,
+            timestamp: Clock::get()?.unix_timestamp,
+        });
 
         Ok(())
     }
