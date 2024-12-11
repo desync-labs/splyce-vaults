@@ -4,6 +4,7 @@ import { getTickArrayPublicKeysForSwap } from "./orca-utils/getTickArrayPublicKe
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { Strategy } from "../../target/types/strategy";
+import { TokenizedVault } from "../../target/types/tokenized_vault";
 
 // Common constants
 const WHIRLPOOLS_CONFIG = new PublicKey("FcrweFY1G9HJAHG5inkGB6pKg1HZ6x9UC2WioAfWrGkR");
@@ -27,14 +28,27 @@ async function main() {
     const provider = anchor.AnchorProvider.env();
     anchor.setProvider(provider);
     const strategyProgram = anchor.workspace.Strategy as Program<Strategy>;
+    const vaultProgram = anchor.workspace.TokenizedVault as Program<TokenizedVault>;
 
     // Create OrcaDAL instance with devnet connection
     const connection = new Connection("https://api.devnet.solana.com");
     const dal = new OrcaDAL(WHIRLPOOLS_CONFIG, WHIRLPOOL_PROGRAM_ID, connection);
 
     // Get strategy PDA
+    const vaultIndex = 0;
+    const [vaultPDA] = anchor.web3.PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("vault"),
+        Buffer.from(new Uint8Array(new BigUint64Array([BigInt(vaultIndex)]).buffer))
+      ],
+      vaultProgram.programId
+    );
+
     const [strategy] = anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("strategy")],
+      [
+        vaultPDA.toBuffer(),
+        new anchor.BN(0).toArrayLike(Buffer, 'le', 8)
+      ],
       strategyProgram.programId
     );
 
