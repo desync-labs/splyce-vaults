@@ -242,7 +242,7 @@ describe("Access Control Tests", () => {
       assert.fail("Error was not thrown");
     } catch (err) {
       expect(err.message).contains(
-        errorStrings.accountExpectedToAlreadyBeIntiialzied
+        errorStrings.accountExpectedToAlreadyBeInitialized
       );
     }
   });
@@ -346,7 +346,7 @@ describe("Access Control Tests", () => {
       assert.fail("Error was not thrown.");
     } catch (err) {
       expect(err.message).contains(
-        errorStrings.accountExpectedToAlreadyBeIntiialzied
+        errorStrings.accountExpectedToAlreadyBeInitialized
       );
     }
     // Still has the existing role

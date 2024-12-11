@@ -34,14 +34,12 @@ export const initializeVault = async ({
   signer,
   vaultConfig,
   sharesConfig,
-  skipInitShares,
 }: {
   vaultProgram: anchor.Program<TokenizedVault>;
   underlyingMint: anchor.web3.PublicKey;
   signer: anchor.web3.Keypair;
   vaultConfig: any;
   sharesConfig: any;
-  skipInitShares?: boolean;
 }) => {
   const config = web3.PublicKey.findProgramAddressSync(
     [Buffer.from("config")],
@@ -86,28 +84,21 @@ export const initializeVault = async ({
     .accounts({
       underlyingMint,
       signer: signer.publicKey,
-      tokenProgram: token.TOKEN_PROGRAM_ID
+      tokenProgram: token.TOKEN_PROGRAM_ID,
     })
     .signers([signer])
     .rpc();
 
-  if (!skipInitShares) {
-    await vaultProgram.methods
-      .initVaultShares(new BN(nextVaultIndex), sharesConfig)
-      .accounts({
-        metadata: metadataAddress,
-        signer: signer.publicKey,
-      })
-      .signers([signer])
-      .rpc();
-  }
+  await vaultProgram.methods
+    .initVaultShares(new BN(nextVaultIndex), sharesConfig)
+    .accounts({
+      metadata: metadataAddress,
+      signer: signer.publicKey,
+    })
+    .signers([signer])
+    .rpc();
 
-  return [
-    vault,
-    sharesMint,
-    metadataAddress,
-    vaultTokenAccount,
-  ];
+  return [vault, sharesMint, metadataAddress, vaultTokenAccount];
 };
 
 export const initializeSimpleStrategy = async ({
@@ -160,7 +151,7 @@ export const initializeSimpleStrategy = async ({
       vault,
       signer: signer.publicKey,
       underlyingMint,
-      tokenProgram: token.TOKEN_PROGRAM_ID
+      tokenProgram: token.TOKEN_PROGRAM_ID,
     })
     .signers([signer])
     .rpc();
