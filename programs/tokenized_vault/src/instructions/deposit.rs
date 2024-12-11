@@ -9,7 +9,7 @@ use anchor_spl::{
     token_interface::{Mint, TokenAccount, TokenInterface}
 };
 
-use crate::constants::{SHARES_SEED, UNDERLYING_SEED, WHITELISTED_SEED};
+use crate::constants::{SHARES_SEED, UNDERLYING_SEED, WHITELISTED_SEED, ONE_SHARE_TOKEN};
 
 use crate::events::VaultDepositEvent;
 use crate::state::Vault;
@@ -98,6 +98,8 @@ pub fn handle_deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
     let mut vault = ctx.accounts.vault.load_mut()?;
     vault.handle_deposit(amount, shares);
 
+    let share_price = vault.convert_to_underlying(ONE_SHARE_TOKEN);
+
     emit!(VaultDepositEvent {
         vault_key: vault.key,
         total_debt: vault.total_debt,
@@ -110,6 +112,8 @@ pub fn handle_deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
         token_mint: ctx.accounts.vault_token_account.mint,
         share_mint: ctx.accounts.shares_mint.to_account_info().key(),
         authority: ctx.accounts.user.to_account_info().key(),
+        share_price,
+        timestamp: Clock::get()?.unix_timestamp,
     });
 
     Ok(())
