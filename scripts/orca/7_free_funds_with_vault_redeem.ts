@@ -71,8 +71,8 @@ const WHIRLPOOL_ID_USDT = new PublicKey("63cMwvN8eoaD39os9bKP8brmA7Xtov9VxahnPuf
 
 const TICK_ARRAY_ADDRESSES_USDT = [
   new PublicKey("EBHQcAfc4ncUkCxgGYxEWCSu744qFaBEBmyv3U9ajNzX"),
-  new PublicKey("EBHQcAfc4ncUkCxgGYxEWCSu744qFaBEBmyv3U9ajNzX"),
-  new PublicKey("EBHQcAfc4ncUkCxgGYxEWCSu744qFaBEBmyv3U9ajNzX"),
+  new PublicKey("4cCMLotR9ATrdxznfA6uJjySPJ96yEqzqUejxVxHrV9x"),
+  new PublicKey("4cCMLotR9ATrdxznfA6uJjySPJ96yEqzqUejxVxHrV9x"),
 ];
 const ORACLE_ADDRESS_USDT = new PublicKey("BMy2iNjiFUoVR3xLkaPjfEHXtwjvvS9Dja4mD4Yzh5Fw");
 
