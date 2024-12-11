@@ -34,8 +34,8 @@ const TOKEN_VAULT_A_WSOL = new PublicKey("C9zLV5zWF66j3rZj3uuhDqvfuA8esJyWnruGzD
 const TOKEN_VAULT_B_WSOL = new PublicKey("7DM3RMz2yzUB8yPRQM3FMZgdFrwZGMsabsfsKopWktoX");
 const TICK_ARRAY_ADDRESSES_WSOL = [
   new PublicKey("3aBJJLAR3QxGcGsesNXeW3f64Rv3TckF7EQ6sXtAuvGM"),
-  new PublicKey("3aBJJLAR3QxGcGsesNXeW3f64Rv3TckF7EQ6sXtAuvGM"),
-  new PublicKey("3aBJJLAR3QxGcGsesNXeW3f64Rv3TckF7EQ6sXtAuvGM"),
+  new PublicKey("7knZZ461yySGbSEHeBUwEpg3VtAkQy8B9tp78RGgyUHE"),
+  new PublicKey("CpoSFo3ajrizueggtJr2ZjvYgdtkgugXtvhqcwkyCkKP"),
 ];
 const ORACLE_ADDRESS_WSOL = new PublicKey("2KEWNc3b6EfqoWQpfKQMHh4mhRyKXYRdPbtGRTJX3Cip");
 
@@ -46,8 +46,8 @@ const TOKEN_VAULT_A_TMAC = new PublicKey("2qE191zsJCJdMXsPcwkVJ5MyiSfreNpQtKpXgA
 const TOKEN_VAULT_B_TMAC = new PublicKey("G6qeUBPqU3Ryabi4rwVUgHpLh6wmHLvi8jDQexTR1CTU");
 const TICK_ARRAY_ADDRESSES_TMAC = [
   new PublicKey("5NApkpCKADoeYk8s2SHa2u1nHBPEXr937c1amNgjMDdy"),
-  new PublicKey("5NApkpCKADoeYk8s2SHa2u1nHBPEXr937c1amNgjMDdy"),
-  new PublicKey("5NApkpCKADoeYk8s2SHa2u1nHBPEXr937c1amNgjMDdy"),
+  new PublicKey("9ba9iZ82nymCD56GJRpDgeLBfH1p2mWn2djABosok3Bx"),
+  new PublicKey("6Feg4gvgByuq4XZaoTJGJtM8HSmbWRirWPRM3wvcyP9P"),
 ];
 const ORACLE_ADDRESS_TMAC = new PublicKey("34mJni6KtJBUWoqsT5yZUJ89ywHnYaU11bh27cNHPTov");
 
@@ -58,8 +58,8 @@ const TOKEN_VAULT_A_USDT = new PublicKey("FeBffJzs1FHzkBWb2g9d4BfCBZVfxSGUqxndUi
 const TOKEN_VAULT_B_USDT = new PublicKey("5ETZXHhJmodgw7KPuNyKEvKhniGcxW99xS7VpZVbWvKH");
 const TICK_ARRAY_ADDRESSES_USDT = [
   new PublicKey("EBHQcAfc4ncUkCxgGYxEWCSu744qFaBEBmyv3U9ajNzX"),
-  new PublicKey("EBHQcAfc4ncUkCxgGYxEWCSu744qFaBEBmyv3U9ajNzX"),
-  new PublicKey("EBHQcAfc4ncUkCxgGYxEWCSu744qFaBEBmyv3U9ajNzX"),
+  new PublicKey("8Eh57hMUNffNpQPb4K2nQZFPguiYgnCSi2ehvtmuE2PA"),
+  new PublicKey("FpGrraM6rZN1AkxMTyJrASda4q6BSdGJgqj544S1vcjL"),
 ];
 const ORACLE_ADDRESS_USDT = new PublicKey("BMy2iNjiFUoVR3xLkaPjfEHXtwjvvS9Dja4mD4Yzh5Fw");
 
@@ -70,8 +70,8 @@ const TOKEN_VAULT_A_SAMO = new PublicKey("GedZgiHw8dJpR6Fyt1PNgSwYznEyh18qgZvobu
 const TOKEN_VAULT_B_SAMO = new PublicKey("4KDudC7XagDiZZbd9Xzabcy5yZMC8bvz7c8q7Bb9vXTa");
 const TICK_ARRAY_ADDRESSES_SAMO = [
   new PublicKey("9H4aVdyXbnnmbSJLjYahvZzrgdHyWVMq8i1v1fD7jqBt"),
-  new PublicKey("9H4aVdyXbnnmbSJLjYahvZzrgdHyWVMq8i1v1fD7jqBt"),
-  new PublicKey("9H4aVdyXbnnmbSJLjYahvZzrgdHyWVMq8i1v1fD7jqBt"),
+  new PublicKey("G13PKFAkn7rLHVT1fGbLPKAQFiMe6GiRKZ6e8ipxcn9q"),
+  new PublicKey("76ntKkVqoLqakqHb6TdkWKuD9kNv2JbPL3k6EHudWHxd"),
 ];
 const ORACLE_ADDRESS_SAMO = new PublicKey("3dWJWYaTPMoADQvVihAc8hFu4nYXsEtBAGQwPMBXau1t");
 
@@ -294,7 +294,7 @@ async function main() {
     }
 
     // Define deposit amount (10 USDC)
-    const depositAmount = new BN(10).mul(new BN(10).pow(new BN(6)));
+    const depositAmount = new BN(5).mul(new BN(10).pow(new BN(6)));
 
     // Set compute unit limit
     const computeUnitIx = ComputeBudgetProgram.setComputeUnitLimit({

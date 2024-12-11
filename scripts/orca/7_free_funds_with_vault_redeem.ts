@@ -42,8 +42,8 @@ const WHIRLPOOL_ID_WSOL = new PublicKey(
 );
 const TICK_ARRAY_ADDRESSES_WSOL = [
   new PublicKey("3aBJJLAR3QxGcGsesNXeW3f64Rv3TckF7EQ6sXtAuvGM"),
-  new PublicKey("3aBJJLAR3QxGcGsesNXeW3f64Rv3TckF7EQ6sXtAuvGM"),
-  new PublicKey("3aBJJLAR3QxGcGsesNXeW3f64Rv3TckF7EQ6sXtAuvGM"),
+  new PublicKey("A1vrG379E5ttoaWmyQBiunsMdyrpoUp7mSQwu8DgLcip"),
+  new PublicKey("6457MVShLFLePXXpyj2uwL2P23wkraT4QnP5u5orTRDU"),
 ];
 const ORACLE_ADDRESS_WSOL = new PublicKey(
   "2KEWNc3b6EfqoWQpfKQMHh4mhRyKXYRdPbtGRTJX3Cip"
@@ -58,8 +58,8 @@ const WHIRLPOOL_ID_TMAC = new PublicKey(
 );
 const TICK_ARRAY_ADDRESSES_TMAC = [
   new PublicKey("5NApkpCKADoeYk8s2SHa2u1nHBPEXr937c1amNgjMDdy"),
-  new PublicKey("5NApkpCKADoeYk8s2SHa2u1nHBPEXr937c1amNgjMDdy"),
-  new PublicKey("5NApkpCKADoeYk8s2SHa2u1nHBPEXr937c1amNgjMDdy"),
+  new PublicKey("GLsD5jys1yN9oFuvXPWkgWcTMXytRRHtUpaytdpoEkEz"),
+  new PublicKey("6tWqaXhC6DzL3qF3C7jqd4fp8GfZ4eZ81HaZxP1q42FF"),
 ];
 const ORACLE_ADDRESS_TMAC = new PublicKey(
   "34mJni6KtJBUWoqsT5yZUJ89ywHnYaU11bh27cNHPTov"
@@ -72,7 +72,7 @@ const WHIRLPOOL_ID_USDT = new PublicKey("63cMwvN8eoaD39os9bKP8brmA7Xtov9VxahnPuf
 const TICK_ARRAY_ADDRESSES_USDT = [
   new PublicKey("EBHQcAfc4ncUkCxgGYxEWCSu744qFaBEBmyv3U9ajNzX"),
   new PublicKey("4cCMLotR9ATrdxznfA6uJjySPJ96yEqzqUejxVxHrV9x"),
-  new PublicKey("4cCMLotR9ATrdxznfA6uJjySPJ96yEqzqUejxVxHrV9x"),
+  new PublicKey("HZUZhi5xeybSiKJqBu1XXRh4y9azNLNSdgQ7owyarzQ"),
 ];
 const ORACLE_ADDRESS_USDT = new PublicKey("BMy2iNjiFUoVR3xLkaPjfEHXtwjvvS9Dja4mD4Yzh5Fw");
 
@@ -82,8 +82,8 @@ const WHIRLPOOL_ID_SAMO = new PublicKey("EgxU92G34jw6QDG9RuTX9StFg1PmHuDqkRKAE5k
 
 const TICK_ARRAY_ADDRESSES_SAMO = [
   new PublicKey("9H4aVdyXbnnmbSJLjYahvZzrgdHyWVMq8i1v1fD7jqBt"),
-  new PublicKey("9H4aVdyXbnnmbSJLjYahvZzrgdHyWVMq8i1v1fD7jqBt"),
-  new PublicKey("9H4aVdyXbnnmbSJLjYahvZzrgdHyWVMq8i1v1fD7jqBt"),
+  new PublicKey("B6n4APQbms1BdY5Ev1V9hjgz3NC94f7ws8qG9e3bpedE"),
+  new PublicKey("9AQxHkiVJqoXRUvP9FpoXUcZ1HCEHpJHp8eZVRocK7Wx"),
 ];
 const ORACLE_ADDRESS_SAMO = new PublicKey("3dWJWYaTPMoADQvVihAc8hFu4nYXsEtBAGQwPMBXau1t");
 
