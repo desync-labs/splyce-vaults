@@ -16,5 +16,7 @@ pub struct InvestTracker {
     pub a_to_b_for_purchase: bool,
     pub assigned_weight: u16,
     pub current_weight: u16,
-    //later add last_updated_timestamp so that the actions happen when the price is fresh
+    pub effective_invested_amount: u64,
+    pub unrealized_profit: u64,
+    pub unrealized_loss: u64,
 }   

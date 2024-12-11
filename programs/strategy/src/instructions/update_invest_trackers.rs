@@ -110,6 +110,18 @@ pub fn handle_update_invest_trackers(ctx: Context<UpdateInvestTrackers>) -> Resu
             .checked_div(FEE_BPS as u128)
             .ok_or(ErrorCode::MathOverflow)?;
 
+        // Calculate unrealized profit/loss
+        let effective_invested = current_data.effective_invested_amount as u128;
+        let asset_value = current_data.asset_value;
+
+        if asset_value > effective_invested {
+            current_data.unrealized_profit = (asset_value - effective_invested) as u64;
+            current_data.unrealized_loss = 0;
+        } else {
+            current_data.unrealized_profit = 0;
+            current_data.unrealized_loss = (effective_invested - asset_value) as u64;
+        }
+
         // Add to totals
         total_weight += current_data.assigned_weight as u16;
         total_asset_value = total_asset_value
@@ -133,6 +145,9 @@ pub fn handle_update_invest_trackers(ctx: Context<UpdateInvestTrackers>) -> Resu
             a_to_b_for_purchase: current_data.a_to_b_for_purchase,
             assigned_weight: current_data.assigned_weight,
             current_weight: current_data.current_weight,
+            effective_invested_amount: current_data.effective_invested_amount,
+            unrealized_profit: current_data.unrealized_profit,
+            unrealized_loss: current_data.unrealized_loss,
             timestamp: Clock::get()?.unix_timestamp,
         });
 
