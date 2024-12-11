@@ -5,7 +5,7 @@ use super::base_strategy::*;
 use super::StrategyType;
 use super::fee_data::*;
 use crate::error::ErrorCode;
-use crate::events::{StrategyDepositEvent, AMMStrategyInitEvent, StrategyWithdrawEvent, HarvestAndReportDTFEvent, InvestTrackerSwapEvent};
+use crate::events::{StrategyDepositEvent, StrategyInitEvent, StrategyWithdrawEvent, HarvestAndReportDTFEvent, InvestTrackerSwapEvent};
 use crate::instructions::{Report, ReportProfit, ReportLoss, DeployFunds, FreeFunds, Rebalance};
 use crate::constants::{
     MAX_SQRT_PRICE_X64, 
@@ -536,15 +536,17 @@ impl StrategyInit for OrcaStrategy {
         };
 
         emit!(
-            AMMStrategyInitEvent 
+            StrategyInitEvent 
             {
                 account_key: self.key(),
-                strategy_type: String::from("trade-fintech"),
+                strategy_type: String::from("DTF-Strategy"),
                 vault: self.vault,
                 underlying_mint: self.underlying_mint,
                 underlying_token_acc: self.underlying_token_acc,
-                undelying_decimals: self.underlying_decimals,
+                underlying_decimals: self.underlying_decimals,
                 deposit_limit: self.deposit_limit,
+                deposit_period_ends: config.deposit_period_ends,
+                lock_period_ends: config.lock_period_ends,
             });
 
         Ok(())
