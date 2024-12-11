@@ -163,6 +163,7 @@ async function main() {
     await strategyProgram.methods
       .updateInvestTrackers()
       .accounts({
+        strategy: strategy,
         signer: admin.publicKey,
       })
       .remainingAccounts(remainingAccounts)

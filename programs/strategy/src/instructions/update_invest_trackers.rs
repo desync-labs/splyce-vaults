@@ -14,11 +14,16 @@ use crate::state::whirlpool::*;
 use crate::error::ErrorCode;
 use crate::utils::orca_utils::{compute_asset_value, get_price_in_underlying_decimals};
 use crate::events::InvestTrackerUpdateEvent;
+use crate::utils::unchecked_strategy::UncheckedStrategy;
 
 //This instruction initializes an invest tracker for the strategy
 #[derive(Accounts)]
 #[instruction()]
 pub struct UpdateInvestTrackers<'info> {
+    /// CHECK: can be any strategy
+    #[account(mut)]
+    pub strategy: UncheckedAccount<'info>,
+
     #[account(
         seeds = [
             USER_ROLE_SEED.as_bytes(), 
@@ -40,6 +45,8 @@ pub struct UpdateInvestTrackers<'info> {
 }
 
 pub fn handle_update_invest_trackers(ctx: Context<UpdateInvestTrackers>) -> Result<()> {
+    let mut strategy = ctx.accounts.strategy.from_unchecked()?;
+
     msg!("Updating invest trackers");
     //so there would be a pair of accounts for each invest tracker
     //remaining accounts[0] = invest_tracker
@@ -130,7 +137,7 @@ pub fn handle_update_invest_trackers(ctx: Context<UpdateInvestTrackers>) -> Resu
 
         // Emit the update event
         emit!(InvestTrackerUpdateEvent {
-            account_key: invest_tracker_info.key(),
+            account_key: strategy.key(),
             invest_tracker_account_key: invest_tracker_info.key(),
             whirlpool_id: current_data.whirlpool_id,
             asset_mint: current_data.asset_mint,
@@ -189,5 +196,6 @@ pub fn handle_update_invest_trackers(ctx: Context<UpdateInvestTrackers>) -> Resu
         require!(total_current_weight <= MAX_ASSIGNED_WEIGHT as u16, ErrorCode::InvalidTrackerSetup);
     }
 
+    strategy.save_changes(&mut &mut ctx.accounts.strategy.try_borrow_mut_data()?[8..])?;
     Ok(())
 }
