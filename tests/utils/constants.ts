@@ -40,7 +40,7 @@ export const errorStrings = {
     "Error Code: InvalidRoleId. Error Number: 6002. Error Message: Role id is invalid.",
   setRoleAdminMustBeCalledByOwner:
     "Error Code: CannotSetRoleAdmin. Error Number: 6001. Error Message: set_role_admin fn must be called by the owner.",
-  accountExpectedToAlreadyBeIntiialzied:
+  accountExpectedToAlreadyBeInitialized:
     "Error Code: AccountNotInitialized. Error Number: 3012. Error Message: The program expected this account to be already initialized.",
   kycRequired:
     "Error Code: KYCRequired. Error Number: 6017. Error Message: Only KYC verified users can deposit.",

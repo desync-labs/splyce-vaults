@@ -31,25 +31,30 @@ export const airdrop = async ({
 export const initializeVault = async ({
   vaultProgram,
   underlyingMint,
-  vaultIndex,
   signer,
   vaultConfig,
   sharesConfig,
-  skipInitShares,
 }: {
   vaultProgram: anchor.Program<TokenizedVault>;
   underlyingMint: anchor.web3.PublicKey;
-  vaultIndex: number;
   signer: anchor.web3.Keypair;
   vaultConfig: any;
   sharesConfig: any;
-  skipInitShares?: boolean;
 }) => {
+  const config = web3.PublicKey.findProgramAddressSync(
+    [Buffer.from("config")],
+    vaultProgram.programId
+  )[0];
+
+  let configAccount = await vaultProgram.account.config.fetch(config);
+
+  const nextVaultIndex = configAccount.nextVaultIndex.toNumber();
+
   const vault = anchor.web3.PublicKey.findProgramAddressSync(
     [
       Buffer.from("vault"),
       Buffer.from(
-        new Uint8Array(new BigUint64Array([BigInt(vaultIndex)]).buffer)
+        new Uint8Array(new BigUint64Array([BigInt(nextVaultIndex)]).buffer)
       ),
     ],
     vaultProgram.programId
@@ -79,21 +84,19 @@ export const initializeVault = async ({
     .accounts({
       underlyingMint,
       signer: signer.publicKey,
-      tokenProgram: token.TOKEN_PROGRAM_ID
+      tokenProgram: token.TOKEN_PROGRAM_ID,
     })
     .signers([signer])
     .rpc();
 
-  if (!skipInitShares) {
-    await vaultProgram.methods
-      .initVaultShares(new BN(vaultIndex), sharesConfig)
-      .accounts({
-        metadata: metadataAddress,
-        signer: signer.publicKey,
-      })
-      .signers([signer])
-      .rpc();
-  }
+  await vaultProgram.methods
+    .initVaultShares(new BN(nextVaultIndex), sharesConfig)
+    .accounts({
+      metadata: metadataAddress,
+      signer: signer.publicKey,
+    })
+    .signers([signer])
+    .rpc();
 
   return [vault, sharesMint, metadataAddress, vaultTokenAccount];
 };
@@ -103,20 +106,30 @@ export const initializeSimpleStrategy = async ({
   vault,
   underlyingMint,
   signer,
-  index,
   config,
 }: {
   strategyProgram: anchor.Program<Strategy>;
   vault: anchor.web3.PublicKey;
   underlyingMint: anchor.web3.PublicKey;
   signer: anchor.web3.Keypair;
-  index: number;
   config: any;
 }) => {
+  const globalStrategyConfig = web3.PublicKey.findProgramAddressSync(
+    [Buffer.from("config")],
+    strategyProgram.programId
+  )[0];
+
+  let configAccount = await strategyProgram.account.config.fetch(
+    globalStrategyConfig
+  );
+  const nextStrategyIndex = configAccount.nextStrategyIndex.toNumber();
+
   const strategy = web3.PublicKey.findProgramAddressSync(
     [
       vault.toBuffer(),
-      Buffer.from(new Uint8Array(new BigUint64Array([BigInt(index)]).buffer)),
+      Buffer.from(
+        new Uint8Array(new BigUint64Array([BigInt(nextStrategyIndex)]).buffer)
+      ),
     ],
     strategyProgram.programId
   )[0];
@@ -138,7 +151,7 @@ export const initializeSimpleStrategy = async ({
       vault,
       signer: signer.publicKey,
       underlyingMint,
-      tokenProgram: token.TOKEN_PROGRAM_ID
+      tokenProgram: token.TOKEN_PROGRAM_ID,
     })
     .signers([signer])
     .rpc();
