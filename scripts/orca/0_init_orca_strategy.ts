@@ -16,6 +16,7 @@ const METADATA_SEED = "metadata";
 const TOKEN_METADATA_PROGRAM_ID = new anchor.web3.PublicKey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s");
 // devUSDC on devnet
 const underlyingMint = new anchor.web3.PublicKey("BRjpCHtyQLNCo8gqRUr8jtdAj5AjPYQaoqbvcZiHok1k");
+const REPORT_BOT = new anchor.web3.PublicKey("HMcuvAp4dB1EePEBcQHVAprVxpqWaJKBviJgGa8k3ZFF");
 async function main() {
   try {
     // 1. Setup Provider and Programs
@@ -126,6 +127,14 @@ async function main() {
       .rpc();
     console.log("Reporting Manager role assigned to Admin.");
 
+    await accessControlProgram.methods.setRole(ROLES.REPORTING_MANAGER, REPORT_BOT)
+    .accounts({
+      signer: admin.publicKey,
+    })
+    .signers([admin])
+    .rpc();
+  console.log("Reporting Manager role assigned to REPORT_BOT.");
+
     await accessControlProgram.methods.setRole(ROLES.STRATEGIES_MANAGER, admin.publicKey)
       .accounts({
         signer: admin.publicKey,
@@ -133,6 +142,14 @@ async function main() {
       .signers([admin])
       .rpc();
     console.log("Strategies Manager role assigned to Admin.");
+
+    await accessControlProgram.methods.setRole(ROLES.STRATEGIES_MANAGER, REPORT_BOT)
+    .accounts({
+      signer: admin.publicKey,
+    })
+    .signers([admin])
+    .rpc();
+  console.log("Strategies Manager role assigned to REPORT_BOT.");
 
     await accessControlProgram.methods.setRole(ROLES.ACCOUNTANT_ADMIN, admin.publicKey)
       .accounts({

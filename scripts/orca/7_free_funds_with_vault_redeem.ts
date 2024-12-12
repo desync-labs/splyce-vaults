@@ -715,7 +715,7 @@ async function main() {
 
     // Define redeemAmount and maxLoss
     const redeemAmount = userSharesBalance
-      .mul(new BN(60))
+      .mul(new BN(50))
       .div(new BN(100)); // Redeem 60% of the user's shares
     
     const maxLoss = new BN(500000);
