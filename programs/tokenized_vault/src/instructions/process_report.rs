@@ -80,7 +80,7 @@ pub fn handle_process_report(ctx: Context<ProcessReport>) -> Result<()> {
     burn_unlocked_shares(&ctx)?;
     ctx.accounts.vault_shares_token_account.reload()?;
     let current_debt = ctx.accounts.strategy_data.current_debt;
-
+    msg!("before handling profit/loss");
     if strategy_assets > current_debt {
         profit = strategy_assets - current_debt;
         let (total_fees, _) = accountant::report(&ctx.accounts.accountant, profit, 0)?;
@@ -95,10 +95,13 @@ pub fn handle_process_report(ctx: Context<ProcessReport>) -> Result<()> {
         loss = current_debt - strategy_assets;
         handle_loss(&ctx, loss)?;
     }
+    msg!("after handling profit/loss");
 
     ctx.accounts.strategy_data.update_current_debt(strategy_assets)?;
 
     let share_price = ctx.accounts.vault.load()?.calculate_share_price(ONE_SHARE_TOKEN);
+
+    msg!("share_price: {}", share_price);
 
     emit!(StrategyReportedEvent {
         strategy_key: strategy.key(),
