@@ -39,8 +39,10 @@ pub fn validate_deposit<'info>(
         return Err(ErrorCode::ExceedDepositLimit.into());
     }
 
-    if vault.kyc_verified_only && !kyc_verified.deserialize::<UserRole>()?.has_role {
-        return Err(ErrorCode::KYCRequired.into());
+    if vault.kyc_verified_only {
+        if kyc_verified.data_is_empty() || !kyc_verified.deserialize::<UserRole>()?.has_role {
+            return Err(ErrorCode::KYCRequired.into());
+        }
     }
 
     if vault.whitelisted_only && !user_data.whitelisted {

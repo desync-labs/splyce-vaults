@@ -87,7 +87,7 @@ pub struct DirectDeposit<'info> {
         bump,
         seeds::program = access_control.key()
     )]
-    pub kyc_verified: Account<'info, UserRole>,
+    pub kyc_verified: UncheckedAccount<'info>,
 
     #[account(mut)]
     pub user: Signer<'info>,
