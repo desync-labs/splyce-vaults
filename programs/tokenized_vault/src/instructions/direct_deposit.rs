@@ -1,7 +1,7 @@
 use access_control::{
     constants::USER_ROLE_SEED,
     program::AccessControl,
-    state::Role
+    state::{Role, UserRole}
 };
 use anchor_lang::prelude::*;
 use anchor_spl::{
@@ -10,12 +10,16 @@ use anchor_spl::{
 };
 use strategy::program::Strategy;
 
-use crate::constants::{SHARES_SEED, STRATEGY_DATA_SEED, UNDERLYING_SEED, WHITELISTED_SEED};
+use crate::constants::{
+    SHARES_SEED, 
+    STRATEGY_DATA_SEED, 
+    UNDERLYING_SEED, 
+    USER_DATA_SEED
+};
 
 use crate::events::{VaultDepositEvent, UpdatedCurrentDebtForStrategyEvent};
-use crate::state::{Vault, StrategyData};
-use crate::utils::{token, vault};
-use crate::utils::strategy as strategy_utils;
+use crate::state::{UserData, Vault, StrategyData};
+use crate::utils::{strategy as strategy_utils, token, vault};
 
 #[derive(Accounts)]
 pub struct DirectDeposit<'info> {
@@ -50,6 +54,19 @@ pub struct DirectDeposit<'info> {
     pub strategy_data: Account<'info, StrategyData>,
 
     #[account(
+        init_if_needed, 
+        payer = user,
+        space = UserData::LEN,
+        seeds = [
+            USER_DATA_SEED.as_bytes(), 
+            vault.key().as_ref(), 
+            user.key().as_ref()
+            ], 
+            bump
+        )]
+    pub user_data: Account<'info, UserData>,
+
+    #[account(
         mut, 
         seeds = [UNDERLYING_SEED.as_bytes(), strategy.key().as_ref()],
         bump,
@@ -67,22 +84,12 @@ pub struct DirectDeposit<'info> {
         bump,
         seeds::program = access_control.key()
     )]
-    pub kyc_verified: UncheckedAccount<'info>,
+    pub kyc_verified: Account<'info, UserRole>,
 
-    /// CHECK: this account may not exist
-    #[account(
-        seeds = [
-            WHITELISTED_SEED.as_bytes(), 
-            vault.key().as_ref(),
-            user.key().as_ref(),
-        ], 
-        bump,
-    )]
-    pub whitelisted: UncheckedAccount<'info>,
-        
     #[account(mut)]
     pub user: Signer<'info>,
 
+    pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
     pub access_control: Program<'info, AccessControl>,
     pub strategy_program: Program<'info, Strategy>,
@@ -91,8 +98,8 @@ pub struct DirectDeposit<'info> {
 pub fn handle_direct_deposit<'info>(ctx: Context<'_, '_, '_, 'info, DirectDeposit<'info>>, amount: u64) -> Result<()> {
     vault::validate_deposit(
         &ctx.accounts.vault, 
-        ctx.accounts.kyc_verified.to_account_info(),
-        ctx.accounts.whitelisted.to_account_info(),
+        &ctx.accounts.kyc_verified,
+        &ctx.accounts.user_data,
         true,
         amount
     )?;
@@ -135,6 +142,7 @@ pub fn handle_direct_deposit<'info>(ctx: Context<'_, '_, '_, 'info, DirectDeposi
     ctx.accounts.strategy_data.increase_current_debt(amount)?;
 
     vault.handle_direct_deposit(amount, shares);
+    ctx.accounts.user_data.deposited += amount;
 
     emit!(VaultDepositEvent {
         vault_key: vault.key,
