@@ -3,10 +3,11 @@ use anchor_lang::prelude::*;
 
 use crate::errors::ErrorCode;
 use crate::state::{UserData, Vault};
+use crate::utils::unchecked::*;
 
 pub fn validate_deposit<'info>(
     vault_loader: &AccountLoader<'info, Vault>,
-    kyc_verified: &Account<'info, UserRole>,
+    kyc_verified: &AccountInfo<'info>,
     user_data: &Account<'info, UserData>,
     is_direct: bool,
     amount: u64
@@ -38,7 +39,7 @@ pub fn validate_deposit<'info>(
         return Err(ErrorCode::ExceedDepositLimit.into());
     }
 
-    if vault.kyc_verified_only && !kyc_verified.has_role {
+    if vault.kyc_verified_only && !kyc_verified.deserialize::<UserRole>()?.has_role {
         return Err(ErrorCode::KYCRequired.into());
     }
 
