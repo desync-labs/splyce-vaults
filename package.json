@@ -13,6 +13,7 @@
     "underlying_mint": "npx ts-node scripts/create-underlying-mint.ts",
     "initialize": "npx ts-node scripts/initialize.ts",
     "shutdown_vault": "npx ts-node scripts/shutdown_vault.ts",
+    "whitelist": "npx ts-node scripts/orca/whitelist.ts",
     "init_orca_strategy": "npx ts-node scripts/orca/0_init_orca_strategy.ts",
     "init_token_account": "npx ts-node scripts/orca/1_init_token_account.ts",
     "init_invest_tracker": "npx ts-node scripts/orca/2_init_invest_tracker.ts",
