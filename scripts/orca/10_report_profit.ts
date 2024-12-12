@@ -7,6 +7,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { PublicKey } from "@solana/web3.js";
 import { AccessControl } from "../../target/types/access_control";
+import { Accountant } from "../../target/types/accountant";
 import { TOKEN_PROGRAM_ID, getAssociatedTokenAddress } from "@solana/spl-token";
 
 const WSOL_MINT = new PublicKey(
@@ -100,7 +101,7 @@ async function main() {
     const tokenizedVaultProgram = anchor.workspace.TokenizedVault as Program<TokenizedVault>;
     const strategyProgram = anchor.workspace.Strategy as Program<Strategy>;
     const accessControlProgram = anchor.workspace.AccessControl as Program<AccessControl>;
-
+    const accountantProgram = anchor.workspace.Accountant as Program<Accountant>;
     // Get vault PDA
     const vaultIndex = 0;
     const [vaultPDA] = anchor.web3.PublicKey.findProgramAddressSync(
@@ -299,13 +300,21 @@ async function main() {
       tokenizedVaultProgram.programId
     );
 
+    // Get accountant PDA      //calculate accountant PDA
+      const accountant = anchor.web3.PublicKey.findProgramAddressSync(
+        [
+          Buffer.from(new Uint8Array(new BigUint64Array([BigInt(0)]).buffer))
+        ],
+        accountantProgram.programId
+      )[0];
+
     // Call process_report with all required accounts
     await tokenizedVaultProgram.methods
       .processReport()
       .accounts({
         vault: vaultPDA,
         strategy,
-        accountant: admin.publicKey,
+        accountant: accountant,
       })
       .signers([admin])
       .rpc();
