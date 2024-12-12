@@ -9,7 +9,7 @@ use access_control::{
     state::{UserRole, Role}
 };
 
-use crate::constants::{ MAX_BPS_EXTENDED, SHARES_ACCOUNT_SEED, SHARES_SEED, STRATEGY_DATA_SEED};
+use crate::constants::{ MAX_BPS_EXTENDED, SHARES_ACCOUNT_SEED, SHARES_SEED, STRATEGY_DATA_SEED, ONE_SHARE_TOKEN};
 use crate::events::StrategyReportedEvent;
 use crate::state::{Vault, StrategyData};
 use crate::utils::{accountant, strategy, token};
@@ -98,6 +98,8 @@ pub fn handle_process_report(ctx: Context<ProcessReport>) -> Result<()> {
 
     ctx.accounts.strategy_data.update_current_debt(strategy_assets)?;
 
+    let share_price = ctx.accounts.vault.load()?.convert_to_underlying(ONE_SHARE_TOKEN);
+
     emit!(StrategyReportedEvent {
         strategy_key: strategy.key(),
         gain: profit,
@@ -105,6 +107,7 @@ pub fn handle_process_report(ctx: Context<ProcessReport>) -> Result<()> {
         current_debt: strategy_assets,
         protocol_fees: 0, //TODO: this is set as 0
         total_fees: fee_shares,
+        share_price,
         timestamp: Clock::get()?.unix_timestamp,
     });
 
