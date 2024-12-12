@@ -4,6 +4,10 @@ pub mod fee_data;
 pub mod trade_fintech_strategy;
 pub mod simple_strategy;
 pub mod strategy_type;
+pub mod orca_strategy;
+pub mod invest_tracker;
+pub mod whirlpool;
+pub mod whirlpool_reward_info;
 
 pub use base_strategy::*;
 pub use config::*;
@@ -11,3 +15,7 @@ pub use fee_data::*;
 pub use trade_fintech_strategy::*;
 pub use simple_strategy::*;
 pub use strategy_type::*;
+pub use orca_strategy::*;
+pub use invest_tracker::*;
+pub use whirlpool::*;
+pub use whirlpool_reward_info::*;

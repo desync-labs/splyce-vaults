@@ -341,6 +341,7 @@ describe("tokenized_vault", () => {
       .accounts({
         underlyingMint,
         signer: admin.publicKey,
+        tokenProgram: token.TOKEN_PROGRAM_ID,
       })
       .signers([admin])
       .rpc();
@@ -436,6 +437,7 @@ describe("tokenized_vault", () => {
         underlyingMint,
         vault,
         signer: admin.publicKey,
+        tokenProgram: token.TOKEN_PROGRAM_ID,
       })
       .signers([admin])
       .rpc();
@@ -559,10 +561,12 @@ describe("tokenized_vault", () => {
     await vaultProgram.methods.deposit(new BN(100))
       .accounts({
         vault,
+        underlyingMint,
         // strategy,
         user: user.publicKey,
         userTokenAccount,
         userSharesAccount,
+        tokenProgram: token.TOKEN_PROGRAM_ID,
       })
       .signers([user])
       .remainingAccounts([
@@ -595,8 +599,10 @@ describe("tokenized_vault", () => {
       .accounts({
         vault,
         user: user.publicKey,
+        underlyingMint,
         userTokenAccount,
         userSharesAccount,
+        tokenProgram: token.TOKEN_PROGRAM_ID,
       })
       .remainingAccounts([
         { pubkey: strategy, isWritable: true, isSigner: false },
@@ -612,10 +618,12 @@ describe("tokenized_vault", () => {
     await vaultProgram.methods.deposit(new BN(1))
       .accounts({
         vault,
+        underlyingMint,
         // strategy,
         user: user.publicKey,
         userTokenAccount,
         userSharesAccount,
+        tokenProgram: token.TOKEN_PROGRAM_ID,
       })
       .signers([user])
       .remainingAccounts([
@@ -646,7 +654,9 @@ describe("tokenized_vault", () => {
       .accounts({
         vault,
         strategy,
+        underlyingMint,
         signer: admin.publicKey,
+        tokenProgram: token.TOKEN_PROGRAM_ID,
       })
       .signers([admin])
       .rpc();
@@ -687,7 +697,9 @@ describe("tokenized_vault", () => {
     await strategyProgram.methods.deployFunds(new BN(90))
       .accounts({
         strategy,
+        underlyingMint,
         signer: admin.publicKey,
+        tokenProgram: token.TOKEN_PROGRAM_ID,
       })
       .remainingAccounts([
         { pubkey: adminTokenAccount, isWritable: true, isSigner: false },
@@ -712,7 +724,9 @@ describe("tokenized_vault", () => {
     await strategyProgram.methods.freeFunds(new BN(90))
       .accounts({
         strategy,
+        underlyingMint,
         signer: admin.publicKey,
+        tokenProgram: token.TOKEN_PROGRAM_ID,
       })
       .remainingAccounts([
         { pubkey: adminTokenAccount, isWritable: true, isSigner: false },
@@ -738,7 +752,9 @@ describe("tokenized_vault", () => {
       .accounts({
         vault,
         strategy,
+        underlyingMint,
         signer: admin.publicKey,
+        tokenProgram: token.TOKEN_PROGRAM_ID,
       })
       .signers([admin])
       .rpc();
@@ -795,9 +811,11 @@ describe("tokenized_vault", () => {
     await vaultProgram.methods.redeem(new BN(30), new BN(10000), remainingAccountsMap)
       .accounts({
         vault,
+        underlyingMint,
         user: user.publicKey,
         userTokenAccount,
         userSharesAccount,
+        tokenProgram: token.TOKEN_PROGRAM_ID,
       })
       .remainingAccounts([
         { pubkey: strategy, isWritable: true, isSigner: false },
@@ -833,8 +851,10 @@ describe("tokenized_vault", () => {
       await strategyProgram.methods.withdraw(new BN(1))
         .accounts({
           strategy,
+          underlyingMint,
           signer: admin.publicKey,
           vaultTokenAccount: userTokenAccount,
+          tokenProgram: token.TOKEN_PROGRAM_ID,
         })
         .signers([admin])
         .rpc();
@@ -886,9 +906,11 @@ describe("tokenized_vault", () => {
     await vaultProgram.methods.redeem(shares, new BN(0), remainingAccountsMap)
       .accounts({
         vault,
+        underlyingMint,
         user: newOwner.publicKey,
         userTokenAccount: newOwnerTokenAccount,
         userSharesAccount: newOwnerSharesAccount,
+        tokenProgram: token.TOKEN_PROGRAM_ID,
       })
       .remainingAccounts([
         { pubkey: strategy, isWritable: true, isSigner: false },
@@ -919,7 +941,9 @@ describe("tokenized_vault", () => {
     await strategyProgram.methods.reportProfit(new BN(60))
       .accounts({
         strategy,
+        underlyingMint,
         signer: admin.publicKey,
+        tokenProgram: token.TOKEN_PROGRAM_ID,
       })
       .remainingAccounts([
         { pubkey: adminTokenAccount, isWritable: true, isSigner: false },
@@ -971,9 +995,11 @@ describe("tokenized_vault", () => {
     await vaultProgram.methods.redeem(new BN(10), new BN(0), remainingAccountsMap)
       .accounts({
         vault,
+        underlyingMint,
         user: user.publicKey,
         userTokenAccount,
         userSharesAccount,
+        tokenProgram: token.TOKEN_PROGRAM_ID,
       })
       .remainingAccounts([
         { pubkey: strategy, isWritable: true, isSigner: false },
@@ -1012,9 +1038,11 @@ describe("tokenized_vault", () => {
     await vaultProgram.methods.redeem(new BN(2), new BN(0), remainingAccountsMap)
       .accounts({
         vault,
+        underlyingMint,
         user: feeRecipient.publicKey,
         userTokenAccount: feeRecipientTokenAccount,
         userSharesAccount: feeRecipientSharesAccount,
+        tokenProgram: token.TOKEN_PROGRAM_ID,
       })
       .remainingAccounts([
         { pubkey: strategy, isWritable: true, isSigner: false },
@@ -1044,7 +1072,9 @@ describe("tokenized_vault", () => {
       await strategyProgram.methods.report()
         .accounts({
           strategy,
+          underlyingMint,
           signer: newUser.publicKey,
+          tokenProgram: token.TOKEN_PROGRAM_ID,
         })
         .remainingAccounts([
           { pubkey: strategyTokenAccount, isWritable: true, isSigner: false },
@@ -1117,8 +1147,10 @@ describe("tokenized_vault", () => {
     await strategyProgram.methods.withdrawFee(totalFees)
       .accounts({
         strategy,
+        underlyingMint,
         recipient: adminTokenAccount,
         signer: strategyFeeManager.publicKey,
+        tokenProgram: token.TOKEN_PROGRAM_ID,
       })
       .remainingAccounts([
         { pubkey: adminTokenAccount, isWritable: true, isSigner: false },
@@ -1152,9 +1184,11 @@ describe("tokenized_vault", () => {
     await vaultProgram.methods.deposit(new BN(100))
       .accounts({
         vault,
+        underlyingMint,
         user: user.publicKey,
         userTokenAccount,
         userSharesAccount,
+        tokenProgram: token.TOKEN_PROGRAM_ID,
       })
       .signers([user])
       .remainingAccounts([
@@ -1168,7 +1202,9 @@ describe("tokenized_vault", () => {
       .accounts({
         vault,
         strategy,
+        underlyingMint,
         signer: admin.publicKey,
+        tokenProgram: token.TOKEN_PROGRAM_ID,
       })
       .signers([admin])
       .rpc();
@@ -1180,7 +1216,9 @@ describe("tokenized_vault", () => {
     await strategyProgram.methods.reportLoss(new BN(10))
       .accounts({
         strategy,
+        underlyingMint,
         signer: admin.publicKey,
+        tokenProgram: token.TOKEN_PROGRAM_ID,
       })
       .remainingAccounts([
         { pubkey: adminTokenAccount, isWritable: true, isSigner: false },

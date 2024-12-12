@@ -3,7 +3,7 @@ use anchor_spl::token_interface::Mint;
 
 use super::*;
 use crate::constants::FEE_BPS;
-use crate::instructions::{Report, ReportProfit, ReportLoss, DeployFunds, FreeFunds};
+use crate::instructions::{Report, ReportProfit, ReportLoss, DeployFunds, FreeFunds, Rebalance};
 
 pub trait StrategyDataAccount {
     fn save_changes(&self, writer: &mut dyn std::io::Write) -> Result<()>;
@@ -41,6 +41,7 @@ pub trait StrategyGetters {
     fn available_withdraw(&self) -> u64;
     fn token_account(&self) -> Pubkey;
     fn underlying_mint(&self) -> Pubkey;
+    fn total_invested(&self) -> u64;
 }
 
 pub trait Strategy: 
@@ -80,4 +81,5 @@ pub trait Strategy:
 
         Ok(())
     }
+    fn rebalance<'info>(&mut self, accounts: &Rebalance<'info>, remaining: &[AccountInfo<'info>], amount: u64) -> Result<()>;
 }

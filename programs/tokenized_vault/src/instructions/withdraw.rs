@@ -1,8 +1,9 @@
 use anchor_lang::prelude::*;
 use anchor_spl::{
     token::Token,
-    token_interface::{ Mint, TokenAccount }
+    token_interface::{Mint, TokenAccount, TokenInterface}
 };
+
 use strategy::program::Strategy;
 
 use crate::events::VaultWithdrawlEvent;
@@ -30,6 +31,9 @@ pub struct Withdraw<'info> {
     #[account(mut, seeds = [SHARES_SEED.as_bytes(), vault.key().as_ref()], bump)]
     pub shares_mint: InterfaceAccount<'info, Mint>,
 
+    #[account(mut, address = vault.load()?.underlying_mint)]
+    pub underlying_mint: InterfaceAccount<'info, Mint>,
+
     #[account(mut)]
     pub user_shares_account: InterfaceAccount<'info, TokenAccount>,
 
@@ -48,7 +52,8 @@ pub struct Withdraw<'info> {
     #[account(mut)]
     pub user: Signer<'info>,
 
-    pub token_program: Program<'info, Token>,
+    pub shares_token_program: Program<'info, Token>,
+    pub token_program: Interface<'info, TokenInterface>,
     pub strategy_program: Program<'info, Strategy>,
 }
 
@@ -102,6 +107,7 @@ pub fn handle_withdraw<'info>(
     // todo: hadle min user deposit
     let assets_to_transfer = withdraw_assets(
         vault_token_account,
+        &ctx.accounts.underlying_mint.to_account_info(),
         &ctx.accounts.token_program.to_account_info(),
         &ctx.accounts.strategy_program.to_account_info(),
         &ctx.accounts.vault,
@@ -118,7 +124,7 @@ pub fn handle_withdraw<'info>(
     ctx.accounts.vault.load_mut()?.handle_withdraw(assets_to_transfer, shares_to_burn);
 
     token::burn(
-        ctx.accounts.token_program.to_account_info(),
+        ctx.accounts.shares_token_program.to_account_info(),
         ctx.accounts.shares_mint.to_account_info(),
         ctx.accounts.user_shares_account.to_account_info(),
         ctx.accounts.user.to_account_info(),
@@ -130,6 +136,7 @@ pub fn handle_withdraw<'info>(
         ctx.accounts.vault_token_account.to_account_info(),
         ctx.accounts.user_token_account.to_account_info(),
         ctx.accounts.vault.to_account_info(),
+        &ctx.accounts.underlying_mint,
         assets_to_transfer,
         &ctx.accounts.vault.load()?.seeds()
     )?;
@@ -249,6 +256,7 @@ fn validate_max_withdraw<'info>(
 
 fn withdraw_assets<'info>(
     vault_token_account: &mut InterfaceAccount<'info, TokenAccount>,
+    underlying_mint: &AccountInfo<'info>,
     token_program: &AccountInfo<'info>,
     strategy_program: &AccountInfo<'info>,
     vault_acc: &AccountLoader<'info, Vault>,
@@ -303,6 +311,7 @@ fn withdraw_assets<'info>(
                 strategy_acc.to_account_info(),
                 vault_acc.to_account_info(),
                 strategies[i].strategy_token_account.to_account_info(),
+                underlying_mint.to_account_info(),
                 vault_token_account,
                 token_program.to_account_info(),
                 strategy_program.to_account_info(),

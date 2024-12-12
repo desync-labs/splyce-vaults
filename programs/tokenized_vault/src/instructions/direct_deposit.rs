@@ -35,6 +35,9 @@ pub struct DirectDeposit<'info> {
     #[account(mut, seeds = [SHARES_SEED.as_bytes(), vault.key().as_ref()], bump)]
     pub shares_mint: InterfaceAccount<'info, Mint>,
 
+    #[account(mut, address = vault.load()?.underlying_mint)]
+    pub underlying_mint: InterfaceAccount<'info, Mint>,
+
     #[account(mut)]
     pub user_shares_account: InterfaceAccount <'info, TokenAccount>,
 
@@ -111,6 +114,7 @@ pub fn handle_direct_deposit<'info>(ctx: Context<'_, '_, '_, 'info, DirectDeposi
         ctx.accounts.user_token_account.to_account_info(),
         ctx.accounts.vault_token_account.to_account_info(),
         ctx.accounts.user.to_account_info(),
+        &ctx.accounts.underlying_mint,
         amount,
     )?;
 
@@ -120,6 +124,7 @@ pub fn handle_direct_deposit<'info>(ctx: Context<'_, '_, '_, 'info, DirectDeposi
         ctx.accounts.strategy.to_account_info(),
         ctx.accounts.vault.to_account_info(),
         ctx.accounts.strategy_token_account.to_account_info(),
+        ctx.accounts.underlying_mint.to_account_info(),
         ctx.accounts.vault_token_account.to_account_info(),
         ctx.accounts.token_program.to_account_info(),
         ctx.accounts.strategy_program.to_account_info(),

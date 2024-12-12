@@ -25,4 +25,13 @@ pub enum ErrorCode {
 
     #[msg("Loss is too high")]
     LossTooHigh,
+
+    #[msg("Invalid strategy type")]
+    InvalidStrategyType,
+
+    #[msg("Invalid tracker setup")]
+    InvalidTrackerSetup,
+
+    #[msg("Math overflow")]
+    MathOverflow,
 }
