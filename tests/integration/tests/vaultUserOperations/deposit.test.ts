@@ -433,6 +433,7 @@ describe("Vault User Operations: Deposit Tests", () => {
         .deposit(new BN(depositAmount))
         .accounts({
           vault: vaultOne,
+          accountant: accountantOne,
           user: kycVerifiedUser.publicKey,
           userTokenAccount: kycVerifiedUserTokenAccount,
           userSharesAccount: kycVerifiedUserSharesAccountVaultOne,
@@ -497,6 +498,7 @@ describe("Vault User Operations: Deposit Tests", () => {
         .deposit(new BN(depositAmount))
         .accounts({
           vault: vaultOne,
+          accountant: accountantOne,
           user: whitelistedUser.publicKey,
           userTokenAccount: whitelistedUserTokenAccount,
           userSharesAccount: whitelistedUserSharesAccountVaultOne,
@@ -561,6 +563,7 @@ describe("Vault User Operations: Deposit Tests", () => {
         .deposit(new BN(depositAmount))
         .accounts({
           vault: vaultOne,
+          accountant: accountantOne,
           user: kycVerifiedWhitelistedUser.publicKey,
           userTokenAccount: kycVerifiedWhitelistedUserTokenAccount,
           userSharesAccount: kycVerifiedWhitelistedUserSharesAccountVaultOne,
@@ -628,6 +631,7 @@ describe("Vault User Operations: Deposit Tests", () => {
         .deposit(new BN(depositAmount))
         .accounts({
           vault: vaultOne,
+          accountant: accountantOne,
           user: kycVerifiedWhitelistedUser.publicKey,
           userTokenAccount: kycVerifiedWhitelistedUserTokenAccount,
           userSharesAccount: kycVerifiedWhitelistedUserSharesAccountVaultOne,
@@ -695,6 +699,7 @@ describe("Vault User Operations: Deposit Tests", () => {
         .deposit(new BN(depositAmount))
         .accounts({
           vault: vaultOne,
+          accountant: accountantOne,
           user: kycVerifiedWhitelistedUser.publicKey,
           userTokenAccount: kycVerifiedWhitelistedUserTokenAccount,
           userSharesAccount: kycVerifiedWhitelistedUserSharesAccountVaultOne,
@@ -804,6 +809,22 @@ describe("Vault User Operations: Deposit Tests", () => {
       accessControlProgram.programId
     )[0];
 
+    await accountantProgram.methods.initAccountant(accountantType)
+      .accounts({
+        signer: generalAdmin.publicKey,
+      })
+      .signers([generalAdmin])
+      .rpc();
+
+    await accountantProgram.methods.initTokenAccount()
+      .accounts({
+        accountant: accountant,
+        signer: generalAdmin.publicKey,
+        underlyingMint: sharesMint,
+      })
+      .signers([generalAdmin])
+      .rpc();
+
     await vaultProgram.methods
       .shutdownVault()
       .accounts({ vault, signer: generalAdmin.publicKey })
@@ -815,6 +836,7 @@ describe("Vault User Operations: Deposit Tests", () => {
         .deposit(new BN(depositAmount))
         .accounts({
           vault: vault,
+          accountant: accountant,
           user: kycVerifiedWhitelistedUser.publicKey,
           userTokenAccount: kycVerifiedWhitelistedUserTokenAccount,
           userSharesAccount: userSharesAccount,
@@ -874,6 +896,7 @@ describe("Vault User Operations: Deposit Tests", () => {
       .deposit(new BN(depositAmount))
       .accounts({
         vault: vaultOne,
+        accountant: accountantOne,
         user: kycVerifiedWhitelistedUser.publicKey,
         userTokenAccount: kycVerifiedWhitelistedUserTokenAccount,
         userSharesAccount: kycVerifiedWhitelistedUserSharesAccountVaultOne,
