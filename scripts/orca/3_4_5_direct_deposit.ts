@@ -286,7 +286,12 @@ async function main() {
 
     // Add lookup table generation
     const addresses = combinedRemainingAccounts.map((acc) => acc.pubkey);
-    const lookupTableAddress = await createLookupTable(admin, provider.connection, addresses);
+     // const lookupTableAddress = await createLookupTable(admin, provider.connection, addresses);
+    // Read lookup table address from ALT.json
+    const altJsonPath = path.join(__dirname, 'ALT', 'ALT.json');
+    const altJson = JSON.parse(fs.readFileSync(altJsonPath, 'utf8'));
+    const lookupTableAddress = new PublicKey(altJson.lookupTableAddress);
+    
     await waitForNewBlock(provider.connection, 1);
     const lookupTableAccount = (await provider.connection.getAddressLookupTable(lookupTableAddress)).value;
     if (!lookupTableAccount) {

@@ -27,6 +27,7 @@
     "rebalance": "npx ts-node scripts/orca/9_rebalance.ts",
     "report_profit": "npx ts-node scripts/orca/10_report_profit.ts",
     "get_tick_arrays": "npx ts-node scripts/orca/11_get_tick_arrays.ts",
+    "create_ALT_for_orca": "npx ts-node scripts/orca/ALT/create_ALT_for_orca.ts",
     "clean": "anchor clean && rm -rf target/*",
     "build": "anchor build",
     "sync": "anchor keys sync",
