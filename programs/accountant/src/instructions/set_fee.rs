@@ -30,12 +30,34 @@ pub struct SetFee<'info> {
     pub access_control: Program<'info, AccessControl>
 }
 
-pub fn handle_set_fee(
+pub fn handle_set_performance_fee(
     ctx: Context<SetFee>, 
     fee: u64,
 ) -> Result<()> {
     let accountant = &mut ctx.accounts.accountant.from_unchecked()?;
 
-    accountant.set_fee(fee)?;
+    accountant.set_performance_fee(fee)?;
     accountant.save_changes(&mut &mut ctx.accounts.accountant.try_borrow_mut_data()?[8..])
 }
+
+
+pub fn handle_set_entry_fee(
+    ctx: Context<SetFee>, 
+    fee: u64,
+) -> Result<()> {
+    let accountant = &mut ctx.accounts.accountant.from_unchecked()?;
+
+    accountant.set_entry_fee(fee)?;
+    accountant.save_changes(&mut &mut ctx.accounts.accountant.try_borrow_mut_data()?[8..])
+}
+
+pub fn handle_set_redemption_fee(
+    ctx: Context<SetFee>, 
+    fee: u64,
+) -> Result<()> {
+    let accountant = &mut ctx.accounts.accountant.from_unchecked()?;
+
+    accountant.set_redemption_fee(fee)?;
+    accountant.save_changes(&mut &mut ctx.accounts.accountant.try_borrow_mut_data()?[8..])
+}
+

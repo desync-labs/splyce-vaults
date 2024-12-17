@@ -45,7 +45,15 @@ pub mod accountant {
         handle_distribute(ctx)
     }
 
-    pub fn set_fee(ctx: Context<SetFee>, fee: u64) -> Result<()> {
-        handle_set_fee(ctx, fee)
+    pub fn set_performance_fee(ctx: Context<SetFee>, fee: u64) -> Result<()> {
+        handle_set_performance_fee(ctx, fee)
+    }
+
+    pub fn set_redemption_fee(ctx: Context<SetFee>, fee: u64) -> Result<()> {
+        handle_set_redemption_fee(ctx, fee)
+    }
+
+    pub fn set_entry_fee(ctx: Context<SetFee>, fee: u64) -> Result<()> {
+        handle_set_entry_fee(ctx, fee)
     }
 }
