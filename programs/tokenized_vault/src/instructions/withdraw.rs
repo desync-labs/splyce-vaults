@@ -7,11 +7,12 @@ use anchor_spl::{
 use strategy::program::Strategy;
 
 use crate::events::VaultWithdrawlEvent;
-use crate::state::{StrategyDataAccInfo, Vault};
-use crate::utils::{accountant, strategy as strategy_utils, token};
+use crate::state::{StrategyData, UserData, Vault};
+use crate::utils::{accountant, strategy as strategy_utils, token, unchecked::*};
 use crate::errors::ErrorCode;
 use crate::constants::{
     UNDERLYING_SEED, 
+    USER_DATA_SEED,
     SHARES_SEED,
     MAX_BPS
 };
@@ -46,6 +47,18 @@ pub struct Withdraw<'info> {
 
     #[account(mut)]
     pub user_shares_account: InterfaceAccount<'info, TokenAccount>,
+
+    /// CHECK: can be missing
+    #[account(
+        mut,
+        seeds = [
+            USER_DATA_SEED.as_bytes(), 
+            vault.key().as_ref(), 
+            user.key().as_ref()
+        ], 
+        bump
+        )]
+    pub user_data: UncheckedAccount<'info>,
 
     #[account(mut)]
     pub user: Signer<'info>,
@@ -177,6 +190,12 @@ fn handle_internal<'info>(
         &ctx.accounts.vault.load()?.seeds()
     )?;
 
+    if !ctx.accounts.user_data.data_is_empty() {
+        let mut user_data: UserData = ctx.accounts.user_data.deserialize()?;
+        user_data.handle_withdraw(assets_to_transfer)?;
+        ctx.accounts.user_data.serialize(&user_data)?;
+    }
+
     let vault = ctx.accounts.vault.load()?;
 
     emit!(VaultWithdrawlEvent {
@@ -241,7 +260,7 @@ fn validate_max_withdraw<'info>(
         let mut loss = 0;
 
         for strategy_accounts in strategies {
-            let current_debt = strategy_accounts.strategy_data.current_debt();
+            let current_debt = strategy_accounts.strategy_data.deserialize::<StrategyData>()?.current_debt;
 
             let mut to_withdraw = std::cmp::min(max_assets - have, current_debt);
             let mut unrealised_loss = strategy_utils::assess_share_of_unrealised_losses(
@@ -303,7 +322,7 @@ fn withdraw_assets<'info>(
 
         for i in 0..strategies.len() {
             let strategy_acc = &strategies[i].strategy_acc;
-            let mut current_debt = strategies[i].strategy_data.current_debt();
+            let mut current_debt = strategies[i].strategy_data.deserialize::<StrategyData>()?.current_debt;
 
             let mut to_withdraw = std::cmp::min(assets_needed as u64, current_debt);
             let strategy_limit = strategy_utils::get_max_withdraw(&strategy_acc)?;
@@ -370,7 +389,9 @@ fn withdraw_assets<'info>(
 
             let vault_mut = &mut vault_acc.load_mut()?;
 
-            strategies[i].strategy_data.set_current_debt(new_debt)?;
+            let mut strategy_data: StrategyData = strategies[i].strategy_data.deserialize()?;
+            strategy_data.update_current_debt(new_debt)?;
+            strategies[i].strategy_data.serialize(strategy_data)?;
 
             vault_mut.total_debt = total_debt;
             vault_mut.total_idle = total_idle;

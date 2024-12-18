@@ -1,3 +1,4 @@
+use access_control::state::UserRole;
 use access_control::{
     constants::USER_ROLE_SEED,
     program::AccessControl,
@@ -9,10 +10,10 @@ use anchor_spl::{
     token_interface::{Mint, TokenAccount, TokenInterface}
 };
 
-use crate::constants::{SHARES_SEED, UNDERLYING_SEED, WHITELISTED_SEED};
+use crate::constants::{SHARES_SEED, UNDERLYING_SEED, USER_DATA_SEED};
 
 use crate::events::VaultDepositEvent;
-use crate::state::Vault;
+use crate::state::{UserData, Vault};
 use crate::utils::{accountant, token, vault};
 
 #[derive(Accounts)]
@@ -46,6 +47,19 @@ pub struct Deposit<'info> {
     #[account(mut)]
     pub user_shares_account: InterfaceAccount<'info, TokenAccount>,
 
+    #[account(
+        init_if_needed, 
+        payer = user,
+        space = UserData::LEN,
+        seeds = [
+            USER_DATA_SEED.as_bytes(), 
+            vault.key().as_ref(), 
+            user.key().as_ref()
+        ], 
+        bump
+        )]
+    pub user_data: Account<'info, UserData>,  
+
     /// CHECK: this account may not exist
     #[account(
         seeds = [
@@ -58,20 +72,10 @@ pub struct Deposit<'info> {
     )]
     pub kyc_verified: UncheckedAccount<'info>,
 
-    /// CHECK: this account may not exist
-    #[account(
-        seeds = [
-            WHITELISTED_SEED.as_bytes(), 
-            vault.key().as_ref(),
-            user.key().as_ref(),
-        ], 
-        bump,
-    )]
-    pub whitelisted: UncheckedAccount<'info>,
-    
     #[account(mut)]
     pub user: Signer<'info>,
 
+    pub system_program: Program<'info, System>,
     pub shares_token_program: Program<'info, Token>,
     pub token_program: Interface<'info, TokenInterface>,
     pub access_control: Program<'info, AccessControl>,
@@ -83,8 +87,8 @@ pub fn handle_deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
 
     vault::validate_deposit(
         &ctx.accounts.vault, 
-        ctx.accounts.kyc_verified.to_account_info(),
-        ctx.accounts.whitelisted.to_account_info(),
+        &ctx.accounts.kyc_verified,
+        &ctx.accounts.user_data,
         false,
         amount_to_deposit
     )?;
@@ -121,6 +125,8 @@ pub fn handle_deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
             &ctx.accounts.vault.load()?.seeds_shares(),
         )?;
     }
+
+    ctx.accounts.user_data.deposited += amount;
 
     let mut vault = ctx.accounts.vault.load_mut()?;
     vault.handle_deposit(amount, shares);
