@@ -305,7 +305,10 @@ async function main() {
 
     // 3. Get PDAs
     const [vaultPDA] = PublicKey.findProgramAddressSync(
-      [Buffer.from("vault")],
+      [
+        Buffer.from("vault"),
+        Buffer.from(new Uint8Array(new BigUint64Array([BigInt(0)]).buffer))
+      ],
       vaultProgram.programId
     );
 
@@ -316,6 +319,7 @@ async function main() {
       ],
       strategyProgram.programId
     );
+    console.log("Strategy PDA:", strategy.toBase58());
 
     // Add strategyData PDA calculation
     const [strategyData] = PublicKey.findProgramAddressSync(
@@ -335,6 +339,7 @@ async function main() {
     const addresses = [
       ORCA_WHIRLPOOL_PROGRAM_ID,
       TOKEN_PROGRAM_ID,
+      strategy, // Add strategy to lookup table addresses
       strategyData, // Add strategyData to lookup table addresses
       ...pools.flatMap(pool => [
         pool.poolId,
@@ -352,6 +357,8 @@ async function main() {
     console.log("Program IDs:");
     console.log("- Orca Whirlpool:", ORCA_WHIRLPOOL_PROGRAM_ID.toBase58());
     console.log("- Token Program:", TOKEN_PROGRAM_ID.toBase58());
+    console.log("- Strategy:", strategy.toBase58());
+    console.log("- Strategy Data:", strategyData.toBase58());
     
     pools.forEach(pool => {
       console.log(`\n${pool.name} Pool:`);

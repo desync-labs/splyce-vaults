@@ -731,15 +731,23 @@ async function main() {
     const addresses = combinedRemainingAccounts.map((acc) => acc.pubkey);
 
     // Create Lookup Table
-    const lookupTableAddress = await createLookupTable(admin, provider.connection, addresses);
+    // const lookupTableAddress = await createLookupTable(admin, provider.connection, addresses);
+    // Read lookup table address from ALT.json
+    const altJsonPath = path.join(__dirname, 'ALT', 'ALT.json');
+    const altJson = JSON.parse(fs.readFileSync(altJsonPath, 'utf8'));
+    const lookupTableAddress = new PublicKey(altJson.lookupTableAddress);
 
     // Wait for new block before using the lookup table
     await waitForNewBlock(provider.connection, 1);
 
+
+    
     // Fetch the lookup table account
     const lookupTableAccount = (
       await provider.connection.getAddressLookupTable(lookupTableAddress)
     ).value;
+
+    console.log("Lookup Table Account:", lookupTableAccount);
 
     if (!lookupTableAccount) {
       throw new Error("Lookup table not found");
