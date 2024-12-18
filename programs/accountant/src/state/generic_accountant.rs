@@ -65,16 +65,28 @@ impl Accountant for GenericAccountant {
     }
 
     fn set_performance_fee(&mut self, fee: u64) -> Result<()> {
+        if fee > FEE_BPS {
+            return Err(ErrorCode::InvalidFee.into());
+        }
+
         self.performance_fee = fee;
         Ok(())
     }
 
     fn set_redemption_fee(&mut self, fee: u64) -> Result<()> {
+        if fee > FEE_BPS {
+            return Err(ErrorCode::InvalidFee.into());
+        }
+
         self.redemption_fee = fee;
         Ok(())
     }
 
     fn set_entry_fee(&mut self, fee: u64) -> Result<()> {
+        if fee > FEE_BPS {
+            return Err(ErrorCode::InvalidFee.into());
+        }
+        
         self.entry_fee = fee;
         Ok(())
     }
