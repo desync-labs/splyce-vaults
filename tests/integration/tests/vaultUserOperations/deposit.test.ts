@@ -416,134 +416,6 @@ describe("Vault User Operations: Deposit Tests", () => {
     console.log("-------Before Step Finished-------");
   });
 
-  it("Depositing into both KYC and whitelist required vault with only KYC verified user should revert", async () => {
-    const depositAmount = 1000000000;
-
-    const kycVerified = anchor.web3.PublicKey.findProgramAddressSync(
-      [
-        Buffer.from("user_role"),
-        kycVerifiedUser.publicKey.toBuffer(),
-        ROLES_BUFFER.KYC_VERIFIED,
-      ],
-      accessControlProgram.programId
-    )[0];
-
-    try {
-      await vaultProgram.methods
-        .deposit(new BN(depositAmount))
-        .accounts({
-          vault: vaultOne,
-          user: kycVerifiedUser.publicKey,
-          userTokenAccount: kycVerifiedUserTokenAccount,
-          userSharesAccount: kycVerifiedUserSharesAccountVaultOne,
-          underlyingMint: underlyingMint,
-          tokenProgram: token.TOKEN_PROGRAM_ID,
-        })
-        .signers([kycVerifiedUser])
-        .remainingAccounts([
-          {
-            pubkey: kycVerified,
-            isWritable: false,
-            isSigner: false,
-          },
-        ])
-        .rpc();
-      assert.fail("Error was not thrown");
-    } catch (err) {
-      expect(err.message).to.contain(errorStrings.notWhitelisted);
-    }
-
-    let vaultTokenAccountInfo = await token.getAccount(
-      provider.connection,
-      vaultTokenAccountOne
-    );
-
-    assert.strictEqual(
-      vaultTokenAccountInfo.amount.toString(),
-      vaultOneTokenAccountCurrentAmount.toString()
-    );
-
-    let userTokenAccountInfo = await token.getAccount(
-      provider.connection,
-      kycVerifiedUserTokenAccount
-    );
-
-    assert.strictEqual(
-      userTokenAccountInfo.amount.toString(),
-      kycVerifiedUserCurrentAmount.toString()
-    );
-
-    let userSharesAccountInfo = await token.getAccount(
-      provider.connection,
-      kycVerifiedUserSharesAccountVaultOne
-    );
-    assert.strictEqual(userSharesAccountInfo.amount.toString(), "0");
-  });
-
-  it("Depositing into both KYC and whitelist required vault with only whitelisted user should revert", async () => {
-    const depositAmount = 1000000000;
-
-    const kycVerified = anchor.web3.PublicKey.findProgramAddressSync(
-      [
-        Buffer.from("user_role"),
-        whitelistedUser.publicKey.toBuffer(),
-        ROLES_BUFFER.KYC_VERIFIED,
-      ],
-      accessControlProgram.programId
-    )[0];
-
-    try {
-      await vaultProgram.methods
-        .deposit(new BN(depositAmount))
-        .accounts({
-          vault: vaultOne,
-          user: whitelistedUser.publicKey,
-          userTokenAccount: whitelistedUserTokenAccount,
-          userSharesAccount: whitelistedUserSharesAccountVaultOne,
-          underlyingMint: underlyingMint,
-          tokenProgram: token.TOKEN_PROGRAM_ID,
-        })
-        .signers([whitelistedUser])
-        .remainingAccounts([
-          {
-            pubkey: kycVerified,
-            isWritable: false,
-            isSigner: false,
-          },
-        ])
-        .rpc();
-      assert.fail("Error was not thrown");
-    } catch (err) {
-      expect(err.message).to.contain(errorStrings.kycRequired);
-    }
-
-    let vaultTokenAccountInfo = await token.getAccount(
-      provider.connection,
-      vaultTokenAccountOne
-    );
-
-    assert.strictEqual(
-      vaultTokenAccountInfo.amount.toString(),
-      vaultOneTokenAccountCurrentAmount.toString()
-    );
-
-    let userTokenAccountInfo = await token.getAccount(
-      provider.connection,
-      whitelistedUserTokenAccount
-    );
-
-    assert.strictEqual(
-      userTokenAccountInfo.amount.toString(),
-      whitelistedUserCurrentAmount.toString()
-    );
-
-    let userSharesAccountInfo = await token.getAccount(
-      provider.connection,
-      whitelistedUserSharesAccountVaultOne
-    );
-    assert.strictEqual(userSharesAccountInfo.amount.toString(), "0");
-  });
-
   it("Depositing less than minimum deposit amount into the vault with should revert", async () => {
     const depositAmount = 99999999;
 
@@ -858,6 +730,134 @@ describe("Vault User Operations: Deposit Tests", () => {
     assert.strictEqual(userSharesAccountInfo.amount.toString(), "0");
   });
 
+  it("Depositing into both KYC and whitelist required vault with only KYC verified user should revert", async () => {
+    const depositAmount = 1000000000;
+
+    const kycVerified = anchor.web3.PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("user_role"),
+        kycVerifiedUser.publicKey.toBuffer(),
+        ROLES_BUFFER.KYC_VERIFIED,
+      ],
+      accessControlProgram.programId
+    )[0];
+
+    try {
+      await vaultProgram.methods
+        .deposit(new BN(depositAmount))
+        .accounts({
+          vault: vaultOne,
+          user: kycVerifiedUser.publicKey,
+          userTokenAccount: kycVerifiedUserTokenAccount,
+          userSharesAccount: kycVerifiedUserSharesAccountVaultOne,
+          underlyingMint: underlyingMint,
+          tokenProgram: token.TOKEN_PROGRAM_ID,
+        })
+        .signers([kycVerifiedUser])
+        .remainingAccounts([
+          {
+            pubkey: kycVerified,
+            isWritable: false,
+            isSigner: false,
+          },
+        ])
+        .rpc();
+      assert.fail("Error was not thrown");
+    } catch (err) {
+      expect(err.message).to.contain(errorStrings.notWhitelisted);
+    }
+
+    let vaultTokenAccountInfo = await token.getAccount(
+      provider.connection,
+      vaultTokenAccountOne
+    );
+
+    assert.strictEqual(
+      vaultTokenAccountInfo.amount.toString(),
+      vaultOneTokenAccountCurrentAmount.toString()
+    );
+
+    let userTokenAccountInfo = await token.getAccount(
+      provider.connection,
+      kycVerifiedUserTokenAccount
+    );
+
+    assert.strictEqual(
+      userTokenAccountInfo.amount.toString(),
+      kycVerifiedUserCurrentAmount.toString()
+    );
+
+    let userSharesAccountInfo = await token.getAccount(
+      provider.connection,
+      kycVerifiedUserSharesAccountVaultOne
+    );
+    assert.strictEqual(userSharesAccountInfo.amount.toString(), "0");
+  });
+
+  it("Depositing into both KYC and whitelist required vault with only whitelisted user should revert", async () => {
+    const depositAmount = 1000000000;
+
+    const kycVerified = anchor.web3.PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("user_role"),
+        whitelistedUser.publicKey.toBuffer(),
+        ROLES_BUFFER.KYC_VERIFIED,
+      ],
+      accessControlProgram.programId
+    )[0];
+
+    try {
+      await vaultProgram.methods
+        .deposit(new BN(depositAmount))
+        .accounts({
+          vault: vaultOne,
+          user: whitelistedUser.publicKey,
+          userTokenAccount: whitelistedUserTokenAccount,
+          userSharesAccount: whitelistedUserSharesAccountVaultOne,
+          underlyingMint: underlyingMint,
+          tokenProgram: token.TOKEN_PROGRAM_ID,
+        })
+        .signers([whitelistedUser])
+        .remainingAccounts([
+          {
+            pubkey: kycVerified,
+            isWritable: false,
+            isSigner: false,
+          },
+        ])
+        .rpc();
+      assert.fail("Error was not thrown");
+    } catch (err) {
+      expect(err.message).to.contain(errorStrings.kycRequired);
+    }
+
+    let vaultTokenAccountInfo = await token.getAccount(
+      provider.connection,
+      vaultTokenAccountOne
+    );
+
+    assert.strictEqual(
+      vaultTokenAccountInfo.amount.toString(),
+      vaultOneTokenAccountCurrentAmount.toString()
+    );
+
+    let userTokenAccountInfo = await token.getAccount(
+      provider.connection,
+      whitelistedUserTokenAccount
+    );
+
+    assert.strictEqual(
+      userTokenAccountInfo.amount.toString(),
+      whitelistedUserCurrentAmount.toString()
+    );
+
+    let userSharesAccountInfo = await token.getAccount(
+      provider.connection,
+      whitelistedUserSharesAccountVaultOne
+    );
+    assert.strictEqual(userSharesAccountInfo.amount.toString(), "0");
+  });
+
   it("Depositing valid amount into both KYC and whitelist required vault with KYC verified and whitelisted user is successful", async () => {
     const depositAmount = 5000000000;
 
@@ -921,6 +921,203 @@ describe("Vault User Operations: Deposit Tests", () => {
     assert.strictEqual(
       userSharesAccountInfo.amount.toString(),
       kycVerifiedWhitelistedUserSharesCurrentAmountVaultOne.toString()
+    );
+  });
+
+  it("Depositing valid amount into non-KYC and whitelist only required vault with whitelisted only user is successful", async () => {
+    const depositAmount = 5000000000;
+
+    accountantConfigAccount = await accountantProgram.account.config.fetch(
+      accountantConfig
+    );
+    const accountantIndex =
+      accountantConfigAccount.nextAccountantIndex.toNumber();
+
+    const accountant = anchor.web3.PublicKey.findProgramAddressSync(
+      [
+        Buffer.from(
+          new Uint8Array(new BigUint64Array([BigInt(accountantIndex)]).buffer)
+        ),
+      ],
+      accountantProgram.programId
+    )[0];
+
+    const vaultConfig = {
+      depositLimit: new BN(100000000000),
+      minUserDeposit: new BN(100000000),
+      accountant: accountant,
+      profitMaxUnlockTime: new BN(0),
+      kycVerifiedOnly: false,
+      directDepositEnabled: false,
+      whitelistedOnly: true,
+    };
+
+    const sharesConfig = {
+      name: "Test Roles and Permissions One",
+      symbol: "TRPV1",
+      uri: "https://gist.githubusercontent.com/vito-kovalione/08b86d3c67440070a8061ae429572494/raw/833e3d5f5988c18dce2b206a74077b2277e13ab6/PVT.json",
+    };
+
+    const [vault, sharesMint, metadataAccount, vaultTokenAccount] =
+      await initializeVault({
+        vaultProgram,
+        underlyingMint,
+        signer: generalAdmin,
+        vaultConfig: vaultConfig,
+        sharesConfig: sharesConfig,
+      });
+
+    await vaultProgram.methods
+      .whitelist(whitelistedUser.publicKey)
+      .accounts({
+        vault: vault,
+        signer: generalAdmin.publicKey,
+      })
+      .signers([generalAdmin])
+      .rpc();
+
+    const userSharesAccount = await token.createAccount(
+      provider.connection,
+      whitelistedUser,
+      sharesMint,
+      whitelistedUser.publicKey
+    );
+
+    await vaultProgram.methods
+      .deposit(new BN(depositAmount))
+      .accounts({
+        vault: vault,
+        user: whitelistedUser.publicKey,
+        userTokenAccount: whitelistedUserTokenAccount,
+        userSharesAccount: userSharesAccount,
+        underlyingMint: underlyingMint,
+        tokenProgram: token.TOKEN_PROGRAM_ID,
+      })
+      .signers([whitelistedUser])
+      .rpc();
+
+    whitelistedUserCurrentAmount -= depositAmount;
+
+    let vaultTokenAccountInfo = await token.getAccount(
+      provider.connection,
+      vaultTokenAccount
+    );
+
+    assert.strictEqual(
+      vaultTokenAccountInfo.amount.toString(),
+      depositAmount.toString()
+    );
+
+    let userTokenAccountInfo = await token.getAccount(
+      provider.connection,
+      whitelistedUserTokenAccount
+    );
+    assert.strictEqual(
+      userTokenAccountInfo.amount.toString(),
+      whitelistedUserCurrentAmount.toString()
+    );
+
+    let userSharesAccountInfo = await token.getAccount(
+      provider.connection,
+      userSharesAccount
+    );
+    assert.strictEqual(
+      userSharesAccountInfo.amount.toString(),
+      depositAmount.toString()
+    );
+  });
+
+  it("Depositing valid amount into non-KYC and non-whitelist required vault with non-KYC verified and non-whitelisted user is successful", async () => {
+    const depositAmount = 5000000000;
+
+    accountantConfigAccount = await accountantProgram.account.config.fetch(
+      accountantConfig
+    );
+    const accountantIndex =
+      accountantConfigAccount.nextAccountantIndex.toNumber();
+
+    const accountant = anchor.web3.PublicKey.findProgramAddressSync(
+      [
+        Buffer.from(
+          new Uint8Array(new BigUint64Array([BigInt(accountantIndex)]).buffer)
+        ),
+      ],
+      accountantProgram.programId
+    )[0];
+
+    const vaultConfig = {
+      depositLimit: new BN(100000000000),
+      minUserDeposit: new BN(100000000),
+      accountant: accountant,
+      profitMaxUnlockTime: new BN(0),
+      kycVerifiedOnly: false,
+      directDepositEnabled: false,
+      whitelistedOnly: false,
+    };
+
+    const sharesConfig = {
+      name: "Test Roles and Permissions One",
+      symbol: "TRPV1",
+      uri: "https://gist.githubusercontent.com/vito-kovalione/08b86d3c67440070a8061ae429572494/raw/833e3d5f5988c18dce2b206a74077b2277e13ab6/PVT.json",
+    };
+
+    const [vault, sharesMint, metadataAccount, vaultTokenAccount] =
+      await initializeVault({
+        vaultProgram,
+        underlyingMint,
+        signer: generalAdmin,
+        vaultConfig: vaultConfig,
+        sharesConfig: sharesConfig,
+      });
+
+    const userSharesAccount = await token.createAccount(
+      provider.connection,
+      nonVerifiedUser,
+      sharesMint,
+      nonVerifiedUser.publicKey
+    );
+
+    await vaultProgram.methods
+      .deposit(new BN(depositAmount))
+      .accounts({
+        vault: vault,
+        user: nonVerifiedUser.publicKey,
+        userTokenAccount: nonVerifiedUserTokenAccount,
+        userSharesAccount: userSharesAccount,
+        underlyingMint: underlyingMint,
+        tokenProgram: token.TOKEN_PROGRAM_ID,
+      })
+      .signers([nonVerifiedUser])
+      .rpc();
+
+    nonVerifiedUserCurrentAmount -= depositAmount;
+
+    let vaultTokenAccountInfo = await token.getAccount(
+      provider.connection,
+      vaultTokenAccount
+    );
+
+    assert.strictEqual(
+      vaultTokenAccountInfo.amount.toString(),
+      depositAmount.toString()
+    );
+
+    let userTokenAccountInfo = await token.getAccount(
+      provider.connection,
+      nonVerifiedUserTokenAccount
+    );
+    assert.strictEqual(
+      userTokenAccountInfo.amount.toString(),
+     nonVerifiedUserCurrentAmount.toString()
+    );
+
+    let userSharesAccountInfo = await token.getAccount(
+      provider.connection,
+      userSharesAccount
+    );
+    assert.strictEqual(
+      userSharesAccountInfo.amount.toString(),
+      depositAmount.toString()
     );
   });
 });
