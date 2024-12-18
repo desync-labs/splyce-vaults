@@ -679,14 +679,16 @@ describe("Vault User Operations: Deposit Tests", () => {
       accessControlProgram.programId
     )[0];
 
-    await accountantProgram.methods.initAccountant(accountantType)
+    await accountantProgram.methods
+      .initAccountant(accountantType)
       .accounts({
         signer: generalAdmin.publicKey,
       })
       .signers([generalAdmin])
       .rpc();
 
-    await accountantProgram.methods.initTokenAccount()
+    await accountantProgram.methods
+      .initTokenAccount()
       .accounts({
         accountant: accountant,
         signer: generalAdmin.publicKey,
@@ -767,6 +769,7 @@ describe("Vault User Operations: Deposit Tests", () => {
         .deposit(new BN(depositAmount))
         .accounts({
           vault: vaultOne,
+          accountant: accountantOne,
           user: kycVerifiedUser.publicKey,
           userTokenAccount: kycVerifiedUserTokenAccount,
           userSharesAccount: kycVerifiedUserSharesAccountVaultOne,
@@ -831,6 +834,7 @@ describe("Vault User Operations: Deposit Tests", () => {
         .deposit(new BN(depositAmount))
         .accounts({
           vault: vaultOne,
+          accountant: accountantOne,
           user: whitelistedUser.publicKey,
           userTokenAccount: whitelistedUserTokenAccount,
           userSharesAccount: whitelistedUserSharesAccountVaultOne,
@@ -963,6 +967,14 @@ describe("Vault User Operations: Deposit Tests", () => {
       accountantProgram.programId
     )[0];
 
+    await accountantProgram.methods
+      .initAccountant(accountantType)
+      .accounts({
+        signer: generalAdmin.publicKey,
+      })
+      .signers([generalAdmin])
+      .rpc();
+
     const vaultConfig = {
       depositLimit: new BN(100000000000),
       minUserDeposit: new BN(100000000),
@@ -988,6 +1000,26 @@ describe("Vault User Operations: Deposit Tests", () => {
         sharesConfig: sharesConfig,
       });
 
+    await accountantProgram.methods
+      .initTokenAccount()
+      .accounts({
+        accountant: accountant,
+        signer: generalAdmin.publicKey,
+        mint: sharesMint,
+      })
+      .signers([generalAdmin])
+      .rpc();
+
+    await accountantProgram.methods
+      .initTokenAccount()
+      .accounts({
+        accountant: accountant,
+        signer: generalAdmin.publicKey,
+        mint: underlyingMint,
+      })
+      .signers([generalAdmin])
+      .rpc();
+
     await vaultProgram.methods
       .whitelist(whitelistedUser.publicKey)
       .accounts({
@@ -1008,6 +1040,7 @@ describe("Vault User Operations: Deposit Tests", () => {
       .deposit(new BN(depositAmount))
       .accounts({
         vault: vault,
+        accountant: accountant,
         user: whitelistedUser.publicKey,
         userTokenAccount: whitelistedUserTokenAccount,
         userSharesAccount: userSharesAccount,
@@ -1066,6 +1099,14 @@ describe("Vault User Operations: Deposit Tests", () => {
       accountantProgram.programId
     )[0];
 
+    await accountantProgram.methods
+      .initAccountant(accountantType)
+      .accounts({
+        signer: generalAdmin.publicKey,
+      })
+      .signers([generalAdmin])
+      .rpc();
+
     const vaultConfig = {
       depositLimit: new BN(100000000000),
       minUserDeposit: new BN(100000000),
@@ -1091,6 +1132,26 @@ describe("Vault User Operations: Deposit Tests", () => {
         sharesConfig: sharesConfig,
       });
 
+    await accountantProgram.methods
+      .initTokenAccount()
+      .accounts({
+        accountant: accountant,
+        signer: generalAdmin.publicKey,
+        mint: sharesMint,
+      })
+      .signers([generalAdmin])
+      .rpc();
+
+    await accountantProgram.methods
+      .initTokenAccount()
+      .accounts({
+        accountant: accountant,
+        signer: generalAdmin.publicKey,
+        mint: underlyingMint,
+      })
+      .signers([generalAdmin])
+      .rpc();
+
     const userSharesAccount = await token.createAccount(
       provider.connection,
       nonVerifiedUser,
@@ -1102,6 +1163,7 @@ describe("Vault User Operations: Deposit Tests", () => {
       .deposit(new BN(depositAmount))
       .accounts({
         vault: vault,
+        accountant: accountant,
         user: nonVerifiedUser.publicKey,
         userTokenAccount: nonVerifiedUserTokenAccount,
         userSharesAccount: userSharesAccount,
@@ -1129,7 +1191,7 @@ describe("Vault User Operations: Deposit Tests", () => {
     );
     assert.strictEqual(
       userTokenAccountInfo.amount.toString(),
-     nonVerifiedUserCurrentAmount.toString()
+      nonVerifiedUserCurrentAmount.toString()
     );
 
     let userSharesAccountInfo = await token.getAccount(

@@ -21,7 +21,7 @@ import {
 import * as token from "@solana/spl-token";
 import { SimpleStrategyConfig } from "../../../utils/schemas";
 
-describe.only("Vault User Operations: Direct Deposit Tests", () => {
+describe("Vault User Operations: Direct Deposit Tests", () => {
   // Test Role Accounts
   let rolesAdmin: anchor.web3.Keypair;
   let generalAdmin: anchor.web3.Keypair;
@@ -297,7 +297,7 @@ describe.only("Vault User Operations: Direct Deposit Tests", () => {
       .accounts({
         accountant: accountantOne,
         signer: generalAdmin.publicKey,
-        underlyingMint: sharesMintOne,
+        mint: underlyingMint,
       })
       .signers([generalAdmin])
       .rpc();
@@ -307,7 +307,7 @@ describe.only("Vault User Operations: Direct Deposit Tests", () => {
       .accounts({
         accountant: accountantOne,
         signer: generalAdmin.publicKey,
-        underlyingMint: underlyingMint,
+        mint: sharesMintOne,
       })
       .signers([generalAdmin])
       .rpc();
@@ -441,11 +441,13 @@ describe.only("Vault User Operations: Direct Deposit Tests", () => {
       .directDeposit(new BN(depositAmount))
       .accounts({
         vault: vaultOne,
+        accountant: accountantOne,
         user: kycVerifiedWhitelistedUser.publicKey,
         userTokenAccount: kycVerifiedWhitelistedUserTokenAccount,
         userSharesAccount: kycVerifiedWhitelistedUserSharesAccountVaultOne,
         underlyingMint: underlyingMint,
         strategy: strategyOne,
+        tokenProgram: token.TOKEN_PROGRAM_ID,
       })
       .signers([kycVerifiedWhitelistedUser])
       .remainingAccounts([
