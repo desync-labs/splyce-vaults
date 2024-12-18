@@ -7,6 +7,7 @@ use access_control::{
 
 use crate::constants::USER_DATA_SEED;
 use crate::state::{Vault, UserData};
+use crate::events::WhitelistUpdatedEvent;
 
 #[derive(Accounts)]
 #[instruction(user: Pubkey)]
@@ -46,5 +47,11 @@ pub struct RevokeWhitelisting<'info> {
 
 pub fn handle_revoke_whitelisting(ctx: Context<RevokeWhitelisting>, _user: Pubkey) -> Result<()> {
     ctx.accounts.user_data.whitelisted = false;
+
+    emit!(WhitelistUpdatedEvent {
+        user: _user,
+        whitelisted: false,
+    });
+
     Ok(())
 }

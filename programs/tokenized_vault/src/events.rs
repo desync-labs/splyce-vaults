@@ -96,3 +96,9 @@ pub struct StrategyReportedEvent {
     pub total_fees: u64,
     pub timestamp: i64,
 }
+
+#[event]
+pub struct WhitelistUpdatedEvent {
+    pub user: Pubkey,
+    pub whitelisted: bool,
+}
