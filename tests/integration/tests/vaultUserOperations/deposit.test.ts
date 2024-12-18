@@ -292,7 +292,7 @@ describe("Vault User Operations: Deposit Tests", () => {
       .accounts({
         accountant: accountantOne,
         signer: generalAdmin.publicKey,
-        underlyingMint: sharesMintOne,
+        mint: sharesMintOne,
       })
       .signers([generalAdmin])
       .rpc();
@@ -302,7 +302,7 @@ describe("Vault User Operations: Deposit Tests", () => {
       .accounts({
         accountant: accountantOne,
         signer: generalAdmin.publicKey,
-        underlyingMint: underlyingMint,
+        mint: underlyingMint,
       })
       .signers([generalAdmin])
       .rpc();
@@ -820,7 +820,7 @@ describe("Vault User Operations: Deposit Tests", () => {
       .accounts({
         accountant: accountant,
         signer: generalAdmin.publicKey,
-        underlyingMint: sharesMint,
+        mint: sharesMint,
       })
       .signers([generalAdmin])
       .rpc();

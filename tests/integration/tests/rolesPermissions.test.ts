@@ -259,7 +259,7 @@ describe("Roles and Permissions Tests", () => {
       .accounts({
         accountant: accountantOne,
         signer: accountantAdmin.publicKey,
-        underlyingMint: sharesMintOne,
+        mint: sharesMintOne,
       })
       .signers([accountantAdmin])
       .rpc();
@@ -269,7 +269,7 @@ describe("Roles and Permissions Tests", () => {
       .accounts({
         accountant: accountantOne,
         signer: accountantAdmin.publicKey,
-        underlyingMint: underlyingMint,
+        mint: underlyingMint,
       })
       .signers([accountantAdmin])
       .rpc();
@@ -912,7 +912,7 @@ describe("Roles and Permissions Tests", () => {
         .accounts({
           accountant: accountant,
           signer: accountantAdmin.publicKey,
-          underlyingMint: sharesMint,
+          mint: sharesMint,
         })
         .signers([accountantAdmin])
         .rpc();
@@ -1260,7 +1260,7 @@ describe("Roles and Permissions Tests", () => {
         .accounts({
           accountant: accountant,
           signer: accountantAdmin.publicKey,
-          underlyingMint: sharesMint,
+          mint: sharesMint,
         })
         .signers([accountantAdmin])
         .rpc();
@@ -1423,7 +1423,7 @@ describe("Roles and Permissions Tests", () => {
         .accounts({
           accountant: accountant,
           signer: accountantAdmin.publicKey,
-          underlyingMint: sharesMint,
+          mint: sharesMint,
         })
         .signers([accountantAdmin])
         .rpc();
@@ -2061,7 +2061,7 @@ describe("Roles and Permissions Tests", () => {
         .accounts({
           accountant: accountant,
           signer: accountantAdmin.publicKey,
-          underlyingMint: sharesMint,
+          mint: sharesMint,
         })
         .signers([accountantAdmin])
         .rpc();
@@ -2409,7 +2409,7 @@ describe("Roles and Permissions Tests", () => {
         .accounts({
           accountant: accountant,
           signer: accountantAdmin.publicKey,
-          underlyingMint: sharesMint,
+          mint: sharesMint,
         })
         .signers([accountantAdmin])
         .rpc();
@@ -2565,7 +2565,7 @@ describe("Roles and Permissions Tests", () => {
         .accounts({
           accountant: accountant,
           signer: accountantAdmin.publicKey,
-          underlyingMint: sharesMint,
+          mint: sharesMint,
         })
         .signers([accountantAdmin])
         .rpc();
@@ -3374,7 +3374,7 @@ describe("Roles and Permissions Tests", () => {
         .accounts({
           accountant: accountant,
           signer: accountantAdmin.publicKey,
-          underlyingMint: sharesMint,
+          mint: sharesMint,
         })
         .signers([accountantAdmin])
         .rpc();
@@ -3537,7 +3537,7 @@ describe("Roles and Permissions Tests", () => {
         .accounts({
           accountant: accountant,
           signer: accountantAdmin.publicKey,
-          underlyingMint: sharesMint,
+          mint: sharesMint,
         })
         .signers([accountantAdmin])
         .rpc();
@@ -4218,7 +4218,7 @@ describe("Roles and Permissions Tests", () => {
         .accounts({
           accountant: accountant,
           signer: accountantAdmin.publicKey,
-          underlyingMint: sharesMint,
+          mint: sharesMint,
         })
         .signers([accountantAdmin])
         .rpc();
@@ -4564,7 +4564,7 @@ describe("Roles and Permissions Tests", () => {
         .accounts({
           accountant: accountant,
           signer: accountantAdmin.publicKey,
-          underlyingMint: sharesMint,
+          mint: sharesMint,
         })
         .signers([accountantAdmin])
         .rpc();
@@ -4692,7 +4692,7 @@ describe("Roles and Permissions Tests", () => {
         .accounts({
           accountant: accountant,
           signer: accountantAdmin.publicKey,
-          underlyingMint: sharesMint,
+          mint: sharesMint,
         })
         .signers([accountantAdmin])
         .rpc();
@@ -5328,7 +5328,7 @@ describe("Roles and Permissions Tests", () => {
         .accounts({
           accountant: accountant,
           signer: accountantAdmin.publicKey,
-          underlyingMint: sharesMint,
+          mint: sharesMint,
         })
         .signers([accountantAdmin])
         .rpc();
@@ -5680,7 +5680,7 @@ describe("Roles and Permissions Tests", () => {
         .accounts({
           accountant: accountant,
           signer: accountantAdmin.publicKey,
-          underlyingMint: sharesMint,
+          mint: sharesMint,
         })
         .signers([accountantAdmin])
         .rpc();
@@ -5827,7 +5827,7 @@ describe("Roles and Permissions Tests", () => {
         .accounts({
           accountant: accountant,
           signer: accountantAdmin.publicKey,
-          underlyingMint: sharesMint,
+          mint: sharesMint,
         })
         .signers([accountantAdmin])
         .rpc();
