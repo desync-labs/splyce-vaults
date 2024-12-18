@@ -296,7 +296,7 @@ describe("tokenized_vault", () => {
 
       console.log("Accountant inited");
 
-    await accountantProgram.methods.setFee(new BN(500))
+    await accountantProgram.methods.setPerformanceFee(new BN(500))
       .accounts({
         accountant: accountant,
         signer: admin.publicKey,
@@ -384,7 +384,7 @@ describe("tokenized_vault", () => {
       .accounts({
         accountant: accountant,
         signer: admin.publicKey,
-        underlyingMint: sharesMint,
+        mint: sharesMint,
       }) 
       .signers([admin])
       .rpc();
@@ -393,7 +393,7 @@ describe("tokenized_vault", () => {
       .accounts({
         accountant: accountant,
         signer: admin.publicKey,
-        underlyingMint: underlyingMint,
+        mint: underlyingMint,
       }) 
       .signers([admin])
       .rpc();
@@ -562,6 +562,7 @@ describe("tokenized_vault", () => {
       .accounts({
         vault,
         underlyingMint,
+        accountant,
         // strategy,
         user: user.publicKey,
         userTokenAccount,
@@ -598,6 +599,7 @@ describe("tokenized_vault", () => {
     await vaultProgram.methods.redeem(new BN(1), new BN(10000), remainingAccountsMap)
       .accounts({
         vault,
+        accountant,
         user: user.publicKey,
         underlyingMint,
         userTokenAccount,
@@ -619,6 +621,7 @@ describe("tokenized_vault", () => {
       .accounts({
         vault,
         underlyingMint,
+        accountant,
         // strategy,
         user: user.publicKey,
         userTokenAccount,
@@ -811,6 +814,7 @@ describe("tokenized_vault", () => {
     await vaultProgram.methods.redeem(new BN(30), new BN(10000), remainingAccountsMap)
       .accounts({
         vault,
+        accountant,
         underlyingMint,
         user: user.publicKey,
         userTokenAccount,
@@ -906,6 +910,7 @@ describe("tokenized_vault", () => {
     await vaultProgram.methods.redeem(shares, new BN(0), remainingAccountsMap)
       .accounts({
         vault,
+        accountant,
         underlyingMint,
         user: newOwner.publicKey,
         userTokenAccount: newOwnerTokenAccount,
@@ -996,6 +1001,7 @@ describe("tokenized_vault", () => {
       .accounts({
         vault,
         underlyingMint,
+        accountant,
         user: user.publicKey,
         userTokenAccount,
         userSharesAccount,
@@ -1039,6 +1045,7 @@ describe("tokenized_vault", () => {
       .accounts({
         vault,
         underlyingMint,
+        accountant,
         user: feeRecipient.publicKey,
         userTokenAccount: feeRecipientTokenAccount,
         userSharesAccount: feeRecipientSharesAccount,
@@ -1184,6 +1191,7 @@ describe("tokenized_vault", () => {
     await vaultProgram.methods.deposit(new BN(100))
       .accounts({
         vault,
+        accountant,
         underlyingMint,
         user: user.publicKey,
         userTokenAccount,

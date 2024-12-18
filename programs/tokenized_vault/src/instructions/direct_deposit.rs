@@ -6,7 +6,7 @@ use access_control::{
 use anchor_lang::prelude::*;
 use anchor_spl::{
     token::Token,
-    token_interface::{Mint, TokenAccount},
+    token_interface::{Mint, TokenAccount, TokenInterface},
 };
 use strategy::program::Strategy;
 
@@ -19,12 +19,23 @@ use crate::constants::{
 
 use crate::events::{VaultDepositEvent, UpdatedCurrentDebtForStrategyEvent};
 use crate::state::{UserData, Vault, StrategyData};
-use crate::utils::{strategy as strategy_utils, token, vault};
+use crate::utils::{accountant, strategy as strategy_utils, token, vault};
 
 #[derive(Accounts)]
 pub struct DirectDeposit<'info> {
     #[account(mut)]
     pub vault: AccountLoader<'info, Vault>,
+
+    /// CHECK: 
+    #[account(mut, address = vault.load()?.accountant)]
+    pub accountant: UncheckedAccount<'info>,
+
+    #[account(
+        mut,
+        associated_token::mint = shares_mint, 
+        associated_token::authority = accountant,
+    )]
+    pub accountant_recipient: Box<InterfaceAccount<'info, TokenAccount>>,
 
     #[account(mut)]
     pub user_token_account: InterfaceAccount<'info, TokenAccount>,
@@ -93,21 +104,25 @@ pub struct DirectDeposit<'info> {
     pub user: Signer<'info>,
 
     pub system_program: Program<'info, System>,
-    pub token_program: Program<'info, Token>,
+    pub shares_token_program: Program<'info, Token>,
+    pub token_program: Interface<'info, TokenInterface>,
     pub access_control: Program<'info, AccessControl>,
     pub strategy_program: Program<'info, Strategy>,
 }
 
 pub fn handle_direct_deposit<'info>(ctx: Context<'_, '_, '_, 'info, DirectDeposit<'info>>, amount: u64) -> Result<()> {
+    let enter_fee = accountant::enter(&ctx.accounts.accountant, amount)?;
+    let amount_to_deposit = amount - enter_fee;
+
     vault::validate_deposit(
         &ctx.accounts.vault, 
         &ctx.accounts.kyc_verified,
         &ctx.accounts.user_data,
         true,
-        amount
+        amount_to_deposit
     )?;
 
-    let shares = ctx.accounts.vault.load()?.convert_to_shares(amount);
+    let mut shares = ctx.accounts.vault.load()?.convert_to_shares(amount_to_deposit);
 
     token::transfer(
         ctx.accounts.token_program.to_account_info(),
@@ -141,6 +156,19 @@ pub fn handle_direct_deposit<'info>(ctx: Context<'_, '_, '_, 'info, DirectDeposi
         shares,
         &ctx.accounts.vault.load()?.seeds_shares(),
     )?;
+
+    if enter_fee > 0 {
+        let fee_shares = ctx.accounts.vault.load()?.convert_to_shares(enter_fee);
+        shares += fee_shares;
+        token::mint_to(
+            ctx.accounts.shares_token_program.to_account_info(),
+            ctx.accounts.shares_mint.to_account_info(),
+            ctx.accounts.accountant_recipient.to_account_info(),
+            ctx.accounts.shares_mint.to_account_info(),
+            fee_shares,
+            &ctx.accounts.vault.load()?.seeds_shares(),
+        )?;
+    }
 
     let mut vault = ctx.accounts.vault.load_mut()?;
 
