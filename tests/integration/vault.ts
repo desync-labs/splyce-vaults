@@ -296,7 +296,7 @@ describe("tokenized_vault", () => {
 
       console.log("Accountant inited");
 
-    await accountantProgram.methods.setFee(new BN(500))
+    await accountantProgram.methods.setPerformanceFee(new BN(500))
       .accounts({
         accountant: accountant,
         signer: admin.publicKey,
@@ -382,7 +382,7 @@ describe("tokenized_vault", () => {
       .accounts({
         accountant: accountant,
         signer: admin.publicKey,
-        underlyingMint: sharesMint,
+        mint: sharesMint,
       }) 
       .signers([admin])
       .rpc();
@@ -391,7 +391,7 @@ describe("tokenized_vault", () => {
       .accounts({
         accountant: accountant,
         signer: admin.publicKey,
-        underlyingMint: underlyingMint,
+        mint: underlyingMint,
       }) 
       .signers([admin])
       .rpc();
@@ -540,6 +540,7 @@ describe("tokenized_vault", () => {
       .accounts({
         vault,
         underlyingMint,
+        accountant,
         // strategy,
         user: user.publicKey,
         userTokenAccount,
@@ -1105,6 +1106,7 @@ describe("tokenized_vault", () => {
     await vaultProgram.methods.deposit(new BN(100))
       .accounts({
         vault,
+        accountant,
         underlyingMint,
         user: user.publicKey,
         userTokenAccount,

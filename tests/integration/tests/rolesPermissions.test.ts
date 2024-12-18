@@ -259,7 +259,7 @@ describe("Roles and Permissions Tests", () => {
       .accounts({
         accountant: accountantOne,
         signer: accountantAdmin.publicKey,
-        underlyingMint: sharesMintOne,
+        mint: sharesMintOne,
       })
       .signers([accountantAdmin])
       .rpc();
@@ -269,7 +269,7 @@ describe("Roles and Permissions Tests", () => {
       .accounts({
         accountant: accountantOne,
         signer: accountantAdmin.publicKey,
-        underlyingMint: underlyingMint,
+        mint: underlyingMint,
       })
       .signers([accountantAdmin])
       .rpc();
@@ -370,7 +370,7 @@ describe("Roles and Permissions Tests", () => {
 
     it("Accountant Admin - Calling set fee method is successful", async function () {
       await accountantProgram.methods
-        .setFee(new BN(500))
+        .setPerformanceFee(new BN(500))
         .accounts({
           accountant: accountantOne,
           signer: accountantAdmin.publicKey,
@@ -899,10 +899,29 @@ describe("Roles and Permissions Tests", () => {
         accessControlProgram.programId
       )[0];
 
+      const accountantType = { generic: {} };
+
+      await accountantProgram.methods.initAccountant(accountantType)
+        .accounts({
+          signer: accountantAdmin.publicKey,
+        })
+        .signers([accountantAdmin])
+        .rpc();
+
+      await accountantProgram.methods.initTokenAccount()
+        .accounts({
+          accountant: accountant,
+          signer: accountantAdmin.publicKey,
+          mint: sharesMint,
+        })
+        .signers([accountantAdmin])
+        .rpc();
+
       await vaultProgram.methods
         .deposit(new BN(depositAmount))
         .accounts({
           vault: vault,
+          accountant: accountant,
           user: kycVerifiedUser.publicKey,
           userTokenAccount: kycVerifiedUserTokenAccount,
           userSharesAccount: kycVerifiedUserSharesAccount,
@@ -1228,10 +1247,29 @@ describe("Roles and Permissions Tests", () => {
         accessControlProgram.programId
       )[0];
 
+      const accountantType = { generic: {} };
+
+      await accountantProgram.methods.initAccountant(accountantType)
+        .accounts({
+          signer: accountantAdmin.publicKey,
+        })
+        .signers([accountantAdmin])
+        .rpc();
+
+      await accountantProgram.methods.initTokenAccount()
+        .accounts({
+          accountant: accountant,
+          signer: accountantAdmin.publicKey,
+          mint: sharesMint,
+        })
+        .signers([accountantAdmin])
+        .rpc();
+
       await vaultProgram.methods
         .deposit(new BN(depositAmount))
         .accounts({
           vault: vault,
+          accountant: accountant,
           user: kycVerifiedUser.publicKey,
           userTokenAccount: kycVerifiedUserTokenAccount,
           userSharesAccount: kycVerifiedUserSharesAccount,
@@ -1372,11 +1410,30 @@ describe("Roles and Permissions Tests", () => {
         accessControlProgram.programId
       )[0];
 
+      const accountantType = { generic: {} };
+
+      await accountantProgram.methods.initAccountant(accountantType)
+        .accounts({
+          signer: accountantAdmin.publicKey,
+        })
+        .signers([accountantAdmin])
+        .rpc();
+
+      await accountantProgram.methods.initTokenAccount()
+        .accounts({
+          accountant: accountant,
+          signer: accountantAdmin.publicKey,
+          mint: sharesMint,
+        })
+        .signers([accountantAdmin])
+        .rpc();
+
       try {
         await vaultProgram.methods
           .deposit(new BN(depositAmount))
           .accounts({
             vault: vault,
+            accountant: accountant,
             user: accountantAdmin.publicKey,
             userTokenAccount: tokenAccount,
             userSharesAccount: sharesAccount,
@@ -1477,7 +1534,7 @@ describe("Roles and Permissions Tests", () => {
     it("Strategies Manager - Calling set fee method should revert", async function () {
       try {
         await accountantProgram.methods
-          .setFee(new BN(100))
+          .setPerformanceFee(new BN(100))
           .accounts({
             accountant: accountantOne,
             signer: strategiesManager.publicKey,
@@ -1991,10 +2048,29 @@ describe("Roles and Permissions Tests", () => {
         accessControlProgram.programId
       )[0];
 
+      const accountantType = { generic: {} };
+
+      await accountantProgram.methods.initAccountant(accountantType)
+        .accounts({
+          signer: accountantAdmin.publicKey,
+        })
+        .signers([accountantAdmin])
+        .rpc();
+
+      await accountantProgram.methods.initTokenAccount()
+        .accounts({
+          accountant: accountant,
+          signer: accountantAdmin.publicKey,
+          mint: sharesMint,
+        })
+        .signers([accountantAdmin])
+        .rpc();
+
       await vaultProgram.methods
         .deposit(new BN(depositAmount))
         .accounts({
           vault: vault,
+          accountant: accountant,
           user: kycVerifiedUser.publicKey,
           userTokenAccount: kycVerifiedUserTokenAccount,
           userSharesAccount: kycVerifiedUserSharesAccount,
@@ -2320,10 +2396,29 @@ describe("Roles and Permissions Tests", () => {
         accessControlProgram.programId
       )[0];
 
+      const accountantType = { generic: {} };
+
+      await accountantProgram.methods.initAccountant(accountantType)
+        .accounts({
+          signer: accountantAdmin.publicKey,
+        })
+        .signers([accountantAdmin])
+        .rpc();
+
+      await accountantProgram.methods.initTokenAccount()
+        .accounts({
+          accountant: accountant,
+          signer: accountantAdmin.publicKey,
+          mint: sharesMint,
+        })
+        .signers([accountantAdmin])
+        .rpc();
+
       await vaultProgram.methods
         .deposit(new BN(depositAmount))
         .accounts({
           vault: vault,
+          accountant: accountant,
           user: kycVerifiedUser.publicKey,
           userTokenAccount: kycVerifiedUserTokenAccount,
           userSharesAccount: kycVerifiedUserSharesAccount,
@@ -2457,11 +2552,30 @@ describe("Roles and Permissions Tests", () => {
         accessControlProgram.programId
       )[0];
 
+      const accountantType = { generic: {} };
+
+      await accountantProgram.methods.initAccountant(accountantType)
+        .accounts({
+          signer: accountantAdmin.publicKey,
+        })
+        .signers([accountantAdmin])
+        .rpc();
+
+      await accountantProgram.methods.initTokenAccount()
+        .accounts({
+          accountant: accountant,
+          signer: accountantAdmin.publicKey,
+          mint: sharesMint,
+        })
+        .signers([accountantAdmin])
+        .rpc();
+
       try {
         await vaultProgram.methods
           .deposit(new BN(depositAmount))
           .accounts({
             vault: vault,
+            accountant: accountant,
             user: strategiesManager.publicKey,
             userTokenAccount: strategiesManagerOneTokenAccount,
             userSharesAccount: sharesAccount,
@@ -2855,10 +2969,21 @@ describe("Roles and Permissions Tests", () => {
         accessControlProgram.programId
       )[0];
 
+      const accountantType = { generic: {} };
+
+      await accountantProgram.methods.initAccountant(accountantType)
+        .accounts({
+          signer: accountantAdmin.publicKey,
+        })
+        .signers([accountantAdmin])
+        .rpc();
+
+
       await vaultProgram.methods
         .deposit(new BN(depositAmount))
         .accounts({
           vault: vaultOne,
+          accountant: accountantOne,
           user: kycVerifiedUser.publicKey,
           userTokenAccount: kycVerifiedUserTokenAccount,
           userSharesAccount: kycVerifiedUserSharesAccountVaultOne,
@@ -3091,7 +3216,7 @@ describe("Roles and Permissions Tests", () => {
     it("Vaults Admin - Calling set fee method should revert", async function () {
       try {
         await accountantProgram.methods
-          .setFee(new BN(100))
+          .setPerformanceFee(new BN(100))
           .accounts({
             accountant: accountantOne,
             signer: vaultsAdmin.publicKey,
@@ -3236,10 +3361,29 @@ describe("Roles and Permissions Tests", () => {
         accessControlProgram.programId
       )[0];
 
+      const accountantType = { generic: {} };
+
+      await accountantProgram.methods.initAccountant(accountantType)
+        .accounts({
+          signer: accountantAdmin.publicKey,
+        })
+        .signers([accountantAdmin])
+        .rpc();
+
+      await accountantProgram.methods.initTokenAccount()
+        .accounts({
+          accountant: accountant,
+          signer: accountantAdmin.publicKey,
+          mint: sharesMint,
+        })
+        .signers([accountantAdmin])
+        .rpc();
+
       await vaultProgram.methods
         .deposit(new BN(depositAmount))
         .accounts({
           vault: vault,
+          accountant: accountant,
           user: kycVerifiedUser.publicKey,
           userTokenAccount: kycVerifiedUserTokenAccount,
           userSharesAccount: kycVerifiedUserSharesAccount,
@@ -3380,11 +3524,30 @@ describe("Roles and Permissions Tests", () => {
         accessControlProgram.programId
       )[0];
 
+      const accountantType = { generic: {} };
+
+      await accountantProgram.methods.initAccountant(accountantType)
+        .accounts({
+          signer: accountantAdmin.publicKey,
+        })
+        .signers([accountantAdmin])
+        .rpc();
+
+      await accountantProgram.methods.initTokenAccount()
+        .accounts({
+          accountant: accountant,
+          signer: accountantAdmin.publicKey,
+          mint: sharesMint,
+        })
+        .signers([accountantAdmin])
+        .rpc();
+
       try {
         await vaultProgram.methods
           .deposit(new BN(depositAmount))
           .accounts({
             vault: vault,
+            accountant: accountant,
             user: vaultsAdmin.publicKey,
             userTokenAccount: tokenAccount,
             userSharesAccount: sharesAccount,
@@ -3528,7 +3691,7 @@ describe("Roles and Permissions Tests", () => {
     it("Reporting Manager - Calling set fee method should revert", async function () {
       try {
         await accountantProgram.methods
-          .setFee(new BN(100))
+          .setPerformanceFee(new BN(100))
           .accounts({
             accountant: accountantOne,
             signer: reportingManager.publicKey,
@@ -4042,10 +4205,29 @@ describe("Roles and Permissions Tests", () => {
         accessControlProgram.programId
       )[0];
 
+      const accountantType = { generic: {} };
+
+      await accountantProgram.methods.initAccountant(accountantType)
+        .accounts({
+          signer: accountantAdmin.publicKey,
+        })
+        .signers([accountantAdmin])
+        .rpc();
+
+      await accountantProgram.methods.initTokenAccount()
+        .accounts({
+          accountant: accountant,
+          signer: accountantAdmin.publicKey,
+          mint: sharesMint,
+        })
+        .signers([accountantAdmin])
+        .rpc();
+
       await vaultProgram.methods
         .deposit(new BN(depositAmount))
         .accounts({
           vault: vault,
+          accountant: accountant,
           user: kycVerifiedUser.publicKey,
           userTokenAccount: kycVerifiedUserTokenAccount,
           userSharesAccount: kycVerifiedUserSharesAccount,
@@ -4369,11 +4551,30 @@ describe("Roles and Permissions Tests", () => {
         accessControlProgram.programId
       )[0];
 
+      const accountantType = { generic: {} };
+
+      await accountantProgram.methods.initAccountant(accountantType)
+        .accounts({
+          signer: accountantAdmin.publicKey,
+        })
+        .signers([accountantAdmin])
+        .rpc();
+
+      await accountantProgram.methods.initTokenAccount()
+        .accounts({
+          accountant: accountant,
+          signer: accountantAdmin.publicKey,
+          mint: sharesMint,
+        })
+        .signers([accountantAdmin])
+        .rpc();
+
       try {
         await vaultProgram.methods
           .deposit(new BN(depositAmount))
           .accounts({
             vault: vault,
+            accountant: accountant,
             user: reportingManager.publicKey,
             userTokenAccount: tokenAccount,
             userSharesAccount: sharesAccount,
@@ -4478,10 +4679,29 @@ describe("Roles and Permissions Tests", () => {
         accessControlProgram.programId
       )[0];
 
+      const accountantType = { generic: {} };
+
+      await accountantProgram.methods.initAccountant(accountantType)
+        .accounts({
+          signer: accountantAdmin.publicKey,
+        })
+        .signers([accountantAdmin])
+        .rpc();
+
+      await accountantProgram.methods.initTokenAccount()
+        .accounts({
+          accountant: accountant,
+          signer: accountantAdmin.publicKey,
+          mint: sharesMint,
+        })
+        .signers([accountantAdmin])
+        .rpc();
+
       await vaultProgram.methods
         .deposit(new BN(depositAmount))
         .accounts({
           vault: vault,
+          accountant: accountant,
           user: kycVerifiedUser.publicKey,
           userTokenAccount: kycVerifiedUserTokenAccount,
           userSharesAccount: userSharesAccount,
@@ -4558,7 +4778,7 @@ describe("Roles and Permissions Tests", () => {
     it("KYC Verified User - Calling set fee method should revert", async function () {
       try {
         await accountantProgram.methods
-          .setFee(new BN(100))
+          .setPerformanceFee(new BN(100))
           .accounts({
             accountant: accountantOne,
             signer: kycVerifiedUser.publicKey,
@@ -5095,10 +5315,29 @@ describe("Roles and Permissions Tests", () => {
         accessControlProgram.programId
       )[0];
 
+      const accountantType = { generic: {} };
+
+      await accountantProgram.methods.initAccountant(accountantType)
+        .accounts({
+          signer: accountantAdmin.publicKey,
+        })
+        .signers([accountantAdmin])
+        .rpc();
+
+      await accountantProgram.methods.initTokenAccount()
+        .accounts({
+          accountant: accountant,
+          signer: accountantAdmin.publicKey,
+          mint: sharesMint,
+        })
+        .signers([accountantAdmin])
+        .rpc();
+
       await vaultProgram.methods
         .deposit(new BN(depositAmount))
         .accounts({
           vault: vault,
+          accountant: accountant,
           user: kycVerifiedUser.publicKey,
           userTokenAccount: kycVerifiedUserTokenAccount,
           userSharesAccount: kycVerifiedUserSharesAccount,
@@ -5428,10 +5667,29 @@ describe("Roles and Permissions Tests", () => {
         accessControlProgram.programId
       )[0];
 
+      const accountantType = { generic: {} };
+
+      await accountantProgram.methods.initAccountant(accountantType)
+        .accounts({
+          signer: accountantAdmin.publicKey,
+        })
+        .signers([accountantAdmin])
+        .rpc();
+
+      await accountantProgram.methods.initTokenAccount()
+        .accounts({
+          accountant: accountant,
+          signer: accountantAdmin.publicKey,
+          mint: sharesMint,
+        })
+        .signers([accountantAdmin])
+        .rpc();
+
       await vaultProgram.methods
         .deposit(new BN(depositAmount))
         .accounts({
           vault: vault,
+          accountant: accountant,
           user: kycVerifiedUser.publicKey,
           userTokenAccount: kycVerifiedUserTokenAccount,
           userSharesAccount: kycVerifiedUserSharesAccount,
@@ -5556,11 +5814,30 @@ describe("Roles and Permissions Tests", () => {
         accessControlProgram.programId
       )[0];
 
+      const accountantType = { generic: {} };
+
+      await accountantProgram.methods.initAccountant(accountantType)
+        .accounts({
+          signer: accountantAdmin.publicKey,
+        })
+        .signers([accountantAdmin])
+        .rpc();
+
+      await accountantProgram.methods.initTokenAccount()
+        .accounts({
+          accountant: accountant,
+          signer: accountantAdmin.publicKey,
+          mint: sharesMint,
+        })
+        .signers([accountantAdmin])
+        .rpc();
+
       try {
         await vaultProgram.methods
           .deposit(new BN(depositAmount))
           .accounts({
             vault: vault,
+            accountant: accountant,
             user: nonVerifiedUser.publicKey,
             userTokenAccount: nonVerifiedUserTokenAccount,
             userSharesAccount: userSharesAccount,
