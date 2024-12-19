@@ -17,6 +17,7 @@ import {
   airdrop,
   initializeSimpleStrategy,
   initializeVault,
+  validateDirectDeposit,
 } from "../../../utils/helpers";
 import * as token from "@solana/spl-token";
 import { SimpleStrategyConfig } from "../../../utils/schemas";
@@ -208,6 +209,7 @@ describe("Vault User Operations: Direct Deposit Tests", () => {
 
     const vaultConfig = {
       depositLimit: new BN(100000000000),
+      userDepositLimit: new BN(0),
       minUserDeposit: new BN(100000000),
       accountant: accountantOne,
       profitMaxUnlockTime: new BN(0),
@@ -425,7 +427,329 @@ describe("Vault User Operations: Direct Deposit Tests", () => {
     console.log("-------Before Step Finished-------");
   });
 
-  it("Doing direct deposit with valid value into a direct deposit enabled vault is successful", async () => {
+  it("Directly depositing less than minimum deposit amount into the vault should revert", async () => {
+    const depositAmount = 99999999;
+
+    const kycVerified = anchor.web3.PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("user_role"),
+        kycVerifiedWhitelistedUser.publicKey.toBuffer(),
+        ROLES_BUFFER.KYC_VERIFIED,
+      ],
+      accessControlProgram.programId
+    )[0];
+
+    try {
+      await vaultProgram.methods
+        .directDeposit(new BN(depositAmount))
+        .accounts({
+          vault: vaultOne,
+          accountant: accountantOne,
+          user: kycVerifiedWhitelistedUser.publicKey,
+          userTokenAccount: kycVerifiedWhitelistedUserTokenAccount,
+          userSharesAccount: kycVerifiedWhitelistedUserSharesAccountVaultOne,
+          underlyingMint: underlyingMint,
+          strategy: strategyOne,
+          tokenProgram: token.TOKEN_PROGRAM_ID,
+        })
+        .signers([kycVerifiedWhitelistedUser])
+        .remainingAccounts([
+          {
+            pubkey: kycVerified,
+            isWritable: false,
+            isSigner: false,
+          },
+        ])
+        .rpc();
+      assert.fail("Error was not thrown");
+    } catch (err) {
+      expect(err.message).to.contain(errorStrings.minDepositNotReached);
+    }
+
+    await validateDirectDeposit({
+      userTokenAccount: kycVerifiedWhitelistedUserTokenAccount,
+      userTokenAccountAmountExpected: kycVerifiedWhitelistedUserCurrentAmount,
+      userSharesAccount: kycVerifiedWhitelistedUserSharesAccountVaultOne,
+      userSharesAccountAmountExpected:
+        kycVerifiedWhitelistedUserSharesCurrentAmountVaultOne,
+      vaultTokenAccount: vaultTokenAccountOne,
+      vaultTokenAccountAmountExpected: vaultOneTokenAccountCurrentAmount,
+      vault: vaultOne,
+      vaultTotalDebtAmountExpected: vaultOneTotalDebtCurrentAmount,
+      vaultTotalSharesAmountExpected: vaultOneTotalSharesCurrentAmount,
+      strategyTokenAccount: strategyTokenAccountOne,
+      strategyTokenAccountAmountExpected: strategyTokenAccountOneCurrentAmount,
+      strategy: strategyOne,
+      strategyCurrentDebtAmountExpected: strategyOneCurrentDebtAmount,
+    });
+  });
+
+  it("Directly depositing more than vault deposit limit amount into the vault should revert", async () => {
+    const depositAmount = 100000000001;
+
+    const kycVerified = anchor.web3.PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("user_role"),
+        kycVerifiedWhitelistedUser.publicKey.toBuffer(),
+        ROLES_BUFFER.KYC_VERIFIED,
+      ],
+      accessControlProgram.programId
+    )[0];
+
+    try {
+      await vaultProgram.methods
+        .directDeposit(new BN(depositAmount))
+        .accounts({
+          vault: vaultOne,
+          accountant: accountantOne,
+          user: kycVerifiedWhitelistedUser.publicKey,
+          userTokenAccount: kycVerifiedWhitelistedUserTokenAccount,
+          userSharesAccount: kycVerifiedWhitelistedUserSharesAccountVaultOne,
+          underlyingMint: underlyingMint,
+          strategy: strategyOne,
+          tokenProgram: token.TOKEN_PROGRAM_ID,
+        })
+        .signers([kycVerifiedWhitelistedUser])
+        .remainingAccounts([
+          {
+            pubkey: kycVerified,
+            isWritable: false,
+            isSigner: false,
+          },
+        ])
+        .rpc();
+      assert.fail("Error was not thrown");
+    } catch (err) {
+      expect(err.message).to.contain(errorStrings.exceedDepositLimit);
+    }
+
+    await validateDirectDeposit({
+      userTokenAccount: kycVerifiedWhitelistedUserTokenAccount,
+      userTokenAccountAmountExpected: kycVerifiedWhitelistedUserCurrentAmount,
+      userSharesAccount: kycVerifiedWhitelistedUserSharesAccountVaultOne,
+      userSharesAccountAmountExpected:
+        kycVerifiedWhitelistedUserSharesCurrentAmountVaultOne,
+      vaultTokenAccount: vaultTokenAccountOne,
+      vaultTokenAccountAmountExpected: vaultOneTokenAccountCurrentAmount,
+      vault: vaultOne,
+      vaultTotalDebtAmountExpected: vaultOneTotalDebtCurrentAmount,
+      vaultTotalSharesAmountExpected: vaultOneTotalSharesCurrentAmount,
+      strategyTokenAccount: strategyTokenAccountOne,
+      strategyTokenAccountAmountExpected: strategyTokenAccountOneCurrentAmount,
+      strategy: strategyOne,
+      strategyCurrentDebtAmountExpected: strategyOneCurrentDebtAmount,
+    });
+  });
+
+  it("Directly depositing 0 amount into the vault should revert", async () => {
+    const depositAmount = 0;
+
+    const kycVerified = anchor.web3.PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("user_role"),
+        kycVerifiedWhitelistedUser.publicKey.toBuffer(),
+        ROLES_BUFFER.KYC_VERIFIED,
+      ],
+      accessControlProgram.programId
+    )[0];
+
+    try {
+      await vaultProgram.methods
+        .directDeposit(new BN(depositAmount))
+        .accounts({
+          vault: vaultOne,
+          accountant: accountantOne,
+          user: kycVerifiedWhitelistedUser.publicKey,
+          userTokenAccount: kycVerifiedWhitelistedUserTokenAccount,
+          userSharesAccount: kycVerifiedWhitelistedUserSharesAccountVaultOne,
+          underlyingMint: underlyingMint,
+          strategy: strategyOne,
+          tokenProgram: token.TOKEN_PROGRAM_ID,
+        })
+        .signers([kycVerifiedWhitelistedUser])
+        .remainingAccounts([
+          {
+            pubkey: kycVerified,
+            isWritable: false,
+            isSigner: false,
+          },
+        ])
+        .rpc();
+      assert.fail("Error was not thrown");
+    } catch (err) {
+      expect(err.message).to.contain(errorStrings.zeroValue);
+    }
+
+    await validateDirectDeposit({
+      userTokenAccount: kycVerifiedWhitelistedUserTokenAccount,
+      userTokenAccountAmountExpected: kycVerifiedWhitelistedUserCurrentAmount,
+      userSharesAccount: kycVerifiedWhitelistedUserSharesAccountVaultOne,
+      userSharesAccountAmountExpected:
+        kycVerifiedWhitelistedUserSharesCurrentAmountVaultOne,
+      vaultTokenAccount: vaultTokenAccountOne,
+      vaultTokenAccountAmountExpected: vaultOneTokenAccountCurrentAmount,
+      vault: vaultOne,
+      vaultTotalDebtAmountExpected: vaultOneTotalDebtCurrentAmount,
+      vaultTotalSharesAmountExpected: vaultOneTotalSharesCurrentAmount,
+      strategyTokenAccount: strategyTokenAccountOne,
+      strategyTokenAccountAmountExpected: strategyTokenAccountOneCurrentAmount,
+      strategy: strategyOne,
+      strategyCurrentDebtAmountExpected: strategyOneCurrentDebtAmount,
+    });
+  });
+
+  it("Depositing into a vault which is shut down should revert", async () => {
+    const depositAmount = 100000000;
+
+    accountantConfigAccount = await accountantProgram.account.config.fetch(
+      accountantConfig
+    );
+    const accountantIndex =
+      accountantConfigAccount.nextAccountantIndex.toNumber();
+
+    const accountant = anchor.web3.PublicKey.findProgramAddressSync(
+      [
+        Buffer.from(
+          new Uint8Array(new BigUint64Array([BigInt(accountantIndex)]).buffer)
+        ),
+      ],
+      accountantProgram.programId
+    )[0];
+
+    const vaultConfig = {
+      depositLimit: new BN(1000000000),
+      minUserDeposit: new BN(0),
+      accountant: accountant,
+      profitMaxUnlockTime: new BN(0),
+      kycVerifiedOnly: true,
+      directDepositEnabled: false,
+      whitelistedOnly: false,
+    };
+
+    const sharesConfig = {
+      name: "Test Roles and Permissions One",
+      symbol: "TRPV1",
+      uri: "https://gist.githubusercontent.com/vito-kovalione/08b86d3c67440070a8061ae429572494/raw/833e3d5f5988c18dce2b206a74077b2277e13ab6/PVT.json",
+    };
+
+    const [vault, sharesMint, metadataAccount, vaultTokenAccount] =
+      await initializeVault({
+        vaultProgram,
+        underlyingMint,
+        signer: generalAdmin,
+        vaultConfig: vaultConfig,
+        sharesConfig: sharesConfig,
+      });
+
+    const strategyConfig = new SimpleStrategyConfig({
+      depositLimit: new BN(100000000000),
+      performanceFee: new BN(1000),
+      feeManager: generalAdmin.publicKey,
+    });
+
+    const [strategy, strategyTokenAccount] = await initializeSimpleStrategy({
+      strategyProgram,
+      vault: vault,
+      underlyingMint,
+      signer: generalAdmin,
+      config: strategyConfig,
+    });
+
+    await vaultProgram.methods
+      .addStrategy(new BN(100000000000))
+      .accounts({
+        vault: vault,
+        strategy: strategy,
+        signer: generalAdmin.publicKey,
+      })
+      .signers([generalAdmin])
+      .rpc();
+
+    const userSharesAccount = await token.createAccount(
+      provider.connection,
+      kycVerifiedWhitelistedUser,
+      sharesMint,
+      kycVerifiedWhitelistedUser.publicKey
+    );
+
+    const kycVerified = anchor.web3.PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("user_role"),
+        kycVerifiedWhitelistedUser.publicKey.toBuffer(),
+        ROLES_BUFFER.KYC_VERIFIED,
+      ],
+      accessControlProgram.programId
+    )[0];
+
+    await accountantProgram.methods
+      .initAccountant(accountantType)
+      .accounts({
+        signer: generalAdmin.publicKey,
+      })
+      .signers([generalAdmin])
+      .rpc();
+
+    await accountantProgram.methods
+      .initTokenAccount()
+      .accounts({
+        accountant: accountant,
+        signer: generalAdmin.publicKey,
+        mint: sharesMint,
+      })
+      .signers([generalAdmin])
+      .rpc();
+
+    await vaultProgram.methods
+      .shutdownVault()
+      .accounts({ vault, signer: generalAdmin.publicKey })
+      .signers([generalAdmin])
+      .rpc();
+
+    try {
+      await vaultProgram.methods
+        .directDeposit(new BN(depositAmount))
+        .accounts({
+          vault: vault,
+          accountant: accountant,
+          user: kycVerifiedWhitelistedUser.publicKey,
+          userTokenAccount: kycVerifiedWhitelistedUserTokenAccount,
+          userSharesAccount: kycVerifiedWhitelistedUserSharesAccountVaultOne,
+          underlyingMint: underlyingMint,
+          strategy: strategy,
+          tokenProgram: token.TOKEN_PROGRAM_ID,
+        })
+        .signers([kycVerifiedWhitelistedUser])
+        .remainingAccounts([
+          {
+            pubkey: kycVerified,
+            isWritable: false,
+            isSigner: false,
+          },
+        ])
+        .rpc();
+      assert.fail("Error was not thrown");
+    } catch (err) {
+      expect(err.message).to.contain(errorStrings.vaultShutdown);
+    }
+
+    await validateDirectDeposit({
+      userTokenAccount: kycVerifiedWhitelistedUserTokenAccount,
+      userTokenAccountAmountExpected: kycVerifiedWhitelistedUserCurrentAmount,
+      userSharesAccount: userSharesAccount,
+      userSharesAccountAmountExpected: 0,
+      vaultTokenAccount: vaultTokenAccount,
+      vaultTokenAccountAmountExpected: 0,
+      vault: vault,
+      vaultTotalDebtAmountExpected: 0,
+      vaultTotalSharesAmountExpected: 0,
+      strategyTokenAccount: strategyTokenAccount,
+      strategyTokenAccountAmountExpected: 0,
+      strategy: strategy,
+      strategyCurrentDebtAmountExpected: 0,
+    });
+  });
+
+  it("Directly depositing valid value into a direct deposit enabled, KYC and whitelist required vault by KYC verified and whitelisted user is successful", async () => {
     const depositAmount = 100000000;
 
     const kycVerified = anchor.web3.PublicKey.findProgramAddressSync(
@@ -466,66 +790,21 @@ describe("Vault User Operations: Direct Deposit Tests", () => {
     strategyTokenAccountOneCurrentAmount += depositAmount;
     strategyOneCurrentDebtAmount += depositAmount;
 
-    let userTokenAccountInfo = await token.getAccount(
-      provider.connection,
-      kycVerifiedWhitelistedUserTokenAccount
-    );
-    assert.strictEqual(
-      userTokenAccountInfo.amount.toString(),
-      kycVerifiedWhitelistedUserCurrentAmount.toString()
-    );
-
-    let userSharesAccountInfo = await token.getAccount(
-      provider.connection,
-      kycVerifiedWhitelistedUserSharesAccountVaultOne
-    );
-    assert.strictEqual(
-      userSharesAccountInfo.amount.toString(),
-      kycVerifiedWhitelistedUserSharesCurrentAmountVaultOne.toString()
-    );
-
-    let vaultTokenAccountInfo = await token.getAccount(
-      provider.connection,
-      vaultTokenAccountOne
-    );
-    assert.strictEqual(
-      vaultTokenAccountInfo.amount.toString(),
-      vaultOneTokenAccountCurrentAmount.toString()
-    );
-
-    const vaultAccount = await vaultProgram.account.vault.fetch(vaultOne);
-    assert.strictEqual(
-      vaultAccount.totalDebt.toString(),
-      vaultOneTotalDebtCurrentAmount.toString()
-    );
-    assert.strictEqual(
-      vaultAccount.totalShares.toString(),
-      vaultOneTotalSharesCurrentAmount.toString()
-    );
-
-    let strategyTokenAccountInfo = await token.getAccount(
-      provider.connection,
-      strategyTokenAccountOne
-    );
-    assert.strictEqual(
-      strategyTokenAccountInfo.amount.toString(),
-      strategyTokenAccountOneCurrentAmount.toString()
-    );
-
-    const strategyData = anchor.web3.PublicKey.findProgramAddressSync(
-      [
-        Buffer.from("strategy_data"),
-        vaultOne.toBuffer(),
-        strategyOne.toBuffer(),
-      ],
-      vaultProgram.programId
-    )[0];
-    const strategyDataAccount = await vaultProgram.account.strategyData.fetch(
-      strategyData
-    );
-    assert.strictEqual(
-      strategyDataAccount.currentDebt.toString(),
-      strategyOneCurrentDebtAmount.toString()
-    );
+    await validateDirectDeposit({
+      userTokenAccount: kycVerifiedWhitelistedUserTokenAccount,
+      userTokenAccountAmountExpected: kycVerifiedWhitelistedUserCurrentAmount,
+      userSharesAccount: kycVerifiedWhitelistedUserSharesAccountVaultOne,
+      userSharesAccountAmountExpected:
+        kycVerifiedWhitelistedUserSharesCurrentAmountVaultOne,
+      vaultTokenAccount: vaultTokenAccountOne,
+      vaultTokenAccountAmountExpected: vaultOneTokenAccountCurrentAmount,
+      vault: vaultOne,
+      vaultTotalDebtAmountExpected: vaultOneTotalDebtCurrentAmount,
+      vaultTotalSharesAmountExpected: vaultOneTotalSharesCurrentAmount,
+      strategyTokenAccount: strategyTokenAccountOne,
+      strategyTokenAccountAmountExpected: strategyTokenAccountOneCurrentAmount,
+      strategy: strategyOne,
+      strategyCurrentDebtAmountExpected: strategyOneCurrentDebtAmount,
+    });
   });
 });

@@ -17,6 +17,7 @@ import {
   airdrop,
   initializeSimpleStrategy,
   initializeVault,
+  validateDeposit,
 } from "../../../utils/helpers";
 import * as token from "@solana/spl-token";
 import { SimpleStrategyConfig } from "../../../utils/schemas";
@@ -68,7 +69,10 @@ describe("Vault User Operations: Deposit Tests", () => {
   let feeRecipientOne: anchor.web3.Keypair;
   let feeRecipientSharesAccountOne: anchor.web3.PublicKey;
   let feeRecipientTokenAccountOne: anchor.web3.PublicKey;
+
   let vaultOneTokenAccountCurrentAmount: number;
+  let vaultOneTotalIdleCurrentAmount: number;
+  let vaultOneTotalSharesCurrentAmount: number;
 
   before(async () => {
     console.log("-------Before Step Started-------");
@@ -308,6 +312,8 @@ describe("Vault User Operations: Deposit Tests", () => {
       .rpc();
 
     vaultOneTokenAccountCurrentAmount = 0;
+    vaultOneTotalIdleCurrentAmount = 0;
+    vaultOneTotalSharesCurrentAmount = 0;
 
     kycVerifiedUserTokenAccount = await token.createAccount(
       connection,
@@ -416,13 +422,13 @@ describe("Vault User Operations: Deposit Tests", () => {
     console.log("-------Before Step Finished-------");
   });
 
-  it("Depositing less than minimum deposit amount into the vault with should revert", async () => {
+  it("Depositing less than minimum deposit amount into the vault should revert", async () => {
     const depositAmount = 99999999;
 
     const kycVerified = anchor.web3.PublicKey.findProgramAddressSync(
       [
         Buffer.from("user_role"),
-        whitelistedUser.publicKey.toBuffer(),
+        kycVerifiedWhitelistedUser.publicKey.toBuffer(),
         ROLES_BUFFER.KYC_VERIFIED,
       ],
       accessControlProgram.programId
@@ -454,43 +460,27 @@ describe("Vault User Operations: Deposit Tests", () => {
       expect(err.message).to.contain(errorStrings.minDepositNotReached);
     }
 
-    let vaultTokenAccountInfo = await token.getAccount(
-      provider.connection,
-      vaultTokenAccountOne
-    );
-
-    assert.strictEqual(
-      vaultTokenAccountInfo.amount.toString(),
-      vaultOneTokenAccountCurrentAmount.toString()
-    );
-
-    let userTokenAccountInfo = await token.getAccount(
-      provider.connection,
-      kycVerifiedWhitelistedUserTokenAccount
-    );
-
-    assert.strictEqual(
-      userTokenAccountInfo.amount.toString(),
-      kycVerifiedWhitelistedUserCurrentAmount.toString()
-    );
-
-    let userSharesAccountInfo = await token.getAccount(
-      provider.connection,
-      kycVerifiedWhitelistedUserSharesAccountVaultOne
-    );
-    assert.strictEqual(
-      userSharesAccountInfo.amount.toString(),
-      kycVerifiedWhitelistedUserSharesCurrentAmountVaultOne.toString()
-    );
+    await validateDeposit({
+      userTokenAccount: kycVerifiedWhitelistedUserTokenAccount,
+      userTokenAccountAmountExpected: kycVerifiedWhitelistedUserCurrentAmount,
+      userSharesAccount: kycVerifiedWhitelistedUserSharesAccountVaultOne,
+      userSharesAccountAmountExpected:
+        kycVerifiedWhitelistedUserSharesCurrentAmountVaultOne,
+      vaultTokenAccount: vaultTokenAccountOne,
+      vaultTokenAccountAmountExpected: vaultOneTokenAccountCurrentAmount,
+      vault: vaultOne,
+      vaultTotalIdleAmountExpected: vaultOneTotalIdleCurrentAmount,
+      vaultTotalSharesAmountExpected: vaultOneTotalSharesCurrentAmount,
+    });
   });
 
-  it("Depositing more than deposit limit amount into the vault with should revert", async () => {
+  it("Depositing more than deposit limit amount into the vault should revert", async () => {
     const depositAmount = 100000000001;
 
     const kycVerified = anchor.web3.PublicKey.findProgramAddressSync(
       [
         Buffer.from("user_role"),
-        whitelistedUser.publicKey.toBuffer(),
+        kycVerifiedWhitelistedUser.publicKey.toBuffer(),
         ROLES_BUFFER.KYC_VERIFIED,
       ],
       accessControlProgram.programId
@@ -522,43 +512,27 @@ describe("Vault User Operations: Deposit Tests", () => {
       expect(err.message).to.contain(errorStrings.exceedDepositLimit);
     }
 
-    let vaultTokenAccountInfo = await token.getAccount(
-      provider.connection,
-      vaultTokenAccountOne
-    );
-
-    assert.strictEqual(
-      vaultTokenAccountInfo.amount.toString(),
-      vaultOneTokenAccountCurrentAmount.toString()
-    );
-
-    let userTokenAccountInfo = await token.getAccount(
-      provider.connection,
-      kycVerifiedWhitelistedUserTokenAccount
-    );
-
-    assert.strictEqual(
-      userTokenAccountInfo.amount.toString(),
-      kycVerifiedWhitelistedUserCurrentAmount.toString()
-    );
-
-    let userSharesAccountInfo = await token.getAccount(
-      provider.connection,
-      kycVerifiedWhitelistedUserSharesAccountVaultOne
-    );
-    assert.strictEqual(
-      userSharesAccountInfo.amount.toString(),
-      kycVerifiedWhitelistedUserSharesCurrentAmountVaultOne.toString()
-    );
+    await validateDeposit({
+      userTokenAccount: kycVerifiedWhitelistedUserTokenAccount,
+      userTokenAccountAmountExpected: kycVerifiedWhitelistedUserCurrentAmount,
+      userSharesAccount: kycVerifiedWhitelistedUserSharesAccountVaultOne,
+      userSharesAccountAmountExpected:
+        kycVerifiedWhitelistedUserSharesCurrentAmountVaultOne,
+      vaultTokenAccount: vaultTokenAccountOne,
+      vaultTokenAccountAmountExpected: vaultOneTokenAccountCurrentAmount,
+      vault: vaultOne,
+      vaultTotalIdleAmountExpected: vaultOneTotalIdleCurrentAmount,
+      vaultTotalSharesAmountExpected: vaultOneTotalSharesCurrentAmount,
+    });
   });
 
-  it("Depositing 0 amount into the vault with should revert", async () => {
+  it("Depositing 0 amount into the vault should revert", async () => {
     const depositAmount = 0;
 
     const kycVerified = anchor.web3.PublicKey.findProgramAddressSync(
       [
         Buffer.from("user_role"),
-        whitelistedUser.publicKey.toBuffer(),
+        kycVerifiedWhitelistedUser.publicKey.toBuffer(),
         ROLES_BUFFER.KYC_VERIFIED,
       ],
       accessControlProgram.programId
@@ -590,34 +564,18 @@ describe("Vault User Operations: Deposit Tests", () => {
       expect(err.message).to.contain(errorStrings.zeroValue);
     }
 
-    let vaultTokenAccountInfo = await token.getAccount(
-      provider.connection,
-      vaultTokenAccountOne
-    );
-
-    assert.strictEqual(
-      vaultTokenAccountInfo.amount.toString(),
-      vaultOneTokenAccountCurrentAmount.toString()
-    );
-
-    let userTokenAccountInfo = await token.getAccount(
-      provider.connection,
-      kycVerifiedWhitelistedUserTokenAccount
-    );
-
-    assert.strictEqual(
-      userTokenAccountInfo.amount.toString(),
-      kycVerifiedWhitelistedUserCurrentAmount.toString()
-    );
-
-    let userSharesAccountInfo = await token.getAccount(
-      provider.connection,
-      kycVerifiedWhitelistedUserSharesAccountVaultOne
-    );
-    assert.strictEqual(
-      userSharesAccountInfo.amount.toString(),
-      kycVerifiedWhitelistedUserSharesCurrentAmountVaultOne.toString()
-    );
+    await validateDeposit({
+      userTokenAccount: kycVerifiedWhitelistedUserTokenAccount,
+      userTokenAccountAmountExpected: kycVerifiedWhitelistedUserCurrentAmount,
+      userSharesAccount: kycVerifiedWhitelistedUserSharesAccountVaultOne,
+      userSharesAccountAmountExpected:
+        kycVerifiedWhitelistedUserSharesCurrentAmountVaultOne,
+      vaultTokenAccount: vaultTokenAccountOne,
+      vaultTokenAccountAmountExpected: vaultOneTokenAccountCurrentAmount,
+      vault: vaultOne,
+      vaultTotalIdleAmountExpected: vaultOneTotalIdleCurrentAmount,
+      vaultTotalSharesAmountExpected: vaultOneTotalSharesCurrentAmount,
+    });
   });
 
   it("Depositing into a vault which is shut down should revert", async () => {
@@ -729,27 +687,17 @@ describe("Vault User Operations: Deposit Tests", () => {
       expect(err.message).to.contain(errorStrings.vaultShutdown);
     }
 
-    let vaultTokenAccountInfo = await token.getAccount(
-      provider.connection,
-      vaultTokenAccount
-    );
-
-    assert.strictEqual(vaultTokenAccountInfo.amount.toString(), "0");
-
-    let userTokenAccountInfo = await token.getAccount(
-      provider.connection,
-      kycVerifiedWhitelistedUserTokenAccount
-    );
-    assert.strictEqual(
-      userTokenAccountInfo.amount.toString(),
-      kycVerifiedWhitelistedUserCurrentAmount.toString()
-    );
-
-    let userSharesAccountInfo = await token.getAccount(
-      provider.connection,
-      userSharesAccount
-    );
-    assert.strictEqual(userSharesAccountInfo.amount.toString(), "0");
+    await validateDeposit({
+      userTokenAccount: kycVerifiedWhitelistedUserTokenAccount,
+      userTokenAccountAmountExpected: kycVerifiedWhitelistedUserCurrentAmount,
+      userSharesAccount: userSharesAccount,
+      userSharesAccountAmountExpected: 0,
+      vaultTokenAccount: vaultTokenAccount,
+      vaultTokenAccountAmountExpected: 0,
+      vault: vault,
+      vaultTotalIdleAmountExpected: 0,
+      vaultTotalSharesAmountExpected: 0,
+    });
   });
 
   it("Depositing into both KYC and whitelist required vault with only KYC verified user should revert", async () => {
@@ -790,31 +738,17 @@ describe("Vault User Operations: Deposit Tests", () => {
       expect(err.message).to.contain(errorStrings.notWhitelisted);
     }
 
-    let vaultTokenAccountInfo = await token.getAccount(
-      provider.connection,
-      vaultTokenAccountOne
-    );
-
-    assert.strictEqual(
-      vaultTokenAccountInfo.amount.toString(),
-      vaultOneTokenAccountCurrentAmount.toString()
-    );
-
-    let userTokenAccountInfo = await token.getAccount(
-      provider.connection,
-      kycVerifiedUserTokenAccount
-    );
-
-    assert.strictEqual(
-      userTokenAccountInfo.amount.toString(),
-      kycVerifiedUserCurrentAmount.toString()
-    );
-
-    let userSharesAccountInfo = await token.getAccount(
-      provider.connection,
-      kycVerifiedUserSharesAccountVaultOne
-    );
-    assert.strictEqual(userSharesAccountInfo.amount.toString(), "0");
+    await validateDeposit({
+      userTokenAccount: kycVerifiedUserTokenAccount,
+      userTokenAccountAmountExpected: kycVerifiedUserCurrentAmount,
+      userSharesAccount: kycVerifiedUserSharesAccountVaultOne,
+      userSharesAccountAmountExpected: 0,
+      vaultTokenAccount: vaultTokenAccountOne,
+      vaultTokenAccountAmountExpected: vaultOneTokenAccountCurrentAmount,
+      vault: vaultOne,
+      vaultTotalIdleAmountExpected: vaultOneTotalIdleCurrentAmount,
+      vaultTotalSharesAmountExpected: vaultOneTotalSharesCurrentAmount,
+    });
   });
 
   it("Depositing into both KYC and whitelist required vault with only whitelisted user should revert", async () => {
@@ -855,31 +789,17 @@ describe("Vault User Operations: Deposit Tests", () => {
       expect(err.message).to.contain(errorStrings.kycRequired);
     }
 
-    let vaultTokenAccountInfo = await token.getAccount(
-      provider.connection,
-      vaultTokenAccountOne
-    );
-
-    assert.strictEqual(
-      vaultTokenAccountInfo.amount.toString(),
-      vaultOneTokenAccountCurrentAmount.toString()
-    );
-
-    let userTokenAccountInfo = await token.getAccount(
-      provider.connection,
-      whitelistedUserTokenAccount
-    );
-
-    assert.strictEqual(
-      userTokenAccountInfo.amount.toString(),
-      whitelistedUserCurrentAmount.toString()
-    );
-
-    let userSharesAccountInfo = await token.getAccount(
-      provider.connection,
-      whitelistedUserSharesAccountVaultOne
-    );
-    assert.strictEqual(userSharesAccountInfo.amount.toString(), "0");
+    await validateDeposit({
+      userTokenAccount: whitelistedUserTokenAccount,
+      userTokenAccountAmountExpected: whitelistedUserCurrentAmount,
+      userSharesAccount: whitelistedUserSharesAccountVaultOne,
+      userSharesAccountAmountExpected: 0,
+      vaultTokenAccount: vaultTokenAccountOne,
+      vaultTokenAccountAmountExpected: vaultOneTokenAccountCurrentAmount,
+      vault: vaultOne,
+      vaultTotalIdleAmountExpected: vaultOneTotalIdleCurrentAmount,
+      vaultTotalSharesAmountExpected: vaultOneTotalSharesCurrentAmount,
+    });
   });
 
   it("Depositing valid amount into both KYC and whitelist required vault with KYC verified and whitelisted user is successful", async () => {
@@ -918,35 +838,20 @@ describe("Vault User Operations: Deposit Tests", () => {
     kycVerifiedWhitelistedUserCurrentAmount -= depositAmount;
     kycVerifiedWhitelistedUserSharesCurrentAmountVaultOne += depositAmount;
     vaultOneTokenAccountCurrentAmount += depositAmount;
+    vaultOneTotalIdleCurrentAmount += depositAmount;
+    vaultOneTotalSharesCurrentAmount += depositAmount;
 
-    let vaultTokenAccountInfo = await token.getAccount(
-      provider.connection,
-      vaultTokenAccountOne
-    );
-
-    assert.strictEqual(
-      vaultTokenAccountInfo.amount.toString(),
-      vaultOneTokenAccountCurrentAmount.toString()
-    );
-
-    let userTokenAccountInfo = await token.getAccount(
-      provider.connection,
-      kycVerifiedWhitelistedUserTokenAccount
-    );
-
-    assert.strictEqual(
-      userTokenAccountInfo.amount.toString(),
-      kycVerifiedWhitelistedUserCurrentAmount.toString()
-    );
-
-    let userSharesAccountInfo = await token.getAccount(
-      provider.connection,
-      kycVerifiedWhitelistedUserSharesAccountVaultOne
-    );
-    assert.strictEqual(
-      userSharesAccountInfo.amount.toString(),
-      kycVerifiedWhitelistedUserSharesCurrentAmountVaultOne.toString()
-    );
+    await validateDeposit({
+      userTokenAccount: kycVerifiedWhitelistedUserTokenAccount,
+      userTokenAccountAmountExpected: kycVerifiedWhitelistedUserCurrentAmount,
+      userSharesAccount: kycVerifiedWhitelistedUserSharesAccountVaultOne,
+      userSharesAccountAmountExpected: kycVerifiedWhitelistedUserSharesCurrentAmountVaultOne,
+      vaultTokenAccount: vaultTokenAccountOne,
+      vaultTokenAccountAmountExpected: vaultOneTokenAccountCurrentAmount,
+      vault: vaultOne,
+      vaultTotalIdleAmountExpected: vaultOneTotalIdleCurrentAmount,
+      vaultTotalSharesAmountExpected: vaultOneTotalSharesCurrentAmount,
+    });
   });
 
   it("Depositing valid amount into non-KYC and whitelist only required vault with whitelisted only user is successful", async () => {
@@ -1052,33 +957,17 @@ describe("Vault User Operations: Deposit Tests", () => {
 
     whitelistedUserCurrentAmount -= depositAmount;
 
-    let vaultTokenAccountInfo = await token.getAccount(
-      provider.connection,
-      vaultTokenAccount
-    );
-
-    assert.strictEqual(
-      vaultTokenAccountInfo.amount.toString(),
-      depositAmount.toString()
-    );
-
-    let userTokenAccountInfo = await token.getAccount(
-      provider.connection,
-      whitelistedUserTokenAccount
-    );
-    assert.strictEqual(
-      userTokenAccountInfo.amount.toString(),
-      whitelistedUserCurrentAmount.toString()
-    );
-
-    let userSharesAccountInfo = await token.getAccount(
-      provider.connection,
-      userSharesAccount
-    );
-    assert.strictEqual(
-      userSharesAccountInfo.amount.toString(),
-      depositAmount.toString()
-    );
+    await validateDeposit({
+      userTokenAccount: whitelistedUserTokenAccount,
+      userTokenAccountAmountExpected: whitelistedUserCurrentAmount,
+      userSharesAccount: userSharesAccount,
+      userSharesAccountAmountExpected: depositAmount,
+      vaultTokenAccount: vaultTokenAccount,
+      vaultTokenAccountAmountExpected: depositAmount,
+      vault: vault,
+      vaultTotalIdleAmountExpected: depositAmount,
+      vaultTotalSharesAmountExpected: depositAmount,
+    });
   });
 
   it("Depositing valid amount into non-KYC and non-whitelist required vault with non-KYC verified and non-whitelisted user is successful", async () => {
@@ -1175,32 +1064,16 @@ describe("Vault User Operations: Deposit Tests", () => {
 
     nonVerifiedUserCurrentAmount -= depositAmount;
 
-    let vaultTokenAccountInfo = await token.getAccount(
-      provider.connection,
-      vaultTokenAccount
-    );
-
-    assert.strictEqual(
-      vaultTokenAccountInfo.amount.toString(),
-      depositAmount.toString()
-    );
-
-    let userTokenAccountInfo = await token.getAccount(
-      provider.connection,
-      nonVerifiedUserTokenAccount
-    );
-    assert.strictEqual(
-      userTokenAccountInfo.amount.toString(),
-      nonVerifiedUserCurrentAmount.toString()
-    );
-
-    let userSharesAccountInfo = await token.getAccount(
-      provider.connection,
-      userSharesAccount
-    );
-    assert.strictEqual(
-      userSharesAccountInfo.amount.toString(),
-      depositAmount.toString()
-    );
+    await validateDeposit({
+      userTokenAccount: nonVerifiedUserTokenAccount,
+      userTokenAccountAmountExpected: nonVerifiedUserCurrentAmount,
+      userSharesAccount: userSharesAccount,
+      userSharesAccountAmountExpected: depositAmount,
+      vaultTokenAccount: vaultTokenAccount,
+      vaultTokenAccountAmountExpected: depositAmount,
+      vault: vault,
+      vaultTotalIdleAmountExpected: depositAmount,
+      vaultTotalSharesAmountExpected: depositAmount,
+    });
   });
 });
