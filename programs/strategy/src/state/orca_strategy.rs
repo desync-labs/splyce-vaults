@@ -777,15 +777,17 @@ impl OrcaStrategy {
         underlying_balance_after: u64,
         asset_balance_before: u64,
         asset_balance_after: u64,
-        is_buying: bool,  // true when deploying funds or buying during rebalance
+        is_buying: bool,
     ) -> Result<()> {
         let mut data = invest_tracker_account.try_borrow_mut_data()?;
         let mut invest_tracker_data = InvestTracker::try_from_slice(&data[8..])?;
+        
+        // Initialize per-transaction realized profit/loss
+        let mut realized_profit_in_this_tx: u64 = 0;
+        let mut realized_loss_in_this_tx: u64 = 0;
     
         if is_buying {
-            // When buying assets:
-            // - asset_amount increases by what we received
-            // - amount_invested increases by what we spent
+            // Buying scenario:
             let new_asset_amount = asset_balance_after
                 .checked_sub(asset_balance_before)
                 .ok_or(OrcaStrategyErrorCode::MathError)?;
@@ -800,17 +802,21 @@ impl OrcaStrategy {
                 .checked_add(underlying_spent)
                 .ok_or(OrcaStrategyErrorCode::MathError)?;
     
-            // Increase effective_invested_amount when buying
             invest_tracker_data.effective_invested_amount = invest_tracker_data.effective_invested_amount
                 .checked_add(underlying_spent)
                 .ok_or(OrcaStrategyErrorCode::MathError)?;
+    
+            // Buying: no realized profit or loss
+            realized_profit_in_this_tx = 0;
+            realized_loss_in_this_tx = 0;
         } else {
-            // When selling assets:
-            // - asset_amount decreases by what we sold
-            // - amount_withdrawn increases by what we received
+            // Selling scenario:
+            let asset_amount_before_sale = invest_tracker_data.asset_amount; // snapshot before reducing
             let asset_amount_sold = asset_balance_before
                 .checked_sub(asset_balance_after)
                 .ok_or(OrcaStrategyErrorCode::MathError)?;
+    
+            // Update asset_amount after the sale
             invest_tracker_data.asset_amount = invest_tracker_data.asset_amount
                 .checked_sub(asset_amount_sold)
                 .ok_or(OrcaStrategyErrorCode::MathError)?;
@@ -822,24 +828,78 @@ impl OrcaStrategy {
                 .checked_add(underlying_received)
                 .ok_or(OrcaStrategyErrorCode::MathError)?;
     
-            // Adjust effective_invested_amount proportionally when selling
-            if invest_tracker_data.amount_invested > 0 {
-                let proportion = (underlying_received as u128)
-                    .checked_mul(invest_tracker_data.effective_invested_amount as u128)
+            if invest_tracker_data.effective_invested_amount == 0 {
+                // If we have no remaining cost basis, all proceeds are scenario-based profit.
+                realized_profit_in_this_tx = underlying_received;
+                realized_loss_in_this_tx = 0;
+    
+                invest_tracker_data.scenario_realized_profit = invest_tracker_data.scenario_realized_profit
+                    .checked_add(realized_profit_in_this_tx)
+                    .ok_or(OrcaStrategyErrorCode::MathError)?;
+            } else {
+                // Normal cost basis calculation:
+                // Check to avoid division by zero:
+                if asset_amount_before_sale == 0 {
+                    // Selling without having any asset_amount recorded
+                    return Err(OrcaStrategyErrorCode::MathError.into());
+                }
+    
+                // cost_basis_for_sale = (effective_invested_amount * asset_amount_sold) / asset_amount_before_sale
+                let cost_basis_for_sale = (invest_tracker_data.effective_invested_amount as u128)
+                    .checked_mul(asset_amount_sold as u128)
                     .ok_or(OrcaStrategyErrorCode::MathError)?
-                    .checked_div(invest_tracker_data.amount_invested as u128)
-                    .ok_or(OrcaStrategyErrorCode::MathError)?;
-                
+                    .checked_div(asset_amount_before_sale as u128)
+                    .ok_or(OrcaStrategyErrorCode::MathError)? as u64;
+    
+                // Update effective_invested_amount after removing the cost basis for the sold portion
                 invest_tracker_data.effective_invested_amount = invest_tracker_data.effective_invested_amount
-                    .checked_sub(proportion as u64)
+                    .checked_sub(cost_basis_for_sale)
                     .ok_or(OrcaStrategyErrorCode::MathError)?;
+    
+                // Realized profit or loss = underlying_received - cost_basis_for_sale
+                if underlying_received > cost_basis_for_sale {
+                    realized_profit_in_this_tx = underlying_received
+                        .checked_sub(cost_basis_for_sale)
+                        .ok_or(OrcaStrategyErrorCode::MathError)?;
+                    realized_loss_in_this_tx = 0;
+    
+                    // If effective_invested_amount is now zero after this sale, 
+                    // the realized profit is scenario-based profit.
+                    if invest_tracker_data.effective_invested_amount == 0 && realized_profit_in_this_tx > 0 {
+                        invest_tracker_data.scenario_realized_profit = invest_tracker_data.scenario_realized_profit
+                            .checked_add(realized_profit_in_this_tx)
+                            .ok_or(OrcaStrategyErrorCode::MathError)?;
+                    }
+                } else if underlying_received < cost_basis_for_sale {
+                    realized_loss_in_this_tx = cost_basis_for_sale
+                        .checked_sub(underlying_received)
+                        .ok_or(OrcaStrategyErrorCode::MathError)?;
+                    realized_profit_in_this_tx = 0;
+                } else {
+                    // underlying_received == cost_basis_for_sale
+                    realized_profit_in_this_tx = 0;
+                    realized_loss_in_this_tx = 0;
+                }
             }
         }
     
-        // Calculate unrealized profit/loss after updating values
+        // Accumulate transaction-based realized profit and loss
+        if realized_profit_in_this_tx > 0 {
+            invest_tracker_data.tx_realized_profit_accumulated = invest_tracker_data.tx_realized_profit_accumulated
+                .checked_add(realized_profit_in_this_tx)
+                .ok_or(OrcaStrategyErrorCode::MathError)?;
+        }
+    
+        if realized_loss_in_this_tx > 0 {
+            invest_tracker_data.tx_realized_loss_accumulated = invest_tracker_data.tx_realized_loss_accumulated
+                .checked_add(realized_loss_in_this_tx)
+                .ok_or(OrcaStrategyErrorCode::MathError)?;
+        }
+    
+        // Recalculate unrealized profit/loss
         let effective_invested = invest_tracker_data.effective_invested_amount as u128;
         let asset_value = invest_tracker_data.asset_value;
-
+    
         if asset_value > effective_invested {
             invest_tracker_data.unrealized_profit = (asset_value - effective_invested) as u64;
             invest_tracker_data.unrealized_loss = 0;
@@ -847,24 +907,24 @@ impl OrcaStrategy {
             invest_tracker_data.unrealized_profit = 0;
             invest_tracker_data.unrealized_loss = (effective_invested - asset_value) as u64;
         }
-
-        // Serialize and save the updated data
+    
         let serialized = invest_tracker_data.try_to_vec()?;
         data[8..].copy_from_slice(&serialized);
     
-        // Update event emission
+        // Emit event with both per-tx
         emit!(InvestTrackerSwapEvent {
             account_key: self.key(),
             invest_tracker_account_key: invest_tracker_account.key(),
             asset_mint: invest_tracker_data.asset_mint,
-            invested_underlying_amount: invest_tracker_data.effective_invested_amount,
             asset_amount: invest_tracker_data.asset_amount,
             effective_invested_amount: invest_tracker_data.effective_invested_amount,
-            unrealized_profit: invest_tracker_data.unrealized_profit,
-            unrealized_loss: invest_tracker_data.unrealized_loss,
+            scenario_realized_profit: invest_tracker_data.scenario_realized_profit,
+            realized_profit_in_this_tx: realized_profit_in_this_tx,    // per tx profit
+            realized_loss_in_this_tx: realized_loss_in_this_tx,        // per tx loss
+            is_buy: is_buying,
             timestamp: Clock::get()?.unix_timestamp,
         });
-        
+    
         Ok(())
     }
 }

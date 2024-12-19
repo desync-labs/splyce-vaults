@@ -153,8 +153,11 @@ pub fn handle_update_invest_trackers(ctx: Context<UpdateInvestTrackers>) -> Resu
             assigned_weight: current_data.assigned_weight as u32,
             current_weight: current_data.current_weight as u32,
             effective_invested_amount: current_data.effective_invested_amount as u64,
+            scenario_realized_profit: current_data.scenario_realized_profit as u64,
             unrealized_profit: current_data.unrealized_profit as u64,
             unrealized_loss: current_data.unrealized_loss as u64,
+            tx_realized_profit_accumulated: current_data.tx_realized_profit_accumulated as u64,
+            tx_realized_loss_accumulated: current_data.tx_realized_loss_accumulated as u64,
             timestamp: Clock::get()?.unix_timestamp,
         });
 
