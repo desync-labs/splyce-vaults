@@ -727,31 +727,51 @@ async function main() {
     // Create Lookup Table
     // ============================
 
-    // Gather all unique public keys from combinedRemainingAccounts
-    const addresses = combinedRemainingAccounts.map((acc) => acc.pubkey);
+        // Gather all unique public keys from combinedRemainingAccounts
+        // const addresses = combinedRemainingAccounts.map((acc) => acc.pubkey);
 
-    // Create Lookup Table
-    // const lookupTableAddress = await createLookupTable(admin, provider.connection, addresses);
-    // Read lookup table address from ALT.json
+        // Create Lookup Table
+        // const lookupTableAddress = await createLookupTable(admin, provider.connection, addresses);
+        // Read lookup table address from ALT.json
+    // Replace the lookup table section with:
     const altJsonPath = path.join(__dirname, 'ALT', 'ALT.json');
     const altJson = JSON.parse(fs.readFileSync(altJsonPath, 'utf8'));
-    const lookupTableAddress = new PublicKey(altJson.lookupTableAddress);
 
-    // Wait for new block before using the lookup table
-    await waitForNewBlock(provider.connection, 1);
+    // const lookupTableAddress = new PublicKey(altJson.lookupTableAddress);
+    // // Wait for new block before using the lookup table
+    // await waitForNewBlock(provider.connection, 1);
 
 
     
-    // Fetch the lookup table account
-    const lookupTableAccount = (
-      await provider.connection.getAddressLookupTable(lookupTableAddress)
-    ).value;
+    // // Fetch the lookup table account
+    // const lookupTableAccount = (
+    //   await provider.connection.getAddressLookupTable(lookupTableAddress)
+    // ).value;
 
-    console.log("Lookup Table Account:", lookupTableAccount);
+    // console.log("Lookup Table Account:", lookupTableAccount);
 
-    if (!lookupTableAccount) {
-      throw new Error("Lookup table not found");
-    }
+    // if (!lookupTableAccount) {
+    //   throw new Error("Lookup table not found");
+    // }
+
+    // Load all lookup tables
+    const lookupTableAccounts = await Promise.all(
+      Object.values(altJson.lookupTableAddresses).map(async (address) => {
+        const lookupTableAccount = (
+          await provider.connection.getAddressLookupTable(new PublicKey(address))
+        ).value;
+        
+        if (!lookupTableAccount) {
+          throw new Error(`Lookup table not found for address: ${address}`);
+        }
+        return lookupTableAccount;
+      })
+    );
+
+    console.log("Loaded lookup tables:", {
+      programOperations: altJson.lookupTableAddresses.programOperations,
+      poolOperations: altJson.lookupTableAddresses.poolOperations
+    });
 
     // ============================
     // Build the Versioned Transaction
@@ -779,12 +799,15 @@ async function main() {
     // Get latest blockhash before creating transaction
     const latestBlockhash = await provider.connection.getLatestBlockhash();
 
-    // Create a TransactionMessage with both instructions
+    // Create a TransactionMessage with all lookup tables
     const messageV0 = new TransactionMessage({
       payerKey: admin.publicKey,
       recentBlockhash: latestBlockhash.blockhash,
       instructions: [computeUnitLimitIx, redeemIx],
-    }).compileToV0Message([lookupTableAccount]);
+    // }).compileToV0Message([lookupTableAccount]);
+    }).compileToV0Message(lookupTableAccounts);
+
+    console.log("Lookup table accounts:", lookupTableAccounts);
 
     // Create VersionedTransaction
     const transaction = new VersionedTransaction(messageV0);

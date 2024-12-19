@@ -25,14 +25,14 @@ import {
 // ============================================================================
 
 // Shared Whirlpool Program ID
-const ORCA_WHIRLPOOL_PROGRAM_ID = new PublicKey("whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc");
+export const ORCA_WHIRLPOOL_PROGRAM_ID = new PublicKey("whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc");
 
 // Token Mints
-const WSOL_MINT = new PublicKey("So11111111111111111111111111111111111111112");
-const TMAC_MINT = new PublicKey("Afn8YB1p4NsoZeS5XJBZ18LTfEy5NFPwN46wapZcBQr6");
-const USDC_MINT = new PublicKey("BRjpCHtyQLNCo8gqRUr8jtdAj5AjPYQaoqbvcZiHok1k");
-const USDT_MINT = new PublicKey("H8UekPGwePSmQ3ttuYGPU1szyFfjZR4N53rymSFwpLPm");
-const SAMO_MINT = new PublicKey("Jd4M8bfJG3sAkd82RsGWyEXoaBXQP7njFzBwEaCTuDa");
+export const WSOL_MINT = new PublicKey("So11111111111111111111111111111111111111112");
+export const TMAC_MINT = new PublicKey("Afn8YB1p4NsoZeS5XJBZ18LTfEy5NFPwN46wapZcBQr6");
+export const USDC_MINT = new PublicKey("BRjpCHtyQLNCo8gqRUr8jtdAj5AjPYQaoqbvcZiHok1k");
+export const USDT_MINT = new PublicKey("H8UekPGwePSmQ3ttuYGPU1szyFfjZR4N53rymSFwpLPm");
+export const SAMO_MINT = new PublicKey("Jd4M8bfJG3sAkd82RsGWyEXoaBXQP7njFzBwEaCTuDa");
 
 // Define interface for pool configuration
 interface PoolConfig {
@@ -155,7 +155,7 @@ async function calculateStrategyAccounts(strategy: PublicKey, strategyProgram: P
 }
 
 // Update the pool configurations with the calculated PDAs
-async function updatePoolConfigs(strategy: PublicKey, strategyProgram: Program<Strategy>): Promise<PoolConfig[]> {
+export async function updatePoolConfigs(strategy: PublicKey, strategyProgram: Program<Strategy>): Promise<PoolConfig[]> {
   const accounts = await calculateStrategyAccounts(strategy, strategyProgram);
   
   return [
@@ -447,7 +447,7 @@ async function main() {
 main().catch(console.error);
 
 // Add helper functions at the end of the file
-async function waitForNewBlock(
+export async function waitForNewBlock(
   connection: Connection,
   targetBlocks: number,
 ): Promise<void> {

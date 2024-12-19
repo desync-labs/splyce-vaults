@@ -285,18 +285,38 @@ async function main() {
     const combinedRemainingAccounts = [...remainingAccountsForWSOL, ...remainingAccountsForTMAC, ...remainingAccountsForUSDT, ...remainingAccountsForSAMO];
 
     // Add lookup table generation
-    const addresses = combinedRemainingAccounts.map((acc) => acc.pubkey);
+    // const addresses = combinedRemainingAccounts.map((acc) => acc.pubkey);
      // const lookupTableAddress = await createLookupTable(admin, provider.connection, addresses);
     // Read lookup table address from ALT.json
     const altJsonPath = path.join(__dirname, 'ALT', 'ALT.json');
     const altJson = JSON.parse(fs.readFileSync(altJsonPath, 'utf8'));
-    const lookupTableAddress = new PublicKey(altJson.lookupTableAddress);
+    //when there is just one lookup table
+    // const lookupTableAddress = new PublicKey(altJson.lookupTableAddress);
     
-    await waitForNewBlock(provider.connection, 1);
-    const lookupTableAccount = (await provider.connection.getAddressLookupTable(lookupTableAddress)).value;
-    if (!lookupTableAccount) {
-      throw new Error("Lookup table not found");
-    }
+    // await waitForNewBlock(provider.connection, 1);
+    // const lookupTableAccount = (await provider.connection.getAddressLookupTable(lookupTableAddress)).value;
+    // if (!lookupTableAccount) {
+    //   throw new Error("Lookup table not found");
+    // }
+    // Load all lookup tables
+    //when there is multiple lookup tables
+    const lookupTableAccounts = await Promise.all(
+      Object.values(altJson.lookupTableAddresses).map(async (address) => {
+        const lookupTableAccount = (
+          await provider.connection.getAddressLookupTable(new PublicKey(address))
+        ).value;
+        
+        if (!lookupTableAccount) {
+          throw new Error(`Lookup table not found for address: ${address}`);
+        }
+        return lookupTableAccount;
+      })
+    );
+
+    console.log("Loaded lookup tables:", {
+      programOperations: altJson.lookupTableAddresses.programOperations,
+      poolOperations: altJson.lookupTableAddresses.poolOperations
+    });
 
     // Define deposit amount (10 USDC)
     const depositAmount = new BN(5).mul(new BN(10).pow(new BN(6)));
@@ -328,13 +348,16 @@ async function main() {
       .remainingAccounts(combinedRemainingAccounts)
       .instruction();
 
-    // Create a TransactionMessage
+    // Create a TransactionMessage with all lookup tables
     const messageV0 = new TransactionMessage({
       payerKey: admin.publicKey,
       recentBlockhash: latestBlockhash.blockhash,
       instructions: [computeUnitIx, computePriceIx, depositIx],
-    }).compileToV0Message([lookupTableAccount]);
+    // }).compileToV0Message([lookupTableAccount]); //when there is just one lookup table
+    }).compileToV0Message(lookupTableAccounts); //when there is multiple lookup tables
 
+    //let's console log lookup table accounts
+    console.log("Lookup table accounts:", lookupTableAccounts);
     // Create VersionedTransaction
     const transaction = new VersionedTransaction(messageV0);
 
