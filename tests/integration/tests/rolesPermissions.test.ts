@@ -556,6 +556,7 @@ describe("Roles and Permissions Tests", () => {
 
       const vaultConfig = {
         depositLimit: new BN(1000000000),
+        userDepositLimit: new BN(0),
         minUserDeposit: new BN(0),
         accountant: accountant,
         profitMaxUnlockTime: new BN(0),
@@ -600,6 +601,7 @@ describe("Roles and Permissions Tests", () => {
 
       const vaultConfig = {
         depositLimit: new BN(1000000000),
+        userDepositLimit: new BN(0),
         minUserDeposit: new BN(0),
         accountant: accountant,
         profitMaxUnlockTime: new BN(0),
@@ -708,6 +710,7 @@ describe("Roles and Permissions Tests", () => {
 
       const vaultConfig = {
         depositLimit: new BN(1000000000),
+        userDepositLimit: new BN(0),
         minUserDeposit: new BN(0),
         accountant: accountant,
         profitMaxUnlockTime: new BN(0),
@@ -766,6 +769,7 @@ describe("Roles and Permissions Tests", () => {
 
       const vaultConfig = {
         depositLimit: new BN(1000000000),
+        userDepositLimit: new BN(0),
         minUserDeposit: new BN(0),
         accountant: accountant,
         profitMaxUnlockTime: new BN(0),
@@ -836,6 +840,7 @@ describe("Roles and Permissions Tests", () => {
 
       const vaultConfig = {
         depositLimit: new BN(1000000000),
+        userDepositLimit: new BN(0),
         minUserDeposit: new BN(0),
         accountant: accountant,
         profitMaxUnlockTime: new BN(0),
@@ -1057,6 +1062,7 @@ describe("Roles and Permissions Tests", () => {
 
       const vaultConfig = {
         depositLimit: new BN(1000000000),
+        userDepositLimit: new BN(0),
         minUserDeposit: new BN(0),
         accountant: accountant,
         profitMaxUnlockTime: new BN(0),
@@ -1119,6 +1125,7 @@ describe("Roles and Permissions Tests", () => {
 
       const vaultConfig = {
         depositLimit: new BN(1000000000),
+        userDepositLimit: new BN(0),
         minUserDeposit: new BN(0),
         accountant: accountant,
         profitMaxUnlockTime: new BN(0),
@@ -1184,6 +1191,7 @@ describe("Roles and Permissions Tests", () => {
 
       const vaultConfig = {
         depositLimit: new BN(1000000000),
+        userDepositLimit: new BN(0),
         minUserDeposit: new BN(0),
         accountant: accountant,
         profitMaxUnlockTime: new BN(0),
@@ -1353,6 +1361,7 @@ describe("Roles and Permissions Tests", () => {
 
       const vaultConfig = {
         depositLimit: new BN(1000000000),
+        userDepositLimit: new BN(0),
         minUserDeposit: new BN(0),
         accountant: accountant,
         profitMaxUnlockTime: new BN(0),
@@ -1705,6 +1714,7 @@ describe("Roles and Permissions Tests", () => {
 
       const vaultConfig = {
         depositLimit: new BN(1000000000),
+        userDepositLimit: new BN(0),
         minUserDeposit: new BN(0),
         accountant: accountant,
         profitMaxUnlockTime: new BN(0),
@@ -1749,6 +1759,7 @@ describe("Roles and Permissions Tests", () => {
 
       const vaultConfig = {
         depositLimit: new BN(1000000000),
+        userDepositLimit: new BN(0),
         minUserDeposit: new BN(0),
         accountant: accountant,
         profitMaxUnlockTime: new BN(0),
@@ -1857,6 +1868,7 @@ describe("Roles and Permissions Tests", () => {
 
       const vaultConfig = {
         depositLimit: new BN(1000000000),
+        userDepositLimit: new BN(0),
         minUserDeposit: new BN(0),
         accountant: accountant,
         profitMaxUnlockTime: new BN(0),
@@ -1915,6 +1927,7 @@ describe("Roles and Permissions Tests", () => {
 
       const vaultConfig = {
         depositLimit: new BN(1000000000),
+        userDepositLimit: new BN(0),
         minUserDeposit: new BN(0),
         accountant: accountant,
         profitMaxUnlockTime: new BN(0),
@@ -1985,6 +1998,7 @@ describe("Roles and Permissions Tests", () => {
 
       const vaultConfig = {
         depositLimit: new BN(1000000000),
+        userDepositLimit: new BN(0),
         minUserDeposit: new BN(0),
         accountant: accountant,
         profitMaxUnlockTime: new BN(0),
@@ -2206,6 +2220,7 @@ describe("Roles and Permissions Tests", () => {
 
       const vaultConfig = {
         depositLimit: new BN(1000000000),
+        userDepositLimit: new BN(0),
         minUserDeposit: new BN(0),
         accountant: accountant,
         profitMaxUnlockTime: new BN(0),
@@ -2268,6 +2283,7 @@ describe("Roles and Permissions Tests", () => {
 
       const vaultConfig = {
         depositLimit: new BN(1000000000),
+        userDepositLimit: new BN(0),
         minUserDeposit: new BN(0),
         accountant: accountant,
         profitMaxUnlockTime: new BN(0),
@@ -2333,6 +2349,7 @@ describe("Roles and Permissions Tests", () => {
 
       const vaultConfig = {
         depositLimit: new BN(1000000000),
+        userDepositLimit: new BN(0),
         minUserDeposit: new BN(0),
         accountant: accountant,
         profitMaxUnlockTime: new BN(0),
@@ -2502,6 +2519,7 @@ describe("Roles and Permissions Tests", () => {
 
       const vaultConfig = {
         depositLimit: new BN(1000000000),
+        userDepositLimit: new BN(0),
         minUserDeposit: new BN(0),
         accountant: accountant,
         profitMaxUnlockTime: new BN(0),
@@ -2748,6 +2766,7 @@ describe("Roles and Permissions Tests", () => {
 
       const vaultConfig = {
         depositLimit: new BN(1000000000),
+        userDepositLimit: new BN(0),
         minUserDeposit: new BN(0),
         accountant: accountant,
         profitMaxUnlockTime: new BN(0),
@@ -2863,6 +2882,7 @@ describe("Roles and Permissions Tests", () => {
 
       const vaultConfig = {
         depositLimit: new BN(1000000000),
+        userDepositLimit: new BN(0),
         minUserDeposit: new BN(0),
         accountant: accountant,
         profitMaxUnlockTime: new BN(0),
@@ -2914,6 +2934,7 @@ describe("Roles and Permissions Tests", () => {
 
       const vaultConfig = {
         depositLimit: new BN(1000000000),
+        userDepositLimit: new BN(0),
         minUserDeposit: new BN(0),
         accountant: accountant,
         profitMaxUnlockTime: new BN(0),
@@ -3086,6 +3107,7 @@ describe("Roles and Permissions Tests", () => {
 
       const vaultConfig = {
         depositLimit: new BN(1000000000),
+        userDepositLimit: new BN(0),
         minUserDeposit: new BN(0),
         accountant: accountant,
         profitMaxUnlockTime: new BN(0),
@@ -3143,6 +3165,7 @@ describe("Roles and Permissions Tests", () => {
 
       const vaultConfig = {
         depositLimit: new BN(1000000000),
+        userDepositLimit: new BN(0),
         minUserDeposit: new BN(0),
         accountant: accountant,
         profitMaxUnlockTime: new BN(0),
@@ -3298,6 +3321,7 @@ describe("Roles and Permissions Tests", () => {
 
       const vaultConfig = {
         depositLimit: new BN(1000000000),
+        userDepositLimit: new BN(0),
         minUserDeposit: new BN(0),
         accountant: accountant,
         profitMaxUnlockTime: new BN(0),
@@ -3467,6 +3491,7 @@ describe("Roles and Permissions Tests", () => {
 
       const vaultConfig = {
         depositLimit: new BN(1000000000),
+        userDepositLimit: new BN(0),
         minUserDeposit: new BN(0),
         accountant: accountant,
         profitMaxUnlockTime: new BN(0),
@@ -3862,6 +3887,7 @@ describe("Roles and Permissions Tests", () => {
 
       const vaultConfig = {
         depositLimit: new BN(1000000000),
+        userDepositLimit: new BN(0),
         minUserDeposit: new BN(0),
         accountant: accountant,
         profitMaxUnlockTime: new BN(0),
@@ -3906,6 +3932,7 @@ describe("Roles and Permissions Tests", () => {
 
       const vaultConfig = {
         depositLimit: new BN(1000000000),
+        userDepositLimit: new BN(0),
         minUserDeposit: new BN(0),
         accountant: accountant,
         profitMaxUnlockTime: new BN(0),
@@ -4014,6 +4041,7 @@ describe("Roles and Permissions Tests", () => {
 
       const vaultConfig = {
         depositLimit: new BN(1000000000),
+        userDepositLimit: new BN(0),
         minUserDeposit: new BN(0),
         accountant: accountant,
         profitMaxUnlockTime: new BN(0),
@@ -4072,6 +4100,7 @@ describe("Roles and Permissions Tests", () => {
 
       const vaultConfig = {
         depositLimit: new BN(1000000000),
+        userDepositLimit: new BN(0),
         minUserDeposit: new BN(0),
         accountant: accountant,
         profitMaxUnlockTime: new BN(0),
@@ -4142,6 +4171,7 @@ describe("Roles and Permissions Tests", () => {
 
       const vaultConfig = {
         depositLimit: new BN(1000000000),
+        userDepositLimit: new BN(0),
         minUserDeposit: new BN(0),
         accountant: accountant,
         profitMaxUnlockTime: new BN(0),
@@ -4367,6 +4397,7 @@ describe("Roles and Permissions Tests", () => {
 
       const vaultConfig = {
         depositLimit: new BN(1000000000),
+        userDepositLimit: new BN(0),
         minUserDeposit: new BN(0),
         accountant: accountant,
         profitMaxUnlockTime: new BN(0),
@@ -4429,6 +4460,7 @@ describe("Roles and Permissions Tests", () => {
 
       const vaultConfig = {
         depositLimit: new BN(1000000000),
+        userDepositLimit: new BN(0),
         minUserDeposit: new BN(0),
         accountant: accountant,
         profitMaxUnlockTime: new BN(0),
@@ -4494,6 +4526,7 @@ describe("Roles and Permissions Tests", () => {
 
       const vaultConfig = {
         depositLimit: new BN(1000000000),
+        userDepositLimit: new BN(0),
         minUserDeposit: new BN(0),
         accountant: accountant,
         profitMaxUnlockTime: new BN(0),
@@ -4640,6 +4673,7 @@ describe("Roles and Permissions Tests", () => {
 
       const vaultConfig = {
         depositLimit: new BN(1000000000),
+        userDepositLimit: new BN(0),
         minUserDeposit: new BN(0),
         accountant: accountant,
         profitMaxUnlockTime: new BN(0),
@@ -4972,6 +5006,7 @@ describe("Roles and Permissions Tests", () => {
 
       const vaultConfig = {
         depositLimit: new BN(1000000000),
+        userDepositLimit: new BN(0),
         minUserDeposit: new BN(0),
         accountant: accountant,
         profitMaxUnlockTime: new BN(0),
@@ -5016,6 +5051,7 @@ describe("Roles and Permissions Tests", () => {
 
       const vaultConfig = {
         depositLimit: new BN(1000000000),
+        userDepositLimit: new BN(0),
         minUserDeposit: new BN(0),
         accountant: accountant,
         profitMaxUnlockTime: new BN(0),
@@ -5124,6 +5160,7 @@ describe("Roles and Permissions Tests", () => {
 
       const vaultConfig = {
         depositLimit: new BN(1000000000),
+        userDepositLimit: new BN(0),
         minUserDeposit: new BN(0),
         accountant: accountant,
         profitMaxUnlockTime: new BN(0),
@@ -5182,6 +5219,7 @@ describe("Roles and Permissions Tests", () => {
 
       const vaultConfig = {
         depositLimit: new BN(1000000000),
+        userDepositLimit: new BN(0),
         minUserDeposit: new BN(0),
         accountant: accountant,
         profitMaxUnlockTime: new BN(0),
@@ -5252,6 +5290,7 @@ describe("Roles and Permissions Tests", () => {
 
       const vaultConfig = {
         depositLimit: new BN(1000000000),
+        userDepositLimit: new BN(0),
         minUserDeposit: new BN(0),
         accountant: accountant,
         profitMaxUnlockTime: new BN(0),
@@ -5477,6 +5516,7 @@ describe("Roles and Permissions Tests", () => {
 
       const vaultConfig = {
         depositLimit: new BN(1000000000),
+        userDepositLimit: new BN(0),
         minUserDeposit: new BN(0),
         accountant: accountant,
         profitMaxUnlockTime: new BN(0),
@@ -5539,6 +5579,7 @@ describe("Roles and Permissions Tests", () => {
 
       const vaultConfig = {
         depositLimit: new BN(1000000000),
+        userDepositLimit: new BN(0),
         minUserDeposit: new BN(0),
         accountant: accountant,
         profitMaxUnlockTime: new BN(0),
@@ -5604,6 +5645,7 @@ describe("Roles and Permissions Tests", () => {
 
       const vaultConfig = {
         depositLimit: new BN(1000000000),
+        userDepositLimit: new BN(0),
         minUserDeposit: new BN(0),
         accountant: accountant,
         profitMaxUnlockTime: new BN(0),
@@ -5775,6 +5817,7 @@ describe("Roles and Permissions Tests", () => {
 
       const vaultConfig = {
         depositLimit: new BN(1000000000),
+        userDepositLimit: new BN(0),
         minUserDeposit: new BN(0),
         accountant: accountant,
         profitMaxUnlockTime: new BN(0),

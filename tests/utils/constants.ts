@@ -53,5 +53,9 @@ export const errorStrings = {
   zeroValue:
     "Error Code: ZeroValue. Error Number: 6001. Error Message: Zero value.",
   vaultShutdown:
-    " Error Code: VaultShutdown. Error Number: 6000. Error Message: Vault was shutdown.",
+    "Error Code: VaultShutdown. Error Number: 6000. Error Message: Vault was shutdown.",
+  directDepositDisabled:
+    "Error Code: DirectDepositDisabled. Error Number: 6021. Error Message: Direct deposit is disabled.",
+  maxDepositReached:
+    "Error Code: MaxDepositReached. Error Number: 6005. Error Message: Max deposit reached.",
 };
