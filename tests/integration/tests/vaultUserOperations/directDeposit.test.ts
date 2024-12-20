@@ -1081,7 +1081,7 @@ describe("Vault User Operations: Direct Deposit Tests", () => {
     });
   });
 
-  it("Depositing valid amount into direct deposit enabled, non-KYC and non-whitelist required vault with non-KYC verified and non-whitelisted user is successful", async () => {
+  it("Directly depositing valid amount into direct deposit enabled, non-KYC and non-whitelist required vault with non-KYC verified and non-whitelisted user is successful", async () => {
     const depositAmount = 5000000000;
 
     accountantConfigAccount = await accountantProgram.account.config.fetch(
