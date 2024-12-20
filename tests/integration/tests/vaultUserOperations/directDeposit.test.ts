@@ -598,7 +598,7 @@ describe("Vault User Operations: Direct Deposit Tests", () => {
     });
   });
 
-  it("Depositing into a vault which is shut down should revert", async () => {
+  it("Directly depositing into a vault which is shut down should revert", async () => {
     const depositAmount = 100000000;
 
     accountantConfigAccount = await accountantProgram.account.config.fetch(
