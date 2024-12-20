@@ -10,7 +10,7 @@ use anchor_spl::{
     token_interface::{Mint, TokenAccount, TokenInterface}
 };
 
-use crate::constants::{SHARES_SEED, UNDERLYING_SEED, WHITELISTED_SEED, ONE_SHARE_TOKEN};
+use crate::constants::{SHARES_SEED, UNDERLYING_SEED, ONE_SHARE_TOKEN, USER_DATA_SEED};
 
 use crate::events::VaultDepositEvent;
 use crate::state::{UserData, Vault};

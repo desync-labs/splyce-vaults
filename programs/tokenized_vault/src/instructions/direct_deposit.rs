@@ -10,7 +10,7 @@ use anchor_spl::{
 };
 use strategy::program::Strategy;
 
-use crate::constants::{SHARES_SEED, STRATEGY_DATA_SEED, UNDERLYING_SEED, WHITELISTED_SEED, ONE_SHARE_TOKEN};
+use crate::constants::{SHARES_SEED, STRATEGY_DATA_SEED, UNDERLYING_SEED, ONE_SHARE_TOKEN, USER_DATA_SEED};
 
 use crate::events::{VaultDepositEvent, UpdatedCurrentDebtForStrategyEvent};
 use crate::state::{UserData, Vault, StrategyData};
