@@ -59,6 +59,7 @@ pub fn handle_remove_strategy(ctx: Context<RemoveStrategy>, strategy: Pubkey, fo
         current_debt: 0,
         protocol_fees: 0,
         total_fees: 0,
+        total_shares: vault.total_shares(),
         timestamp: Clock::get()?.unix_timestamp,
     });
 
