@@ -9,7 +9,7 @@ pub struct TokenMetaData {
 #[derive(Debug, AnchorDeserialize, AnchorSerialize)]
 pub struct TokenData {
     pub mint: Pubkey,
-    pub account: Pubkey,
+    // pub account: Pubkey,
     pub decimals: u8,
     pub metadata: TokenMetaData,
 }
@@ -19,9 +19,13 @@ pub struct VaultInitEvent {
     pub vault_key: Pubkey, 
     pub underlying_token: TokenData,
     pub share_token: TokenData,
+    pub accountant: Pubkey,
     pub deposit_limit: u64,
     pub min_user_deposit: u64,
-    pub performance_fee: u64,
+    pub profit_max_unlock_time: u64,
+    pub kyc_verified_only: bool,
+    pub direct_deposit_enabled: bool,
+    pub whitelisted_only: bool,
 }
 
 
