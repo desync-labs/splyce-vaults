@@ -99,5 +99,8 @@ pub fn handle_init_invest_tracker(ctx: Context<InitInvestTracker>, a_to_b_for_pu
     require!(assigned_weight <= MAX_ASSIGNED_WEIGHT, ErrorCode::InvalidTrackerSetup);
     invest_tracker.assigned_weight = assigned_weight;
     invest_tracker.current_weight = assigned_weight;
+    invest_tracker.effective_invested_amount = 0;
+    invest_tracker.unrealized_profit = 0;
+    invest_tracker.unrealized_loss = 0;
     Ok(())
 }

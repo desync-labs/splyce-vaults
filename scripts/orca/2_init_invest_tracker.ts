@@ -29,8 +29,16 @@ const UNDERLYING_MINT = new PublicKey(
   "BRjpCHtyQLNCo8gqRUr8jtdAj5AjPYQaoqbvcZiHok1k" //devUSDC
 );
 
+const USDT_MINT = new PublicKey("H8UekPGwePSmQ3ttuYGPU1szyFfjZR4N53rymSFwpLPm");
+const SAMO_MINT = new PublicKey("Jd4M8bfJG3sAkd82RsGWyEXoaBXQP7njFzBwEaCTuDa");
+
+const WHIRLPOOL_ID_USDT = new PublicKey("63cMwvN8eoaD39os9bKP8brmA7Xtov9VxahnPufWCSdg");
+const WHIRLPOOL_ID_SAMO = new PublicKey("EgxU92G34jw6QDG9RuTX9StFg1PmHuDqkRKAE5kVEiZ4");
+
 const a_to_b_for_purchase_WSOL = false;
 const a_to_b_for_purchase_TMAC = false;
+const a_to_b_for_purchase_USDT = true;
+const a_to_b_for_purchase_SAMO = false;
 
 async function main() {
   try {
@@ -95,7 +103,7 @@ async function main() {
     );
 
     await strategyProgram.methods
-      .initInvestTracker(a_to_b_for_purchase_WSOL, 5000)
+      .initInvestTracker(a_to_b_for_purchase_WSOL, 2500)
       .accounts({
         strategy: strategy,
         assetMint: WSOL_MINT,
@@ -137,7 +145,7 @@ async function main() {
     );
 
     await strategyProgram.methods
-      .initInvestTracker(a_to_b_for_purchase_TMAC, 5000)
+      .initInvestTracker(a_to_b_for_purchase_TMAC, 2500)
       .accounts({
         strategy: strategy,
         assetMint: TMAC_MINT,
@@ -167,6 +175,42 @@ async function main() {
       assignedWeight: tmacTrackerAccount.assignedWeight,
       currentWeight: tmacTrackerAccount.currentWeight
     });
+
+    // Initialize invest tracker for USDT
+    await strategyProgram.methods
+      .initInvestTracker(
+        a_to_b_for_purchase_USDT, // a_to_b_for_purchase for USDT
+        2500
+      )
+      .accounts({
+        strategy: strategy,
+        underlyingMint: UNDERLYING_MINT,
+        assetMint: USDT_MINT,
+        whirlpool: WHIRLPOOL_ID_USDT,
+        signer: admin.publicKey,
+      })
+      .signers([admin])
+      .rpc();
+
+    console.log("Invest tracker initialized successfully for USDT");
+
+    // Initialize invest tracker for SAMO
+    await strategyProgram.methods
+      .initInvestTracker(
+        a_to_b_for_purchase_SAMO, // a_to_b_for_purchase for SAMO
+        2500
+      )
+      .accounts({
+        strategy: strategy,
+        underlyingMint: UNDERLYING_MINT,
+        assetMint: SAMO_MINT,
+        whirlpool: WHIRLPOOL_ID_SAMO,
+        signer: admin.publicKey,
+      })
+      .signers([admin])
+      .rpc();
+
+    console.log("Invest tracker initialized successfully for SAMO");
 
   } catch (error) {
     console.error("Error occurred:", error);

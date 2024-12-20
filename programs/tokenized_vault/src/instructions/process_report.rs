@@ -9,7 +9,7 @@ use access_control::{
     state::{UserRole, Role}
 };
 
-use crate::constants::{ MAX_BPS_EXTENDED, SHARES_ACCOUNT_SEED, SHARES_SEED, STRATEGY_DATA_SEED};
+use crate::constants::{ MAX_BPS_EXTENDED, SHARES_ACCOUNT_SEED, SHARES_SEED, STRATEGY_DATA_SEED, ONE_SHARE_TOKEN};
 use crate::events::StrategyReportedEvent;
 use crate::state::{Vault, StrategyData};
 use crate::utils::{accountant, strategy, token};
@@ -80,12 +80,11 @@ pub fn handle_process_report(ctx: Context<ProcessReport>) -> Result<()> {
     burn_unlocked_shares(&ctx)?;
     ctx.accounts.vault_shares_token_account.reload()?;
     let current_debt = ctx.accounts.strategy_data.current_debt;
-
+    
     if strategy_assets > current_debt {
         profit = strategy_assets - current_debt;
         let (total_fees, _) = accountant::report(&ctx.accounts.accountant, profit, 0)?;
         fee_shares = ctx.accounts.vault.load()?.convert_to_shares(total_fees);
-
         handle_profit(&ctx, profit, total_fees)?;
 
         if fee_shares > 0 {
@@ -95,8 +94,13 @@ pub fn handle_process_report(ctx: Context<ProcessReport>) -> Result<()> {
         loss = current_debt - strategy_assets;
         handle_loss(&ctx, loss)?;
     }
+    msg!("after handling profit/loss");
 
     ctx.accounts.strategy_data.update_current_debt(strategy_assets)?;
+
+    let share_price = ctx.accounts.vault.load()?.calculate_share_price(ONE_SHARE_TOKEN);
+
+    msg!("share_price: {}", share_price);
 
     emit!(StrategyReportedEvent {
         strategy_key: strategy.key(),
@@ -105,6 +109,7 @@ pub fn handle_process_report(ctx: Context<ProcessReport>) -> Result<()> {
         current_debt: strategy_assets,
         protocol_fees: 0, //TODO: this is set as 0
         total_fees: fee_shares,
+        share_price,
         timestamp: Clock::get()?.unix_timestamp,
     });
 

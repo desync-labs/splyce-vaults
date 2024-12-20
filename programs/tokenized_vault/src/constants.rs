@@ -12,3 +12,4 @@ pub const FEE_BPS: u64 = 10_000;
 pub const MAX_BPS_EXTENDED: u64 = 1_000_000_000_000;
 
 pub const DISCRIMINATOR_LEN: usize = 8;
+pub const ONE_SHARE_TOKEN: u64 = 1_000_000_000;

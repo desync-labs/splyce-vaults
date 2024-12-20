@@ -48,6 +48,8 @@ pub struct VaultDepositEvent {
     pub token_mint: Pubkey,
     pub share_mint: Pubkey,
     pub authority: Pubkey,
+    pub share_price: u64,
+    pub timestamp: i64,
 }
 
 
@@ -63,6 +65,8 @@ pub struct VaultWithdrawlEvent {
     pub token_mint: Pubkey,
     pub share_mint: Pubkey,
     pub authority: Pubkey,
+    pub share_price: u64,
+    pub timestamp: i64,
 }
 
 #[event]
@@ -94,6 +98,7 @@ pub struct StrategyReportedEvent {
     pub current_debt: u64,
     pub protocol_fees: u64,
     pub total_fees: u64,
+    pub share_price: u64,
     pub timestamp: i64,
 }
 
