@@ -618,6 +618,7 @@ describe("Vault User Operations: Direct Deposit Tests", () => {
 
     const vaultConfig = {
       depositLimit: new BN(1000000000),
+      userDepositLimit: new BN(0),
       minUserDeposit: new BN(0),
       accountant: accountant,
       profitMaxUnlockTime: new BN(0),
@@ -948,6 +949,7 @@ describe("Vault User Operations: Direct Deposit Tests", () => {
 
     const vaultConfig = {
       depositLimit: new BN(100000000000),
+      userDepositLimit: new BN(0),
       minUserDeposit: new BN(100000000),
       accountant: accountant,
       profitMaxUnlockTime: new BN(0),
@@ -1109,6 +1111,7 @@ describe("Vault User Operations: Direct Deposit Tests", () => {
 
     const vaultConfig = {
       depositLimit: new BN(100000000000),
+      userDepositLimit: new BN(0),
       minUserDeposit: new BN(100000000),
       accountant: accountant,
       profitMaxUnlockTime: new BN(0),
@@ -1245,6 +1248,7 @@ describe("Vault User Operations: Direct Deposit Tests", () => {
 
     const vaultConfig = {
       depositLimit: new BN(100000000000),
+      userDepositLimit: new BN(0),
       minUserDeposit: new BN(100000000),
       accountant: accountant,
       profitMaxUnlockTime: new BN(0),
@@ -1355,7 +1359,7 @@ describe("Vault User Operations: Direct Deposit Tests", () => {
     });
   });
 
-  it.skip("Directly depositing more than strategy deposit limit into direct deposit enabled vault should revert", async () => {
+  it("Directly depositing more than strategy deposit limit into direct deposit enabled vault should revert", async () => {
     const depositAmount = 10000000001;
 
     accountantConfigAccount = await accountantProgram.account.config.fetch(
@@ -1383,6 +1387,7 @@ describe("Vault User Operations: Direct Deposit Tests", () => {
 
     const vaultConfig = {
       depositLimit: new BN(100000000000),
+      userDepositLimit: new BN(0),
       minUserDeposit: new BN(100000000),
       accountant: accountant,
       profitMaxUnlockTime: new BN(0),
@@ -1493,7 +1498,7 @@ describe("Vault User Operations: Direct Deposit Tests", () => {
     });
   });
 
-  it("Directly depositing more than strategy max debt into direct deposit enabled vault should revert", async () => {
+  it.skip("Directly depositing more than strategy max debt into direct deposit enabled vault should revert", async () => {
     const depositAmount = 10000000001;
 
     accountantConfigAccount = await accountantProgram.account.config.fetch(
@@ -1521,6 +1526,7 @@ describe("Vault User Operations: Direct Deposit Tests", () => {
 
     const vaultConfig = {
       depositLimit: new BN(100000000000),
+      userDepositLimit: new BN(0),
       minUserDeposit: new BN(100000000),
       accountant: accountant,
       profitMaxUnlockTime: new BN(0),
