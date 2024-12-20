@@ -20,13 +20,13 @@ pub mod tokenized_vault {
         handle_initialize(ctx)
     }
 
-    pub fn init_vault(ctx: Context<InitVault>, config: Box<VaultConfig>) -> Result<()> {
-        handle_init_vault(ctx, config)
+    pub fn init_vault(ctx: Context<InitVault>, config: Box<VaultConfig>, shares_config: Box<SharesConfig>) -> Result<()> {
+        handle_init_vault(ctx, config, shares_config)
     }
 
-    pub fn init_vault_shares(ctx: Context<InitVaultShares>, index: u64, config: Box<SharesConfig>) -> Result<()> {
-        handle_init_vault_shares(ctx, index, config)
-    }
+    // pub fn init_vault_shares(ctx: Context<InitVaultShares>, index: u64, config: Box<SharesConfig>) -> Result<()> {
+    //     handle_init_vault_shares(ctx, index, config)
+    // }
 
     pub fn deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
         handle_deposit(ctx, amount)

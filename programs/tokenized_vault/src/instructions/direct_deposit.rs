@@ -1,22 +1,20 @@
 use access_control::{
     constants::USER_ROLE_SEED,
     program::AccessControl,
-    state::{Role, UserRole}
+    state::Role
 };
 use anchor_lang::prelude::*;
 use anchor_spl::{
+    associated_token::AssociatedToken,
     token::Token,
     token_interface::{Mint, TokenAccount, TokenInterface},
 };
-use strategy::program::Strategy;
-
-use crate::constants::{
-    SHARES_SEED, 
-    STRATEGY_DATA_SEED, 
-    UNDERLYING_SEED, 
-    USER_DATA_SEED
+use strategy::{
+    constants::UNDERLYING_SEED,
+    program::Strategy
 };
 
+use crate::constants::{SHARES_SEED, STRATEGY_DATA_SEED, USER_DATA_SEED};
 use crate::events::{VaultDepositEvent, UpdatedCurrentDebtForStrategyEvent};
 use crate::state::{UserData, Vault, StrategyData};
 use crate::utils::{accountant, strategy as strategy_utils, token, vault};
@@ -40,8 +38,12 @@ pub struct DirectDeposit<'info> {
     #[account(mut)]
     pub user_token_account: InterfaceAccount<'info, TokenAccount>,
 
-    #[account(mut, seeds = [UNDERLYING_SEED.as_bytes(), vault.key().as_ref()], bump)]
-    pub vault_token_account: InterfaceAccount<'info, TokenAccount>,
+    #[account(
+        mut,
+        associated_token::mint = underlying_mint, 
+        associated_token::authority = vault,
+    )]
+    pub vault_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
 
     #[account(mut, seeds = [SHARES_SEED.as_bytes(), vault.key().as_ref()], bump)]
     pub shares_mint: InterfaceAccount<'info, Mint>,
@@ -103,6 +105,7 @@ pub struct DirectDeposit<'info> {
     #[account(mut)]
     pub user: Signer<'info>,
 
+    pub associated_token_program: Program<'info, AssociatedToken>,
     pub system_program: Program<'info, System>,
     pub shares_token_program: Program<'info, Token>,
     pub token_program: Interface<'info, TokenInterface>,

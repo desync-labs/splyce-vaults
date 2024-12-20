@@ -7,13 +7,16 @@ use access_control::{
     state::{UserRole, Role}
 };
 
-use strategy::program::Strategy;
+use strategy::{
+    constants::UNDERLYING_SEED,
+    program::Strategy
+};
 
 use crate::events::UpdatedCurrentDebtForStrategyEvent;
 use crate::state::{StrategyData, Vault};
 use crate::errors::ErrorCode;
 use crate::utils::strategy as strategy_utils;
-use crate::constants::{STRATEGY_DATA_SEED, UNDERLYING_SEED};
+use crate::constants::STRATEGY_DATA_SEED;
 
 #[derive(Accounts)]
 #[instruction(new_debt: u64)]
@@ -24,8 +27,12 @@ pub struct UpdateStrategyDebt<'info> {
     )]
     pub vault: AccountLoader<'info, Vault>,
 
-    #[account(mut, seeds = [UNDERLYING_SEED.as_bytes(), vault.key().as_ref()], bump)]
-    pub vault_token_account: InterfaceAccount<'info, TokenAccount>,
+    #[account(
+        mut,
+        associated_token::mint = underlying_mint, 
+        associated_token::authority = vault,
+    )]
+    pub vault_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
 
     #[account(mut, address = vault.load()?.underlying_mint)]
     pub underlying_mint: InterfaceAccount<'info, Mint>,
