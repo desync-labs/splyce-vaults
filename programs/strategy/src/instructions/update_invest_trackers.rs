@@ -13,11 +13,17 @@ use crate::state::invest_tracker::*;
 use crate::state::whirlpool::*;
 use crate::error::ErrorCode;
 use crate::utils::orca_utils::{compute_asset_value, get_price_in_underlying_decimals};
+use crate::events::InvestTrackerUpdateEvent;
+use crate::utils::unchecked_strategy::UncheckedStrategy;
 
 //This instruction initializes an invest tracker for the strategy
 #[derive(Accounts)]
 #[instruction()]
 pub struct UpdateInvestTrackers<'info> {
+    /// CHECK: can be any strategy
+    #[account(mut)]
+    pub strategy: UncheckedAccount<'info>,
+
     #[account(
         seeds = [
             USER_ROLE_SEED.as_bytes(), 
@@ -39,6 +45,8 @@ pub struct UpdateInvestTrackers<'info> {
 }
 
 pub fn handle_update_invest_trackers(ctx: Context<UpdateInvestTrackers>) -> Result<()> {
+    let mut strategy = ctx.accounts.strategy.from_unchecked()?;
+
     msg!("Updating invest trackers");
     //so there would be a pair of accounts for each invest tracker
     //remaining accounts[0] = invest_tracker
@@ -109,12 +117,47 @@ pub fn handle_update_invest_trackers(ctx: Context<UpdateInvestTrackers>) -> Resu
             .checked_div(FEE_BPS as u128)
             .ok_or(ErrorCode::MathOverflow)?;
 
+        // Calculate unrealized profit/loss
+        let effective_invested = current_data.effective_invested_amount as u128;
+        let asset_value = current_data.asset_value;
+
+        if asset_value > effective_invested {
+            current_data.unrealized_profit = (asset_value - effective_invested) as u64;
+            current_data.unrealized_loss = 0;
+        } else {
+            current_data.unrealized_profit = 0;
+            current_data.unrealized_loss = (effective_invested - asset_value) as u64;
+        }
+
         // Add to totals
         total_weight += current_data.assigned_weight as u16;
         total_asset_value = total_asset_value
             .checked_add(current_data.asset_value)
             .ok_or(ErrorCode::MathOverflow)?;
 
+        // Emit the update event
+        emit!(InvestTrackerUpdateEvent {
+            account_key: strategy.key(),
+            invest_tracker_account_key: invest_tracker_info.key(),
+            whirlpool_id: current_data.whirlpool_id,
+            asset_mint: current_data.asset_mint,
+            amount_invested: current_data.amount_invested,
+            amount_withdrawn: current_data.amount_withdrawn,
+            asset_amount: current_data.asset_amount,
+            asset_price: current_data.asset_price as u64,
+            sqrt_price: current_data.sqrt_price as u64,
+            asset_value: current_data.asset_value as u64,
+            asset_decimals: current_data.asset_decimals as u32, 
+            underlying_decimals: current_data.underlying_decimals as u32,
+            a_to_b_for_purchase: current_data.a_to_b_for_purchase,
+            assigned_weight: current_data.assigned_weight as u32,
+            current_weight: current_data.current_weight as u32,
+            effective_invested_amount: current_data.effective_invested_amount as u64,
+            unrealized_profit: current_data.unrealized_profit as u64,
+            unrealized_loss: current_data.unrealized_loss as u64,
+            timestamp: Clock::get()?.unix_timestamp,
+        });
+      
         // Serialize the updated data
         let serialized = current_data.try_to_vec()?;
 
@@ -153,5 +196,6 @@ pub fn handle_update_invest_trackers(ctx: Context<UpdateInvestTrackers>) -> Resu
         require!(total_current_weight <= MAX_ASSIGNED_WEIGHT as u16, ErrorCode::InvalidTrackerSetup);
     }
 
+    strategy.save_changes(&mut &mut ctx.accounts.strategy.try_borrow_mut_data()?[8..])?;
     Ok(())
 }

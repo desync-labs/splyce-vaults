@@ -8,7 +8,7 @@ use access_control::{
 use crate::events::StrategyReportedEvent;
 use crate::state::{StrategyData, Vault};
 use crate::errors::ErrorCode;
-
+use crate::constants::ONE_SHARE_TOKEN;
 #[derive(Accounts)]
 pub struct RemoveStrategy<'info> {
     #[account(mut)]
@@ -52,6 +52,8 @@ pub fn handle_remove_strategy(ctx: Context<RemoveStrategy>, strategy: Pubkey, fo
         vault.total_debt -= loss;
     }
 
+    let share_price = vault.calculate_share_price(ONE_SHARE_TOKEN);
+
     emit!(StrategyReportedEvent {
         strategy_key: strategy,
         gain: 0,
@@ -59,6 +61,8 @@ pub fn handle_remove_strategy(ctx: Context<RemoveStrategy>, strategy: Pubkey, fo
         current_debt: 0,
         protocol_fees: 0,
         total_fees: 0,
+        total_shares: vault.total_shares(),
+        share_price,
         timestamp: Clock::get()?.unix_timestamp,
     });
 

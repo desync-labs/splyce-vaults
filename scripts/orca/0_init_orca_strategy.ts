@@ -2,6 +2,7 @@ import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { TokenizedVault } from "../../target/types/tokenized_vault";
 import { Strategy } from "../../target/types/strategy";
+import { Accountant } from "../../target/types/accountant";
 import { OrcaStrategyConfig, OrcaStrategyConfigSchema } from "../../tests/utils/schemas";
 import { BN } from "@coral-xyz/anchor";
 import * as token from "@solana/spl-token";
@@ -16,6 +17,9 @@ const METADATA_SEED = "metadata";
 const TOKEN_METADATA_PROGRAM_ID = new anchor.web3.PublicKey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s");
 // devUSDC on devnet
 const underlyingMint = new anchor.web3.PublicKey("BRjpCHtyQLNCo8gqRUr8jtdAj5AjPYQaoqbvcZiHok1k");
+const REPORT_BOT = new anchor.web3.PublicKey("HMcuvAp4dB1EePEBcQHVAprVxpqWaJKBviJgGa8k3ZFF");
+const accountantType = { generic: {} };
+
 async function main() {
   try {
     // 1. Setup Provider and Programs
@@ -25,7 +29,7 @@ async function main() {
     const vaultProgram = anchor.workspace.TokenizedVault as Program<TokenizedVault>;
     const strategyProgram = anchor.workspace.Strategy as Program<Strategy>;
     const accessControlProgram = anchor.workspace.AccessControl as Program<AccessControl>;
-
+    const accountantProgram = anchor.workspace.Accountant as Program<Accountant>;
     // 2. Load Admin Keypair
     const secretKeyPath = path.resolve(process.env.HOME, '.config/solana/id.json');
     const secretKeyString = fs.readFileSync(secretKeyPath, 'utf8');
@@ -36,6 +40,7 @@ async function main() {
     console.log("Vault Program ID:", vaultProgram.programId.toBase58());
     console.log("Strategy Program ID:", strategyProgram.programId.toBase58());
     console.log("Access Control Program ID:", accessControlProgram.programId.toBase58());
+    console.log("Accountant Program ID:", accountantProgram.programId.toBase58());
 
     // 3. Initialize Access Control
     console.log("Initializing Access Control...");
@@ -126,6 +131,14 @@ async function main() {
       .rpc();
     console.log("Reporting Manager role assigned to Admin.");
 
+    await accessControlProgram.methods.setRole(ROLES.REPORTING_MANAGER, REPORT_BOT)
+    .accounts({
+      signer: admin.publicKey,
+    })
+    .signers([admin])
+    .rpc();
+  console.log("Reporting Manager role assigned to REPORT_BOT.");
+
     await accessControlProgram.methods.setRole(ROLES.STRATEGIES_MANAGER, admin.publicKey)
       .accounts({
         signer: admin.publicKey,
@@ -134,6 +147,14 @@ async function main() {
       .rpc();
     console.log("Strategies Manager role assigned to Admin.");
 
+    await accessControlProgram.methods.setRole(ROLES.STRATEGIES_MANAGER, REPORT_BOT)
+    .accounts({
+      signer: admin.publicKey,
+    })
+    .signers([admin])
+    .rpc();
+  console.log("Strategies Manager role assigned to REPORT_BOT.");
+
     await accessControlProgram.methods.setRole(ROLES.ACCOUNTANT_ADMIN, admin.publicKey)
       .accounts({
         signer: admin.publicKey,
@@ -141,6 +162,54 @@ async function main() {
       .signers([admin])
       .rpc();
     console.log("Accountant Admin role assigned to Admin.");
+
+    //set up accountant
+
+        // 1. Initialize accountant config
+        await accountantProgram.methods
+        .initialize()
+        .accounts({
+          admin: admin.publicKey,
+        })
+        .signers([admin])
+        .rpc();
+    // 2. Initialize accountant
+    await accountantProgram.methods
+      .initAccountant(accountantType)
+      .accounts({
+        signer: admin.publicKey,
+      })
+      .signers([admin])
+      .rpc();
+
+      //calculate accountant PDA
+      const accountant = anchor.web3.PublicKey.findProgramAddressSync(
+        [
+          Buffer.from(new Uint8Array(new BigUint64Array([BigInt(0)]).buffer))
+        ],
+        accountantProgram.programId
+      )[0];
+
+    // 3. Initialize token account for accountant
+    await accountantProgram.methods
+      .initTokenAccount()
+      .accounts({
+        signer: admin.publicKey,
+        accountant,
+        underlyingMint,
+      })
+      .signers([admin])
+      .rpc();
+
+      //set fee
+
+      await accountantProgram.methods.setFee(new BN(500))
+      .accounts({
+        accountant: accountant,
+        signer: admin.publicKey,
+      })
+      .signers([admin])
+      .rpc();
 
     // 7. Initialize Vault Config
     console.log("Initializing Vault Config...");
@@ -196,8 +265,8 @@ async function main() {
     const vaultConfig = {
         depositLimit: new BN(1000000000000), // Adjust value as needed
         minUserDeposit: new BN(1000000),     // Adjust value as needed
-        accountant: admin.publicKey,          // Using admin as accountant
-        profitMaxUnlockTime: new BN(7 * 24 * 60 * 60), // 7 days in seconds
+        accountant: accountant,          // Set accountant as accountant
+        profitMaxUnlockTime: new BN(365 * 24 * 60 * 60), // 1 year in seconds
         kycVerifiedOnly: false,
         directDepositEnabled: true,
         whitelistedOnly: true,
@@ -238,6 +307,27 @@ async function main() {
       .signers([admin])
       .rpc();
     console.log("Vault Shares initialized.");
+
+    await accountantProgram.methods
+    .initTokenAccount()
+    .accounts({
+      signer: admin.publicKey,
+      accountant,
+      underlyingMint: sharesMint,
+    })
+    .signers([admin])
+    .rpc();
+
+
+    await accountantProgram.methods
+      .initTokenAccount()
+      .accounts({
+        signer: admin.publicKey,
+        accountant,
+        underlyingMint,
+      })
+      .signers([admin])
+      .rpc();
 
     // 12. Define Strategy Configuration
     const strategyType = { orca: {} };
