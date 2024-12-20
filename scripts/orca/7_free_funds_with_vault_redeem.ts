@@ -25,6 +25,7 @@ import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
   getAssociatedTokenAddress,
 } from "@solana/spl-token";
+import { formatInvestTrackerData } from "./utils/format-invest-tracker";
 
 
 // Constants
@@ -863,62 +864,11 @@ async function main() {
       INVEST_TRACKER_ACCOUNT_SAMO
     );
 
-    console.log("\nInvest Tracker Changes:");
-    console.log("WSOL Invest Tracker after:", {
-      amountInvested: investTrackerWSOLAfter.amountInvested.toString(),
-      amountWithdrawn: investTrackerWSOLAfter.amountWithdrawn.toString(),
-      assetAmount: investTrackerWSOLAfter.assetAmount.toString(),
-      assetPrice: investTrackerWSOLAfter.assetPrice.toString(),
-      aToBForPurchase: investTrackerWSOLAfter.aToBForPurchase
-    });
-    console.log("TMAC Invest Tracker after:", {
-      amountInvested: investTrackerTMACAfter.amountInvested.toString(),
-      amountWithdrawn: investTrackerTMACAfter.amountWithdrawn.toString(),
-      assetAmount: investTrackerTMACAfter.assetAmount.toString(),
-      assetPrice: investTrackerTMACAfter.assetPrice.toString(),
-      aToBForPurchase: investTrackerTMACAfter.aToBForPurchase
-    });
-    console.log("USDT Invest Tracker after:", {
-      amountInvested: investTrackerUSDTAfter.amountInvested.toString(),
-      amountWithdrawn: investTrackerUSDTAfter.amountWithdrawn.toString(),
-      assetAmount: investTrackerUSDTAfter.assetAmount.toString(),
-      assetPrice: investTrackerUSDTAfter.assetPrice.toString(),
-      aToBForPurchase: investTrackerUSDTAfter.aToBForPurchase
-    });
-    console.log("SAMO Invest Tracker after:", {
-      amountInvested: investTrackerSAMOAfter.amountInvested.toString(),
-      amountWithdrawn: investTrackerSAMOAfter.amountWithdrawn.toString(),
-      assetAmount: investTrackerSAMOAfter.assetAmount.toString(),
-      assetPrice: investTrackerSAMOAfter.assetPrice.toString(),
-      aToBForPurchase: investTrackerSAMOAfter.aToBForPurchase
-    });
-
-    // Add invest tracker changes
-    console.log("\nInvest Tracker Value Changes:");
-    console.log("WSOL Invest Tracker changes:", {
-      amountInvested: investTrackerWSOLAfter.amountInvested.sub(investTrackerWSOLBefore.amountInvested).toString(),
-      amountWithdrawn: investTrackerWSOLAfter.amountWithdrawn.sub(investTrackerWSOLBefore.amountWithdrawn).toString(),
-      assetAmount: investTrackerWSOLAfter.assetAmount.sub(investTrackerWSOLBefore.assetAmount).toString(),
-      assetPrice: investTrackerWSOLAfter.assetPrice.sub(investTrackerWSOLBefore.assetPrice).toString()
-    });
-    console.log("TMAC Invest Tracker changes:", {
-      amountInvested: investTrackerTMACAfter.amountInvested.sub(investTrackerTMACBefore.amountInvested).toString(),
-      amountWithdrawn: investTrackerTMACAfter.amountWithdrawn.sub(investTrackerTMACBefore.amountWithdrawn).toString(),
-      assetAmount: investTrackerTMACAfter.assetAmount.sub(investTrackerTMACBefore.assetAmount).toString(),
-      assetPrice: investTrackerTMACAfter.assetPrice.sub(investTrackerTMACBefore.assetPrice).toString()
-    });
-    console.log("USDT Invest Tracker changes:", {
-      amountInvested: investTrackerUSDTAfter.amountInvested.sub(investTrackerUSDTBefore.amountInvested).toString(),
-      amountWithdrawn: investTrackerUSDTAfter.amountWithdrawn.sub(investTrackerUSDTBefore.amountWithdrawn).toString(),
-      assetAmount: investTrackerUSDTAfter.assetAmount.sub(investTrackerUSDTBefore.assetAmount).toString(),
-      assetPrice: investTrackerUSDTAfter.assetPrice.sub(investTrackerUSDTBefore.assetPrice).toString()
-    });
-    console.log("SAMO Invest Tracker changes:", {
-      amountInvested: investTrackerSAMOAfter.amountInvested.sub(investTrackerSAMOBefore.amountInvested).toString(),
-      amountWithdrawn: investTrackerSAMOAfter.amountWithdrawn.sub(investTrackerSAMOBefore.amountWithdrawn).toString(),
-      assetAmount: investTrackerSAMOAfter.assetAmount.sub(investTrackerSAMOBefore.assetAmount).toString(),
-      assetPrice: investTrackerSAMOAfter.assetPrice.sub(investTrackerSAMOBefore.assetPrice).toString()
-    });
+    console.log("\nInvest Tracker States AFTER redeem:");
+    console.log("WSOL Invest Tracker:", formatInvestTrackerData(investTrackerWSOLAfter));
+    console.log("TMAC Invest Tracker:", formatInvestTrackerData(investTrackerTMACAfter));
+    console.log("USDT Invest Tracker:", formatInvestTrackerData(investTrackerUSDTAfter));
+    console.log("SAMO Invest Tracker:", formatInvestTrackerData(investTrackerSAMOAfter));
 
   } catch (error) {
     console.error("Error occurred:", error);
