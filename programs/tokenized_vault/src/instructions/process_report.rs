@@ -150,20 +150,20 @@ fn handle_profit(ctx: &Context<ProcessReport>, profit: u64, fees: u64) -> Result
         let total_locked_shares = curr_locked_shares + newly_locked_shares;
 
         if total_locked_shares > 0 {
-            let mut previously_locked_time: u128 = 0;
+            let mut previously_locked_time = 0;
                 
             if vault.full_profit_unlock_date > curr_timestamp {
                 previously_locked_time =
-                    (curr_locked_shares as u128) * ((vault.full_profit_unlock_date - curr_timestamp) as u128);
+                    curr_locked_shares * (vault.full_profit_unlock_date - curr_timestamp);
             }
 
             let new_profit_locking_period = (previously_locked_time
-                + (newly_locked_shares as u128) * (vault.profit_max_unlock_time as u128))
-                / (total_locked_shares as u128);
+                + newly_locked_shares * vault.profit_max_unlock_time)
+                / total_locked_shares;
 
             vault.profit_unlocking_rate =
-                ((total_locked_shares as u128) * (MAX_BPS_EXTENDED as u128) / new_profit_locking_period) as u64;
-            vault.full_profit_unlock_date = curr_timestamp + (new_profit_locking_period as u64);
+                (total_locked_shares * MAX_BPS_EXTENDED) / new_profit_locking_period;
+            vault.full_profit_unlock_date = curr_timestamp + new_profit_locking_period;
             vault.last_profit_update = curr_timestamp;
         } else {
             // NOTE: only setting this to 0 will turn in the desired effect, no need
@@ -180,6 +180,7 @@ fn handle_profit(ctx: &Context<ProcessReport>, profit: u64, fees: u64) -> Result
             shares_to_lock,
             &vault.seeds_shares()
         )?;
+    
     }
 
     vault.total_debt += profit;
@@ -238,13 +239,11 @@ fn burn_unlocked_shares(ctx: &Context<ProcessReport>) -> Result<()> {
 fn get_shares_to_burn(vault_loader: &AccountLoader<Vault>, total_locked: u64) -> Result<u64> {
     let vault = vault_loader.load()?;
     let curr_timestamp = Clock::get()?.unix_timestamp as u64;
-    let mut shares_to_burn: u64 = 0;
+    let mut shares_to_burn = 0;
 
     if vault.full_profit_unlock_date > curr_timestamp {
-        // Convert to u128 for the multiplication, then back to u64 for the result
-        shares_to_burn = ((vault.profit_unlocking_rate as u128) * 
-            ((curr_timestamp - vault.last_profit_update) as u128) / 
-            (MAX_BPS_EXTENDED as u128)) as u64;
+        shares_to_burn = (vault.profit_unlocking_rate * (curr_timestamp - vault.last_profit_update))
+            / MAX_BPS_EXTENDED;
     } else if vault.full_profit_unlock_date != 0 {
         shares_to_burn = total_locked;
     }
