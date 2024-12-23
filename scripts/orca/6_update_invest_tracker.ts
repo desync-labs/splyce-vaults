@@ -193,6 +193,30 @@ async function main() {
       currentWeight: {
         before: wsolTrackerBefore.currentWeight,
         after: wsolTrackerAfter.currentWeight,
+      },
+      effectiveInvestedAmount: {
+        before: wsolTrackerBefore.effectiveInvestedAmount.toString(),
+        after: wsolTrackerAfter.effectiveInvestedAmount.toString(),
+      },
+      scenarioRealizedProfit: {
+        before: wsolTrackerBefore.scenarioRealizedProfit.toString(),
+        after: wsolTrackerAfter.scenarioRealizedProfit.toString(),
+      },
+      unrealizedProfit: {
+        before: wsolTrackerBefore.unrealizedProfit.toString(),
+        after: wsolTrackerAfter.unrealizedProfit.toString(),
+      },
+      unrealizedLoss: {
+        before: wsolTrackerBefore.unrealizedLoss.toString(),
+        after: wsolTrackerAfter.unrealizedLoss.toString(),
+      },
+      txRealizedProfitAccumulated: {
+        before: wsolTrackerBefore.txRealizedProfitAccumulated.toString(),
+        after: wsolTrackerAfter.txRealizedProfitAccumulated.toString(),
+      },
+      txRealizedLossAccumulated: {
+        before: wsolTrackerBefore.txRealizedLossAccumulated.toString(),
+        after: wsolTrackerAfter.txRealizedLossAccumulated.toString(),
       }
     });
 

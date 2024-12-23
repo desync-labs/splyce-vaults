@@ -9,6 +9,7 @@ import { PublicKey } from "@solana/web3.js";
 import { AccessControl } from "../../target/types/access_control";
 import { Accountant } from "../../target/types/accountant";
 import { TOKEN_PROGRAM_ID, getAssociatedTokenAddress } from "@solana/spl-token";
+import { formatInvestTrackerData } from "./utils/format-invest-tracker";
 
 const WSOL_MINT = new PublicKey(
   "So11111111111111111111111111111111111111112"
@@ -171,33 +172,13 @@ async function main() {
     const usdtTrackerBefore = await strategyProgram.account.investTracker.fetch(INVEST_TRACKER_ACCOUNT_USDT);
     const samoTrackerBefore = await strategyProgram.account.investTracker.fetch(INVEST_TRACKER_ACCOUNT_SAMO);
 
-    console.log("TMAC Tracker:", {
-      amount_invested: tmacTrackerBefore.amountInvested.toString(),
-      amount_withdrawn: tmacTrackerBefore.amountWithdrawn.toString(),
-      asset_amount: tmacTrackerBefore.assetAmount.toString(),
-      asset_value: tmacTrackerBefore.assetValue.toString(),
-    });
+    console.log("TMAC Tracker:", formatInvestTrackerData(tmacTrackerBefore));
     
-    console.log("WSOL Tracker:", {
-      amount_invested: wsolTrackerBefore.amountInvested.toString(),
-      amount_withdrawn: wsolTrackerBefore.amountWithdrawn.toString(),
-      asset_amount: wsolTrackerBefore.assetAmount.toString(),
-      asset_value: wsolTrackerBefore.assetValue.toString(),
-    });
+    console.log("WSOL Tracker:", formatInvestTrackerData(wsolTrackerBefore));
 
-    console.log("USDT Tracker:", {
-      amount_invested: usdtTrackerBefore.amountInvested.toString(),
-      amount_withdrawn: usdtTrackerBefore.amountWithdrawn.toString(),
-      asset_amount: usdtTrackerBefore.assetAmount.toString(),
-      asset_value: usdtTrackerBefore.assetValue.toString(),
-    });
+    console.log("USDT Tracker:", formatInvestTrackerData(usdtTrackerBefore));
 
-    console.log("SAMO Tracker:", {
-      amount_invested: samoTrackerBefore.amountInvested.toString(),
-      amount_withdrawn: samoTrackerBefore.amountWithdrawn.toString(),
-      asset_amount: samoTrackerBefore.assetAmount.toString(),
-      asset_value: samoTrackerBefore.assetValue.toString(),
-    });
+    console.log("SAMO Tracker:", formatInvestTrackerData(samoTrackerBefore));
 
     // Deserialize and log strategy state
     const strategyBefore = deserializeOrcaStrategy(Buffer.from(strategyAccountInfo.data));
@@ -359,33 +340,13 @@ async function main() {
     const usdtTrackerAfter = await strategyProgram.account.investTracker.fetch(INVEST_TRACKER_ACCOUNT_USDT);
     const samoTrackerAfter = await strategyProgram.account.investTracker.fetch(INVEST_TRACKER_ACCOUNT_SAMO);
 
-    console.log("TMAC Tracker:", {
-      amount_invested: tmacTrackerAfter.amountInvested.toString(),
-      amount_withdrawn: tmacTrackerAfter.amountWithdrawn.toString(),
-      asset_amount: tmacTrackerAfter.assetAmount.toString(),
-      asset_value: tmacTrackerAfter.assetValue.toString(),
-    });
+    console.log("TMAC Tracker:", formatInvestTrackerData(tmacTrackerAfter));
     
-    console.log("WSOL Tracker:", {
-      amount_invested: wsolTrackerAfter.amountInvested.toString(),
-      amount_withdrawn: wsolTrackerAfter.amountWithdrawn.toString(),
-      asset_amount: wsolTrackerAfter.assetAmount.toString(),
-      asset_value: wsolTrackerAfter.assetValue.toString(),
-    });
+    console.log("WSOL Tracker:", formatInvestTrackerData(wsolTrackerAfter));
 
-    console.log("USDT Tracker:", {
-      amount_invested: usdtTrackerAfter.amountInvested.toString(),
-      amount_withdrawn: usdtTrackerAfter.amountWithdrawn.toString(),
-      asset_amount: usdtTrackerAfter.assetAmount.toString(),
-      asset_value: usdtTrackerAfter.assetValue.toString(),
-    });
+    console.log("USDT Tracker:", formatInvestTrackerData(usdtTrackerAfter));
 
-    console.log("SAMO Tracker:", {
-      amount_invested: samoTrackerAfter.amountInvested.toString(),
-      amount_withdrawn: samoTrackerAfter.amountWithdrawn.toString(),
-      asset_amount: samoTrackerAfter.assetAmount.toString(),
-      asset_value: samoTrackerAfter.assetValue.toString(),
-    });
+    console.log("SAMO Tracker:", formatInvestTrackerData(samoTrackerAfter));
 
   } catch (error) {
     console.error("Error occurred:", error);

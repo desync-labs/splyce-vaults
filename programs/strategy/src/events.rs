@@ -45,11 +45,12 @@ pub struct InvestTrackerSwapEvent {
     pub account_key: Pubkey,
     pub invest_tracker_account_key: Pubkey,
     pub asset_mint: Pubkey,
-    pub invested_underlying_amount: u64,
     pub asset_amount: u64,
     pub effective_invested_amount: u64,
-    pub unrealized_profit: u64,
-    pub unrealized_loss: u64,
+    pub scenario_realized_profit: u64,
+    pub realized_profit_in_this_tx: u64,
+    pub realized_loss_in_this_tx: u64,
+    pub is_buy: bool,
     pub timestamp: i64,
 }
 
@@ -71,8 +72,11 @@ pub struct InvestTrackerUpdateEvent {
     pub assigned_weight: u32,
     pub current_weight: u32,
     pub effective_invested_amount: u64,
+    pub scenario_realized_profit: u64,
     pub unrealized_profit: u64,
     pub unrealized_loss: u64,
+    pub tx_realized_profit_accumulated: u64,
+    pub tx_realized_loss_accumulated: u64,
     pub timestamp: i64,
 }
 
