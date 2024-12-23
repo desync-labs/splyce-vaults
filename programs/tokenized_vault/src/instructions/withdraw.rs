@@ -30,15 +30,15 @@ pub struct Withdraw<'info> {
     pub vault_token_account: InterfaceAccount<'info, TokenAccount>,
 
     /// CHECK:
-    #[account(mut, address = vault.load()?.accountant)]
-    pub accountant: UncheckedAccount<'info>,
+    // #[account(mut, address = vault.load()?.accountant)]
+    // pub accountant: UncheckedAccount<'info>,
 
-    #[account(
-        mut,
-        associated_token::mint = shares_mint, 
-        associated_token::authority = accountant,
-    )]
-    pub accountant_recipient: Box<InterfaceAccount<'info, TokenAccount>>,
+    // #[account(
+    //     mut,
+    //     associated_token::mint = shares_mint, 
+    //     associated_token::authority = accountant,
+    // )]
+    // pub accountant_recipient: Box<InterfaceAccount<'info, TokenAccount>>,
 
     #[account(mut, seeds = [SHARES_SEED.as_bytes(), vault.key().as_ref()], bump)]
     pub shares_mint: InterfaceAccount<'info, Mint>,
@@ -50,15 +50,16 @@ pub struct Withdraw<'info> {
     pub user_shares_account: InterfaceAccount<'info, TokenAccount>,
 
     /// CHECK: can be missing
-    #[account(
-        mut,
-        seeds = [
-            USER_DATA_SEED.as_bytes(), 
-            vault.key().as_ref(), 
-            user.key().as_ref()
-        ], 
-        bump
-        )]
+    // #[account(
+    //     mut,
+    //     seeds = [
+    //         USER_DATA_SEED.as_bytes(), 
+    //         vault.key().as_ref(), 
+    //         user.key().as_ref()
+    //     ], 
+    //     bump
+    //     )]
+    #[account(mut)]
     pub user_data: UncheckedAccount<'info>,
 
     #[account(mut)]
@@ -95,7 +96,8 @@ pub fn handle_withdraw<'info>(
     max_loss: u64,
     remaining_accounts_map: AccountsMap
 ) -> Result<()> {
-    let redemtion_fee = accountant::redeem(&ctx.accounts.accountant, amount)?;
+    // let redemtion_fee = accountant::redeem(&ctx.accounts.accountant, amount)?;
+    let redemtion_fee = 0;
     let assets_to_withdraw = amount - redemtion_fee;
 
     let fee_shares = ctx.accounts.vault.load()?.convert_to_shares(redemtion_fee);
@@ -109,7 +111,9 @@ pub fn handle_redeem<'info>(
     max_loss: u64,
     remaining_accounts_map: AccountsMap
 ) -> Result<()> {
-    let redemtion_fee_shares = accountant::redeem(&ctx.accounts.accountant, shares)?;
+    // let redemtion_fee_shares = accountant::redeem(&ctx.accounts.accountant, shares)?;
+    let redemtion_fee_shares = 0;
+
     let amount = ctx.accounts.vault.load()?.convert_to_underlying(shares-redemtion_fee_shares);
     handle_internal(ctx, amount, shares-redemtion_fee_shares, redemtion_fee_shares, max_loss, remaining_accounts_map)
 }
@@ -170,16 +174,16 @@ fn handle_internal<'info>(
         shares_to_burn
     )?;
 
-    if fee_shares > 0 {
-        token::transfer(
-            ctx.accounts.token_program.to_account_info(),
-            ctx.accounts.user_shares_account.to_account_info(),
-            ctx.accounts.accountant_recipient.to_account_info(),
-            ctx.accounts.user.to_account_info(),
-            &ctx.accounts.shares_mint,
-            fee_shares,
-        )?;
-    }
+    // if fee_shares > 0 {
+    //     token::transfer(
+    //         ctx.accounts.token_program.to_account_info(),
+    //         ctx.accounts.user_shares_account.to_account_info(),
+    //         ctx.accounts.accountant_recipient.to_account_info(),
+    //         ctx.accounts.user.to_account_info(),
+    //         &ctx.accounts.shares_mint,
+    //         fee_shares,
+    //     )?;
+    // }
 
     token::transfer_with_signer(
         ctx.accounts.token_program.to_account_info(),

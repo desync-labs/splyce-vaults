@@ -41,15 +41,15 @@ pub struct ProcessReport<'info> {
     pub vault_shares_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
 
     /// CHECK:
-    #[account(mut, address = vault.load()?.accountant)]
-    pub accountant: UncheckedAccount<'info>,
+    // #[account(mut, address = vault.load()?.accountant)]
+    // pub accountant: UncheckedAccount<'info>,
 
-    #[account(
-        mut,
-        associated_token::mint = shares_mint, 
-        associated_token::authority = accountant,
-    )]
-    pub accountant_recipient: Box<InterfaceAccount<'info, TokenAccount>>,
+    // #[account(
+    //     mut,
+    //     associated_token::mint = shares_mint, 
+    //     associated_token::authority = accountant,
+    // )]
+    // pub accountant_recipient: Box<InterfaceAccount<'info, TokenAccount>>,
 
     #[account(
         seeds = [
@@ -83,13 +83,14 @@ pub fn handle_process_report(ctx: Context<ProcessReport>) -> Result<()> {
     
     if strategy_assets > current_debt {
         profit = strategy_assets - current_debt;
-        let (total_fees, _) = accountant::report(&ctx.accounts.accountant, profit, 0)?;
-        fee_shares = ctx.accounts.vault.load()?.convert_to_shares(total_fees);
+        // let (total_fees, _) = accountant::report(&ctx.accounts.accountant, profit, 0)?;
+        let total_fees = 0;
+        // fee_shares = ctx.accounts.vault.load()?.convert_to_shares(total_fees);
         handle_profit(&ctx, profit, total_fees)?;
 
-        if fee_shares > 0 {
-            issue_fee_shares(&ctx, fee_shares)?;
-        }
+        // if fee_shares > 0 {
+        //     issue_fee_shares(&ctx, fee_shares)?;
+        // }
     } else {
         loss = current_debt - strategy_assets;
         handle_loss(&ctx, loss)?;
@@ -117,21 +118,21 @@ pub fn handle_process_report(ctx: Context<ProcessReport>) -> Result<()> {
     Ok(())
 }
 
-fn issue_fee_shares(ctx: &Context<ProcessReport>, fee_shares: u64) -> Result<u64> {
-    let vault = &mut ctx.accounts.vault.load_mut()?;
+// fn issue_fee_shares(ctx: &Context<ProcessReport>, fee_shares: u64) -> Result<u64> {
+//     let vault = &mut ctx.accounts.vault.load_mut()?;
 
-    token::mint_to(
-        ctx.accounts.token_program.to_account_info(),
-        ctx.accounts.shares_mint.to_account_info(),
-        ctx.accounts.accountant_recipient.to_account_info(),
-        ctx.accounts.shares_mint.to_account_info(),
-        fee_shares,
-        &vault.seeds_shares()
-    )?;
+//     token::mint_to(
+//         ctx.accounts.token_program.to_account_info(),
+//         ctx.accounts.shares_mint.to_account_info(),
+//         ctx.accounts.accountant_recipient.to_account_info(),
+//         ctx.accounts.shares_mint.to_account_info(),
+//         fee_shares,
+//         &vault.seeds_shares()
+//     )?;
 
-    vault.total_shares += fee_shares;
-    Ok(fee_shares)
-}
+//     vault.total_shares += fee_shares;
+//     Ok(fee_shares)
+// }
 
 fn handle_profit(ctx: &Context<ProcessReport>, profit: u64, fees: u64) -> Result<()> {
     let vault = &mut ctx.accounts.vault.load_mut()?;

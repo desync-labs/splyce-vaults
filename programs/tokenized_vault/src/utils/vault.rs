@@ -7,7 +7,7 @@ use crate::utils::unchecked::*;
 
 pub fn validate_deposit<'info>(
     vault_loader: &AccountLoader<'info, Vault>,
-    kyc_verified: &AccountInfo<'info>,
+    // kyc_verified: &AccountInfo<'info>,
     user_data: &Account<'info, UserData>,
     is_direct: bool,
     amount: u64
@@ -39,11 +39,11 @@ pub fn validate_deposit<'info>(
         return Err(ErrorCode::ExceedDepositLimit.into());
     }
 
-    if vault.kyc_verified_only {
-        if kyc_verified.data_is_empty() || !kyc_verified.deserialize::<UserRole>()?.has_role {
-            return Err(ErrorCode::KYCRequired.into());
-        }
-    }
+    // if vault.kyc_verified_only {
+    //     if kyc_verified.data_is_empty() || !kyc_verified.deserialize::<UserRole>()?.has_role {
+    //         return Err(ErrorCode::KYCRequired.into());
+    //     }
+    // }
 
     if vault.whitelisted_only && !user_data.whitelisted {
         return Err(ErrorCode::NotWhitelisted.into());

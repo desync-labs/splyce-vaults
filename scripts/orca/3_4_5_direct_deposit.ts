@@ -179,6 +179,17 @@ async function main() {
       strategyProgram.programId
     );
 
+    // Get user data PDA
+    const [userDataPDA] = anchor.web3.PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("user_data"),
+        vaultPDA.toBuffer(),
+        admin.publicKey.toBuffer()
+      ],
+      vaultProgram.programId
+    );
+    console.log("User Data PDA:", userDataPDA.toBase58());
+
     // Log initial balances
     const initialBalances = {
       userUsdc: await provider.connection.getTokenAccountBalance(userUsdcATA),
@@ -334,6 +345,8 @@ async function main() {
     // Get latest blockhash before creating transaction
     const latestBlockhash = await provider.connection.getLatestBlockhash();
 
+
+
     // Build the instruction for direct deposit
     const depositIx = await vaultProgram.methods
       .directDeposit(depositAmount)
@@ -344,6 +357,8 @@ async function main() {
         strategy: strategy,
         user: admin.publicKey,
         underlyingMint: USDC_MINT,
+        userData: userDataPDA,
+        tokenProgram: TOKEN_PROGRAM_ID,
       })
       .remainingAccounts(combinedRemainingAccounts)
       .instruction();

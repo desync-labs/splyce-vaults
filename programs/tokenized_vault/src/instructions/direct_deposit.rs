@@ -22,15 +22,15 @@ pub struct DirectDeposit<'info> {
     pub vault: AccountLoader<'info, Vault>,
 
     /// CHECK: 
-    #[account(mut, address = vault.load()?.accountant)]
-    pub accountant: UncheckedAccount<'info>,
+    // #[account(mut, address = vault.load()?.accountant)]
+    // pub accountant: UncheckedAccount<'info>,
 
-    #[account(
-        mut,
-        associated_token::mint = shares_mint, 
-        associated_token::authority = accountant,
-    )]
-    pub accountant_recipient: Box<InterfaceAccount<'info, TokenAccount>>,
+    // #[account(
+    //     mut,
+    //     associated_token::mint = shares_mint, 
+    //     associated_token::authority = accountant,
+    // )]
+    // pub accountant_recipient: Box<InterfaceAccount<'info, TokenAccount>>,
 
     #[account(mut)]
     pub user_token_account: InterfaceAccount<'info, TokenAccount>,
@@ -62,17 +62,18 @@ pub struct DirectDeposit<'info> {
     )]
     pub strategy_data: Account<'info, StrategyData>,
 
-    #[account(
-        init_if_needed, 
-        payer = user,
-        space = UserData::LEN,
-        seeds = [
-            USER_DATA_SEED.as_bytes(), 
-            vault.key().as_ref(), 
-            user.key().as_ref()
-            ], 
-            bump
-        )]
+    // #[account(
+    //     init_if_needed, 
+    //     payer = user,
+    //     space = UserData::LEN,
+    //     seeds = [
+    //         USER_DATA_SEED.as_bytes(), 
+    //         vault.key().as_ref(), 
+    //         user.key().as_ref()
+    //         ], 
+    //         bump
+    //     )]
+    #[account(mut)]
     pub user_data: Account<'info, UserData>,
 
     #[account(
@@ -84,16 +85,16 @@ pub struct DirectDeposit<'info> {
     pub strategy_token_account: InterfaceAccount<'info, TokenAccount>,
 
     /// CHECK: this account may not exist
-    #[account(
-        seeds = [
-            USER_ROLE_SEED.as_bytes(), 
-            user.key().as_ref(),
-            Role::KYCVerified.to_seed().as_ref()
-        ], 
-        bump,
-        seeds::program = access_control.key()
-    )]
-    pub kyc_verified: UncheckedAccount<'info>,
+    // #[account(
+    //     seeds = [
+    //         USER_ROLE_SEED.as_bytes(), 
+    //         user.key().as_ref(),
+    //         Role::KYCVerified.to_seed().as_ref()
+    //     ], 
+    //     bump,
+    //     seeds::program = access_control.key()
+    // )]
+    // pub kyc_verified: UncheckedAccount<'info>,
 
     #[account(mut)]
     pub user: Signer<'info>,
@@ -106,12 +107,13 @@ pub struct DirectDeposit<'info> {
 }
 
 pub fn handle_direct_deposit<'info>(ctx: Context<'_, '_, '_, 'info, DirectDeposit<'info>>, amount: u64) -> Result<()> {
-    let enter_fee = accountant::enter(&ctx.accounts.accountant, amount)?;
+    // let enter_fee = accountant::enter(&ctx.accounts.accountant, amount)?;
+    let enter_fee = 0;
     let amount_to_deposit = amount - enter_fee;
 
     vault::validate_deposit(
         &ctx.accounts.vault, 
-        &ctx.accounts.kyc_verified,
+        // &ctx.accounts.kyc_verified,
         &ctx.accounts.user_data,
         true,
         amount_to_deposit
@@ -152,18 +154,18 @@ pub fn handle_direct_deposit<'info>(ctx: Context<'_, '_, '_, 'info, DirectDeposi
         &ctx.accounts.vault.load()?.seeds_shares(),
     )?;
 
-    if enter_fee > 0 {
-        let fee_shares = ctx.accounts.vault.load()?.convert_to_shares(enter_fee);
-        shares += fee_shares;
-        token::mint_to(
-            ctx.accounts.shares_token_program.to_account_info(),
-            ctx.accounts.shares_mint.to_account_info(),
-            ctx.accounts.accountant_recipient.to_account_info(),
-            ctx.accounts.shares_mint.to_account_info(),
-            fee_shares,
-            &ctx.accounts.vault.load()?.seeds_shares(),
-        )?;
-    }
+    // if enter_fee > 0 {
+    //     let fee_shares = ctx.accounts.vault.load()?.convert_to_shares(enter_fee);
+    //     shares += fee_shares;
+    //     token::mint_to(
+    //         ctx.accounts.shares_token_program.to_account_info(),
+    //         ctx.accounts.shares_mint.to_account_info(),
+    //         ctx.accounts.accountant_recipient.to_account_info(),
+    //         ctx.accounts.shares_mint.to_account_info(),
+    //         fee_shares,
+    //         &ctx.accounts.vault.load()?.seeds_shares(),
+    //     )?;
+    // }
 
     let mut vault = ctx.accounts.vault.load_mut()?;
 

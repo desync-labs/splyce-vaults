@@ -42,9 +42,9 @@ const WHIRLPOOL_ID_WSOL = new PublicKey(
   "3KBZiL2g8C7tiJ32hTv5v3KM7aK9htpqTw4cTXz1HvPt"
 );
 const TICK_ARRAY_ADDRESSES_WSOL = [
+  new PublicKey("7knZZ461yySGbSEHeBUwEpg3VtAkQy8B9tp78RGgyUHE"),
   new PublicKey("3aBJJLAR3QxGcGsesNXeW3f64Rv3TckF7EQ6sXtAuvGM"),
   new PublicKey("A1vrG379E5ttoaWmyQBiunsMdyrpoUp7mSQwu8DgLcip"),
-  new PublicKey("6457MVShLFLePXXpyj2uwL2P23wkraT4QnP5u5orTRDU"),
 ];
 const ORACLE_ADDRESS_WSOL = new PublicKey(
   "2KEWNc3b6EfqoWQpfKQMHh4mhRyKXYRdPbtGRTJX3Cip"
@@ -293,6 +293,17 @@ async function main() {
       strategyProgram.programId
     );
     console.log("Invest Tracker SAMO Account:", INVEST_TRACKER_ACCOUNT_SAMO.toBase58());
+
+    // Get user data PDA
+    const [userDataPDA] = anchor.web3.PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("user_data"),
+        vaultPDA.toBuffer(),
+        admin.publicKey.toBuffer()
+      ],
+      vaultProgram.programId
+    );
+    console.log("User Data PDA:", userDataPDA.toBase58());
 
     // ============================
     // Build remainingAccounts and remainingAccountsMap
@@ -716,7 +727,7 @@ async function main() {
 
     // Define redeemAmount and maxLoss
     const redeemAmount = userSharesBalance
-      .mul(new BN(50))
+      .mul(new BN(30))
       .div(new BN(100)); // Redeem 60% of the user's shares
     
     const maxLoss = new BN(500000);
@@ -793,6 +804,7 @@ async function main() {
         user: admin.publicKey,
         underlyingMint: USDC_MINT,
         tokenProgram: TOKEN_PROGRAM_ID,
+        userData: userDataPDA,
       })
       .remainingAccounts(combinedRemainingAccounts)
       .instruction();
