@@ -42,9 +42,9 @@ const WHIRLPOOL_ID_WSOL = new PublicKey(
   "3KBZiL2g8C7tiJ32hTv5v3KM7aK9htpqTw4cTXz1HvPt"
 );
 const TICK_ARRAY_ADDRESSES_WSOL = [
+  new PublicKey("7knZZ461yySGbSEHeBUwEpg3VtAkQy8B9tp78RGgyUHE"),
   new PublicKey("3aBJJLAR3QxGcGsesNXeW3f64Rv3TckF7EQ6sXtAuvGM"),
   new PublicKey("A1vrG379E5ttoaWmyQBiunsMdyrpoUp7mSQwu8DgLcip"),
-  new PublicKey("6457MVShLFLePXXpyj2uwL2P23wkraT4QnP5u5orTRDU"),
 ];
 const ORACLE_ADDRESS_WSOL = new PublicKey(
   "2KEWNc3b6EfqoWQpfKQMHh4mhRyKXYRdPbtGRTJX3Cip"
