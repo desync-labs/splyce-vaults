@@ -11,8 +11,8 @@ use anchor_spl::{
         mpl_token_metadata::types::DataV2,
         CreateMetadataAccountsV3, 
         Metadata,
-        MetadataAccount,
     },
+    token::Token,
     token_interface::{Mint, TokenAccount, TokenInterface}
 };
 
@@ -52,17 +52,11 @@ pub struct InitVault<'info> {
     )]
     pub shares_mint: Box<InterfaceAccount<'info, Mint>>,
 
-    #[account(
-        init, 
-        payer = signer, 
-        associated_token::mint = shares_mint, 
-        associated_token::authority = vault,
-    )]
-    pub shares_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
 
-    // /// CHECK: We initialize this metadata account via the Metaplex Metadata Program, so we don't have to check it here
-    // #[account(mut)]
-    // pub metadata: UncheckedAccount<'info>,
+    
+    /// CHECK: We initialize this metadata account via the Metaplex Metadata Program, so we don't have to check it here
+    #[account(mut)]
+    pub metadata: UncheckedAccount<'info>,
 
     #[account(mut)]
     pub underlying_mint: Box<InterfaceAccount<'info, Mint>>,
@@ -88,6 +82,7 @@ pub struct InitVault<'info> {
     pub access_control: Program<'info, AccessControl>,
     pub metadata_program: Program<'info, Metadata>,
     pub token_program: Interface<'info, TokenInterface>,
+    pub shares_token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
     pub rent: Sysvar<'info, Rent>,
 }
@@ -105,42 +100,35 @@ pub fn handle_init_vault(ctx: Context<InitVault>, config: Box<VaultConfig>, shar
 
     ctx.accounts.config.next_vault_index += 1;
 
-    let vault_key = ctx.accounts.vault.key();
-    let seeds = &[SHARES_SEED.as_bytes(), vault_key.as_ref(), &[ctx.bumps.shares_mint]];
-    let signer = [&seeds[..]];
+    let token_data: DataV2 = DataV2 {
+        name: shares_config.name.clone(),
+        symbol: shares_config.symbol.clone(),
+        uri: shares_config.uri,
+        seller_fee_basis_points: 0,
+        creators: None,
+        collection: None,
+        uses: None,
+    };
 
-    let share_token_name = shares_config.name.clone();
-    let share_token_symbol = shares_config.symbol.clone();
-
-    // let token_data: DataV2 = DataV2 {
-    //     name: shares_config.name,
-    //     symbol: shares_config.symbol,
-    //     uri: shares_config.uri,
-    //     seller_fee_basis_points: 0,
-    //     creators: None,
-    //     collection: None,
-    //     uses: None,
-    // };
-
-    // create_metadata_accounts_v3(
-    //     CpiContext::new_with_signer(
-    //         ctx.accounts.metadata_program.to_account_info(),
-    //         CreateMetadataAccountsV3 {
-    //             payer: ctx.accounts.signer.to_account_info(),
-    //             update_authority: ctx.accounts.shares_mint.to_account_info(),
-    //             mint: ctx.accounts.shares_mint.to_account_info(),
-    //             metadata: ctx.accounts.metadata.to_account_info(),
-    //             mint_authority: ctx.accounts.shares_mint.to_account_info(),
-    //             system_program: ctx.accounts.system_program.to_account_info(),
-    //             rent: ctx.accounts.rent.to_account_info(),
-    //         },
-    //         &signer
-    //     ),
-    //     token_data,
-    //     false,
-    //     true,
-    //     None,
-    // )?;
+    create_metadata_accounts_v3(
+        CpiContext::new_with_signer(
+            ctx.accounts.metadata_program.to_account_info(),
+            CreateMetadataAccountsV3 {
+                payer: ctx.accounts.signer.to_account_info(),
+                update_authority: ctx.accounts.shares_mint.to_account_info(),
+                mint: ctx.accounts.shares_mint.to_account_info(),
+                metadata: ctx.accounts.metadata.to_account_info(),
+                mint_authority: ctx.accounts.shares_mint.to_account_info(),
+                system_program: ctx.accounts.system_program.to_account_info(),
+                rent: ctx.accounts.rent.to_account_info(),
+            },
+            &[&ctx.accounts.vault.load()?.seeds_shares()]
+        ),
+        token_data,
+        false,
+        true,
+        None,
+    )?;
 
     let underlying_token = TokenData{
         mint: ctx.accounts.underlying_mint.key(),
@@ -157,20 +145,18 @@ pub fn handle_init_vault(ctx: Context<InitVault>, config: Box<VaultConfig>, shar
         // account: ctx.accounts.shares_token_account.key(),
         decimals: ctx.accounts.shares_mint.decimals,
         metadata: TokenMetaData {
-            name: share_token_name,
-            symbol: share_token_symbol,
+            name: shares_config.name,
+            symbol: shares_config.symbol,
         }
     };
 
     emit!(VaultInitEvent {
-        vault_key,
+        vault_key: ctx.accounts.vault.key(),
         underlying_token,
         share_token,
         deposit_limit: config.deposit_limit,
         min_user_deposit: config.min_user_deposit,
         accountant: config.accountant,
-        // todo: add actual performance_fee from accountant or remove it
-        // performance_fee: 0,
         profit_max_unlock_time: config.profit_max_unlock_time,
         kyc_verified_only: config.kyc_verified_only,
         direct_deposit_enabled: config.direct_deposit_enabled,

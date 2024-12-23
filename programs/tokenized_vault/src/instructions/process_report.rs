@@ -39,7 +39,8 @@ pub struct ProcessReport<'info> {
     pub shares_mint: Box<InterfaceAccount<'info, Mint>>,
 
     #[account(
-        mut,
+        init_if_needed,
+        payer = signer,
         associated_token::mint = shares_mint, 
         associated_token::authority = vault,
     )]

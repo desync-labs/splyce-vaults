@@ -62,7 +62,6 @@ pub fn handle_remove_strategy(ctx: Context<RemoveStrategy>, strategy: Pubkey, fo
         timestamp: Clock::get()?.unix_timestamp,
     });
 
-
     vault.strategies_amount -= 1;
 
     Ok(())
