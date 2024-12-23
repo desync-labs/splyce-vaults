@@ -196,20 +196,29 @@ async function main() {
       .accounts({
         signer: admin.publicKey,
         accountant,
-        underlyingMint,
+        mint: underlyingMint,
       })
       .signers([admin])
       .rpc();
 
       //set fee
 
-      await accountantProgram.methods.setFee(new BN(500))
+      await accountantProgram.methods.setEntryFee(new BN(50))
       .accounts({
         accountant: accountant,
         signer: admin.publicKey,
       })
       .signers([admin])
       .rpc();
+
+      await accountantProgram.methods.setRedemptionFee(new BN(50))
+      .accounts({
+        accountant: accountant,
+        signer: admin.publicKey,
+      })
+      .signers([admin])
+      .rpc();
+
 
     // 7. Initialize Vault Config
     console.log("Initializing Vault Config...");
@@ -263,10 +272,11 @@ async function main() {
 
     // Update the vaultConfig object to match the expected structure
     const vaultConfig = {
-        depositLimit: new BN(1000000000000), // Adjust value as needed
-        minUserDeposit: new BN(1000000),     // Adjust value as needed
+        depositLimit: new BN(20_000_000_000), // 20k usdc
+        userDepositLimit: new BN(150_000_000), // 150 usdc
+        minUserDeposit: new BN(1000000),     // 1 usdc
         accountant: accountant,          // Set accountant as accountant
-        profitMaxUnlockTime: new BN(365 * 24 * 60 * 60), // 1 year in seconds
+        profitMaxUnlockTime: new BN(3650 * 24 * 60 * 60), // 10 years in seconds
         kycVerifiedOnly: false,
         directDepositEnabled: true,
         whitelistedOnly: true,
@@ -313,28 +323,28 @@ async function main() {
     .accounts({
       signer: admin.publicKey,
       accountant,
-      underlyingMint: sharesMint,
+      mint: sharesMint,
     })
     .signers([admin])
     .rpc();
 
 
-    await accountantProgram.methods
-      .initTokenAccount()
-      .accounts({
-        signer: admin.publicKey,
-        accountant,
-        underlyingMint,
-      })
-      .signers([admin])
-      .rpc();
+    // await accountantProgram.methods
+    //   .initTokenAccount()
+    //   .accounts({
+    //     signer: admin.publicKey,
+    //     accountant,
+    //     mint: underlyingMint,
+    //   })
+    //   .signers([admin])
+    //   .rpc();
 
     // 12. Define Strategy Configuration
     const strategyType = { orca: {} };
     const strategyConfig = new OrcaStrategyConfig({
       depositLimit: new BN(1_000_000_000),
-      depositPeriodEnds: new BN(Math.floor(Date.now() / 1000) + (365 * 24 * 60 * 60)), // 1 year from now
-      lockPeriodEnds: new BN(Math.floor(Date.now() / 1000) + (7 * 24 * 60 * 60)), // 1 week from now
+      depositPeriodEnds: new BN(Math.floor(Date.now() / 1000) + (3650 * 24 * 60 * 60)), // 10 years from now, but doesn't really matter here because this param is not used
+      lockPeriodEnds: new BN(Math.floor(Date.now() / 1000) + (3650 * 24 * 60 * 60)), // 10 years from now, but doesn't really matter here because this param is not used
       performanceFee: new BN(50),
       feeManager: admin.publicKey,
     });
