@@ -98,6 +98,7 @@ pub struct StrategyReportedEvent {
     pub current_debt: u64,
     pub protocol_fees: u64,
     pub total_fees: u64,
+    pub total_shares: u64,
     pub share_price: u64,
     pub timestamp: i64,
 }
