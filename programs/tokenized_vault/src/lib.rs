@@ -24,10 +24,6 @@ pub mod tokenized_vault {
         handle_init_vault(ctx, config, shares_config)
     }
 
-    // pub fn init_vault_shares(ctx: Context<InitVaultShares>, index: u64, config: Box<SharesConfig>) -> Result<()> {
-    //     handle_init_vault_shares(ctx, index, config)
-    // }
-
     pub fn deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
         handle_deposit(ctx, amount)
     }
