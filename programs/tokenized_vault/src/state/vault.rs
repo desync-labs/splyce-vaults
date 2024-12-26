@@ -174,4 +174,18 @@ impl Vault {
     pub fn total_shares(&self) -> u64 {
         self.total_shares - self.unlocked_shares().unwrap()
     }
+
+    /// Calculates the price of one share token with scaling to avoid overflow/underflow
+    /// Returns the scaled share price (actual price = returned value / SCALING_FACTOR)
+    pub fn calculate_share_price(&self, one_share_token: u64) -> u64 {
+        const SCALING_FACTOR: u128 = 1_000_000; // 10^6 for 6 decimal places of precision
+        if self.total_shares() == 0 {
+            // If there are no shares, return the scaling factor (representing 1.0)
+            (one_share_token as u128 * SCALING_FACTOR) as u64
+        } else {
+            // Scale up total funds before division to maintain precision|
+            let scaled_one_share_token = one_share_token as u128 * SCALING_FACTOR;
+            (scaled_one_share_token * self.total_funds() as u128 / self.total_shares() as u128) as u64
+        }
+    }
 }

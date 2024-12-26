@@ -17,12 +17,12 @@ import {
   airdrop,
   initializeSimpleStrategy,
   initializeVault,
-  validateDeposit,
+  validateDirectDeposit,
 } from "../../../utils/helpers";
 import * as token from "@solana/spl-token";
 import { SimpleStrategyConfig } from "../../../utils/schemas";
 
-describe("Vault User Operations: Deposit Tests", () => {
+describe("Vault User Operations: Direct Deposit Tests", () => {
   // Test Role Accounts
   let rolesAdmin: anchor.web3.Keypair;
   let generalAdmin: anchor.web3.Keypair;
@@ -71,8 +71,10 @@ describe("Vault User Operations: Deposit Tests", () => {
   let feeRecipientTokenAccountOne: anchor.web3.PublicKey;
 
   let vaultOneTokenAccountCurrentAmount: number;
-  let vaultOneTotalIdleCurrentAmount: number;
+  let vaultOneTotalDebtCurrentAmount: number;
   let vaultOneTotalSharesCurrentAmount: number;
+  let strategyTokenAccountOneCurrentAmount: number;
+  let strategyOneCurrentDebtAmount: number;
 
   before(async () => {
     console.log("-------Before Step Started-------");
@@ -207,11 +209,12 @@ describe("Vault User Operations: Deposit Tests", () => {
 
     const vaultConfig = {
       depositLimit: new BN(100000000000),
+      userDepositLimit: new BN(0),
       minUserDeposit: new BN(100000000),
       accountant: accountantOne,
       profitMaxUnlockTime: new BN(0),
       kycVerifiedOnly: true,
-      directDepositEnabled: false,
+      directDepositEnabled: true,
       whitelistedOnly: true,
     };
 
@@ -244,7 +247,7 @@ describe("Vault User Operations: Deposit Tests", () => {
     );
 
     const strategyConfigOne = new SimpleStrategyConfig({
-      depositLimit: new BN(1000),
+      depositLimit: new BN(100000000000),
       performanceFee: new BN(1000),
       feeManager: generalAdmin.publicKey,
     });
@@ -258,7 +261,7 @@ describe("Vault User Operations: Deposit Tests", () => {
     });
 
     await vaultProgram.methods
-      .addStrategy(new BN(1000000000))
+      .addStrategy(new BN(100000000000))
       .accounts({
         vault: vaultOne,
         strategy: strategyOne,
@@ -296,7 +299,7 @@ describe("Vault User Operations: Deposit Tests", () => {
       .accounts({
         accountant: accountantOne,
         signer: generalAdmin.publicKey,
-        mint: sharesMintOne,
+        mint: underlyingMint,
       })
       .signers([generalAdmin])
       .rpc();
@@ -306,14 +309,16 @@ describe("Vault User Operations: Deposit Tests", () => {
       .accounts({
         accountant: accountantOne,
         signer: generalAdmin.publicKey,
-        mint: underlyingMint,
+        mint: sharesMintOne,
       })
       .signers([generalAdmin])
       .rpc();
 
     vaultOneTokenAccountCurrentAmount = 0;
-    vaultOneTotalIdleCurrentAmount = 0;
+    vaultOneTotalDebtCurrentAmount = 0;
     vaultOneTotalSharesCurrentAmount = 0;
+    strategyTokenAccountOneCurrentAmount = 0;
+    strategyOneCurrentDebtAmount = 0;
 
     kycVerifiedUserTokenAccount = await token.createAccount(
       connection,
@@ -422,7 +427,7 @@ describe("Vault User Operations: Deposit Tests", () => {
     console.log("-------Before Step Finished-------");
   });
 
-  it("Depositing less than minimum deposit amount into the vault should revert", async () => {
+  it("Directly depositing less than minimum deposit amount into the vault should revert", async () => {
     const depositAmount = 99999999;
 
     const kycVerified = anchor.web3.PublicKey.findProgramAddressSync(
@@ -436,7 +441,7 @@ describe("Vault User Operations: Deposit Tests", () => {
 
     try {
       await vaultProgram.methods
-        .deposit(new BN(depositAmount))
+        .directDeposit(new BN(depositAmount))
         .accounts({
           vault: vaultOne,
           accountant: accountantOne,
@@ -444,6 +449,7 @@ describe("Vault User Operations: Deposit Tests", () => {
           userTokenAccount: kycVerifiedWhitelistedUserTokenAccount,
           userSharesAccount: kycVerifiedWhitelistedUserSharesAccountVaultOne,
           underlyingMint: underlyingMint,
+          strategy: strategyOne,
           tokenProgram: token.TOKEN_PROGRAM_ID,
         })
         .signers([kycVerifiedWhitelistedUser])
@@ -460,7 +466,7 @@ describe("Vault User Operations: Deposit Tests", () => {
       expect(err.message).to.contain(errorStrings.minDepositNotReached);
     }
 
-    await validateDeposit({
+    await validateDirectDeposit({
       userTokenAccount: kycVerifiedWhitelistedUserTokenAccount,
       userTokenAccountAmountExpected: kycVerifiedWhitelistedUserCurrentAmount,
       userSharesAccount: kycVerifiedWhitelistedUserSharesAccountVaultOne,
@@ -469,12 +475,16 @@ describe("Vault User Operations: Deposit Tests", () => {
       vaultTokenAccount: vaultTokenAccountOne,
       vaultTokenAccountAmountExpected: vaultOneTokenAccountCurrentAmount,
       vault: vaultOne,
-      vaultTotalIdleAmountExpected: vaultOneTotalIdleCurrentAmount,
+      vaultTotalDebtAmountExpected: vaultOneTotalDebtCurrentAmount,
       vaultTotalSharesAmountExpected: vaultOneTotalSharesCurrentAmount,
+      strategyTokenAccount: strategyTokenAccountOne,
+      strategyTokenAccountAmountExpected: strategyTokenAccountOneCurrentAmount,
+      strategy: strategyOne,
+      strategyCurrentDebtAmountExpected: strategyOneCurrentDebtAmount,
     });
   });
 
-  it("Depositing more than deposit limit amount into the vault should revert", async () => {
+  it("Directly depositing more than vault deposit limit amount into the vault should revert", async () => {
     const depositAmount = 100000000001;
 
     const kycVerified = anchor.web3.PublicKey.findProgramAddressSync(
@@ -488,7 +498,7 @@ describe("Vault User Operations: Deposit Tests", () => {
 
     try {
       await vaultProgram.methods
-        .deposit(new BN(depositAmount))
+        .directDeposit(new BN(depositAmount))
         .accounts({
           vault: vaultOne,
           accountant: accountantOne,
@@ -496,6 +506,7 @@ describe("Vault User Operations: Deposit Tests", () => {
           userTokenAccount: kycVerifiedWhitelistedUserTokenAccount,
           userSharesAccount: kycVerifiedWhitelistedUserSharesAccountVaultOne,
           underlyingMint: underlyingMint,
+          strategy: strategyOne,
           tokenProgram: token.TOKEN_PROGRAM_ID,
         })
         .signers([kycVerifiedWhitelistedUser])
@@ -512,7 +523,7 @@ describe("Vault User Operations: Deposit Tests", () => {
       expect(err.message).to.contain(errorStrings.exceedDepositLimit);
     }
 
-    await validateDeposit({
+    await validateDirectDeposit({
       userTokenAccount: kycVerifiedWhitelistedUserTokenAccount,
       userTokenAccountAmountExpected: kycVerifiedWhitelistedUserCurrentAmount,
       userSharesAccount: kycVerifiedWhitelistedUserSharesAccountVaultOne,
@@ -521,12 +532,16 @@ describe("Vault User Operations: Deposit Tests", () => {
       vaultTokenAccount: vaultTokenAccountOne,
       vaultTokenAccountAmountExpected: vaultOneTokenAccountCurrentAmount,
       vault: vaultOne,
-      vaultTotalIdleAmountExpected: vaultOneTotalIdleCurrentAmount,
+      vaultTotalDebtAmountExpected: vaultOneTotalDebtCurrentAmount,
       vaultTotalSharesAmountExpected: vaultOneTotalSharesCurrentAmount,
+      strategyTokenAccount: strategyTokenAccountOne,
+      strategyTokenAccountAmountExpected: strategyTokenAccountOneCurrentAmount,
+      strategy: strategyOne,
+      strategyCurrentDebtAmountExpected: strategyOneCurrentDebtAmount,
     });
   });
 
-  it("Depositing 0 amount into the vault should revert", async () => {
+  it("Directly depositing 0 amount into the vault should revert", async () => {
     const depositAmount = 0;
 
     const kycVerified = anchor.web3.PublicKey.findProgramAddressSync(
@@ -540,7 +555,7 @@ describe("Vault User Operations: Deposit Tests", () => {
 
     try {
       await vaultProgram.methods
-        .deposit(new BN(depositAmount))
+        .directDeposit(new BN(depositAmount))
         .accounts({
           vault: vaultOne,
           accountant: accountantOne,
@@ -548,6 +563,7 @@ describe("Vault User Operations: Deposit Tests", () => {
           userTokenAccount: kycVerifiedWhitelistedUserTokenAccount,
           userSharesAccount: kycVerifiedWhitelistedUserSharesAccountVaultOne,
           underlyingMint: underlyingMint,
+          strategy: strategyOne,
           tokenProgram: token.TOKEN_PROGRAM_ID,
         })
         .signers([kycVerifiedWhitelistedUser])
@@ -564,7 +580,7 @@ describe("Vault User Operations: Deposit Tests", () => {
       expect(err.message).to.contain(errorStrings.zeroValue);
     }
 
-    await validateDeposit({
+    await validateDirectDeposit({
       userTokenAccount: kycVerifiedWhitelistedUserTokenAccount,
       userTokenAccountAmountExpected: kycVerifiedWhitelistedUserCurrentAmount,
       userSharesAccount: kycVerifiedWhitelistedUserSharesAccountVaultOne,
@@ -573,12 +589,16 @@ describe("Vault User Operations: Deposit Tests", () => {
       vaultTokenAccount: vaultTokenAccountOne,
       vaultTokenAccountAmountExpected: vaultOneTokenAccountCurrentAmount,
       vault: vaultOne,
-      vaultTotalIdleAmountExpected: vaultOneTotalIdleCurrentAmount,
+      vaultTotalDebtAmountExpected: vaultOneTotalDebtCurrentAmount,
       vaultTotalSharesAmountExpected: vaultOneTotalSharesCurrentAmount,
+      strategyTokenAccount: strategyTokenAccountOne,
+      strategyTokenAccountAmountExpected: strategyTokenAccountOneCurrentAmount,
+      strategy: strategyOne,
+      strategyCurrentDebtAmountExpected: strategyOneCurrentDebtAmount,
     });
   });
 
-  it("Depositing into a vault which is shut down should revert", async () => {
+  it("Directly depositing into a vault which is shut down should revert", async () => {
     const depositAmount = 100000000;
 
     accountantConfigAccount = await accountantProgram.account.config.fetch(
@@ -598,6 +618,7 @@ describe("Vault User Operations: Deposit Tests", () => {
 
     const vaultConfig = {
       depositLimit: new BN(1000000000),
+      userDepositLimit: new BN(0),
       minUserDeposit: new BN(0),
       accountant: accountant,
       profitMaxUnlockTime: new BN(0),
@@ -620,6 +641,30 @@ describe("Vault User Operations: Deposit Tests", () => {
         vaultConfig: vaultConfig,
         sharesConfig: sharesConfig,
       });
+
+    const strategyConfig = new SimpleStrategyConfig({
+      depositLimit: new BN(100000000000),
+      performanceFee: new BN(1000),
+      feeManager: generalAdmin.publicKey,
+    });
+
+    const [strategy, strategyTokenAccount] = await initializeSimpleStrategy({
+      strategyProgram,
+      vault: vault,
+      underlyingMint,
+      signer: generalAdmin,
+      config: strategyConfig,
+    });
+
+    await vaultProgram.methods
+      .addStrategy(new BN(100000000000))
+      .accounts({
+        vault: vault,
+        strategy: strategy,
+        signer: generalAdmin.publicKey,
+      })
+      .signers([generalAdmin])
+      .rpc();
 
     const userSharesAccount = await token.createAccount(
       provider.connection,
@@ -663,14 +708,15 @@ describe("Vault User Operations: Deposit Tests", () => {
 
     try {
       await vaultProgram.methods
-        .deposit(new BN(depositAmount))
+        .directDeposit(new BN(depositAmount))
         .accounts({
           vault: vault,
           accountant: accountant,
           user: kycVerifiedWhitelistedUser.publicKey,
           userTokenAccount: kycVerifiedWhitelistedUserTokenAccount,
-          userSharesAccount: userSharesAccount,
+          userSharesAccount: kycVerifiedWhitelistedUserSharesAccountVaultOne,
           underlyingMint: underlyingMint,
+          strategy: strategy,
           tokenProgram: token.TOKEN_PROGRAM_ID,
         })
         .signers([kycVerifiedWhitelistedUser])
@@ -687,7 +733,7 @@ describe("Vault User Operations: Deposit Tests", () => {
       expect(err.message).to.contain(errorStrings.vaultShutdown);
     }
 
-    await validateDeposit({
+    await validateDirectDeposit({
       userTokenAccount: kycVerifiedWhitelistedUserTokenAccount,
       userTokenAccountAmountExpected: kycVerifiedWhitelistedUserCurrentAmount,
       userSharesAccount: userSharesAccount,
@@ -695,13 +741,17 @@ describe("Vault User Operations: Deposit Tests", () => {
       vaultTokenAccount: vaultTokenAccount,
       vaultTokenAccountAmountExpected: 0,
       vault: vault,
-      vaultTotalIdleAmountExpected: 0,
+      vaultTotalDebtAmountExpected: 0,
       vaultTotalSharesAmountExpected: 0,
+      strategyTokenAccount: strategyTokenAccount,
+      strategyTokenAccountAmountExpected: 0,
+      strategy: strategy,
+      strategyCurrentDebtAmountExpected: 0,
     });
   });
 
-  it("Depositing into both KYC and whitelist required vault with only KYC verified user should revert", async () => {
-    const depositAmount = 1000000000;
+  it("Directly depositing valid value into a direct deposit enabled, KYC and whitelist required vault by only KYC verified user should revert", async () => {
+    const depositAmount = 100000000;
 
     const kycVerified = anchor.web3.PublicKey.findProgramAddressSync(
       [
@@ -714,7 +764,7 @@ describe("Vault User Operations: Deposit Tests", () => {
 
     try {
       await vaultProgram.methods
-        .deposit(new BN(depositAmount))
+        .directDeposit(new BN(depositAmount))
         .accounts({
           vault: vaultOne,
           accountant: accountantOne,
@@ -722,6 +772,7 @@ describe("Vault User Operations: Deposit Tests", () => {
           userTokenAccount: kycVerifiedUserTokenAccount,
           userSharesAccount: kycVerifiedUserSharesAccountVaultOne,
           underlyingMint: underlyingMint,
+          strategy: strategyOne,
           tokenProgram: token.TOKEN_PROGRAM_ID,
         })
         .signers([kycVerifiedUser])
@@ -738,7 +789,7 @@ describe("Vault User Operations: Deposit Tests", () => {
       expect(err.message).to.contain(errorStrings.notWhitelisted);
     }
 
-    await validateDeposit({
+    await validateDirectDeposit({
       userTokenAccount: kycVerifiedUserTokenAccount,
       userTokenAccountAmountExpected: kycVerifiedUserCurrentAmount,
       userSharesAccount: kycVerifiedUserSharesAccountVaultOne,
@@ -746,13 +797,17 @@ describe("Vault User Operations: Deposit Tests", () => {
       vaultTokenAccount: vaultTokenAccountOne,
       vaultTokenAccountAmountExpected: vaultOneTokenAccountCurrentAmount,
       vault: vaultOne,
-      vaultTotalIdleAmountExpected: vaultOneTotalIdleCurrentAmount,
+      vaultTotalDebtAmountExpected: vaultOneTotalDebtCurrentAmount,
       vaultTotalSharesAmountExpected: vaultOneTotalSharesCurrentAmount,
+      strategyTokenAccount: strategyTokenAccountOne,
+      strategyTokenAccountAmountExpected: strategyTokenAccountOneCurrentAmount,
+      strategy: strategyOne,
+      strategyCurrentDebtAmountExpected: strategyOneCurrentDebtAmount,
     });
   });
 
-  it("Depositing into both KYC and whitelist required vault with only whitelisted user should revert", async () => {
-    const depositAmount = 1000000000;
+  it("Directly depositing valid value into a direct deposit enabled, KYC and whitelist required vault by only whitelisted user should revert", async () => {
+    const depositAmount = 100000000;
 
     const kycVerified = anchor.web3.PublicKey.findProgramAddressSync(
       [
@@ -765,7 +820,7 @@ describe("Vault User Operations: Deposit Tests", () => {
 
     try {
       await vaultProgram.methods
-        .deposit(new BN(depositAmount))
+        .directDeposit(new BN(depositAmount))
         .accounts({
           vault: vaultOne,
           accountant: accountantOne,
@@ -773,6 +828,7 @@ describe("Vault User Operations: Deposit Tests", () => {
           userTokenAccount: whitelistedUserTokenAccount,
           userSharesAccount: whitelistedUserSharesAccountVaultOne,
           underlyingMint: underlyingMint,
+          strategy: strategyOne,
           tokenProgram: token.TOKEN_PROGRAM_ID,
         })
         .signers([whitelistedUser])
@@ -789,7 +845,7 @@ describe("Vault User Operations: Deposit Tests", () => {
       expect(err.message).to.contain(errorStrings.kycRequired);
     }
 
-    await validateDeposit({
+    await validateDirectDeposit({
       userTokenAccount: whitelistedUserTokenAccount,
       userTokenAccountAmountExpected: whitelistedUserCurrentAmount,
       userSharesAccount: whitelistedUserSharesAccountVaultOne,
@@ -797,13 +853,17 @@ describe("Vault User Operations: Deposit Tests", () => {
       vaultTokenAccount: vaultTokenAccountOne,
       vaultTokenAccountAmountExpected: vaultOneTokenAccountCurrentAmount,
       vault: vaultOne,
-      vaultTotalIdleAmountExpected: vaultOneTotalIdleCurrentAmount,
+      vaultTotalDebtAmountExpected: vaultOneTotalDebtCurrentAmount,
       vaultTotalSharesAmountExpected: vaultOneTotalSharesCurrentAmount,
+      strategyTokenAccount: strategyTokenAccountOne,
+      strategyTokenAccountAmountExpected: strategyTokenAccountOneCurrentAmount,
+      strategy: strategyOne,
+      strategyCurrentDebtAmountExpected: strategyOneCurrentDebtAmount,
     });
   });
 
-  it("Depositing valid amount into both KYC and whitelist required vault with KYC verified and whitelisted user is successful", async () => {
-    const depositAmount = 5000000000;
+  it("Directly depositing valid value into a direct deposit enabled, KYC and whitelist required vault by KYC verified and whitelisted user is successful", async () => {
+    const depositAmount = 100000000;
 
     const kycVerified = anchor.web3.PublicKey.findProgramAddressSync(
       [
@@ -815,7 +875,7 @@ describe("Vault User Operations: Deposit Tests", () => {
     )[0];
 
     await vaultProgram.methods
-      .deposit(new BN(depositAmount))
+      .directDeposit(new BN(depositAmount))
       .accounts({
         vault: vaultOne,
         accountant: accountantOne,
@@ -823,6 +883,7 @@ describe("Vault User Operations: Deposit Tests", () => {
         userTokenAccount: kycVerifiedWhitelistedUserTokenAccount,
         userSharesAccount: kycVerifiedWhitelistedUserSharesAccountVaultOne,
         underlyingMint: underlyingMint,
+        strategy: strategyOne,
         tokenProgram: token.TOKEN_PROGRAM_ID,
       })
       .signers([kycVerifiedWhitelistedUser])
@@ -837,24 +898,30 @@ describe("Vault User Operations: Deposit Tests", () => {
 
     kycVerifiedWhitelistedUserCurrentAmount -= depositAmount;
     kycVerifiedWhitelistedUserSharesCurrentAmountVaultOne += depositAmount;
-    vaultOneTokenAccountCurrentAmount += depositAmount;
-    vaultOneTotalIdleCurrentAmount += depositAmount;
+    vaultOneTotalDebtCurrentAmount += depositAmount;
     vaultOneTotalSharesCurrentAmount += depositAmount;
+    strategyTokenAccountOneCurrentAmount += depositAmount;
+    strategyOneCurrentDebtAmount += depositAmount;
 
-    await validateDeposit({
+    await validateDirectDeposit({
       userTokenAccount: kycVerifiedWhitelistedUserTokenAccount,
       userTokenAccountAmountExpected: kycVerifiedWhitelistedUserCurrentAmount,
       userSharesAccount: kycVerifiedWhitelistedUserSharesAccountVaultOne,
-      userSharesAccountAmountExpected: kycVerifiedWhitelistedUserSharesCurrentAmountVaultOne,
+      userSharesAccountAmountExpected:
+        kycVerifiedWhitelistedUserSharesCurrentAmountVaultOne,
       vaultTokenAccount: vaultTokenAccountOne,
       vaultTokenAccountAmountExpected: vaultOneTokenAccountCurrentAmount,
       vault: vaultOne,
-      vaultTotalIdleAmountExpected: vaultOneTotalIdleCurrentAmount,
+      vaultTotalDebtAmountExpected: vaultOneTotalDebtCurrentAmount,
       vaultTotalSharesAmountExpected: vaultOneTotalSharesCurrentAmount,
+      strategyTokenAccount: strategyTokenAccountOne,
+      strategyTokenAccountAmountExpected: strategyTokenAccountOneCurrentAmount,
+      strategy: strategyOne,
+      strategyCurrentDebtAmountExpected: strategyOneCurrentDebtAmount,
     });
   });
 
-  it("Depositing valid amount into non-KYC and whitelist only required vault with whitelisted only user is successful", async () => {
+  it("Directly depositing valid amount into direct deposit enabled, non-KYC and whitelist only required vault with whitelisted only user is successful", async () => {
     const depositAmount = 5000000000;
 
     accountantConfigAccount = await accountantProgram.account.config.fetch(
@@ -882,11 +949,12 @@ describe("Vault User Operations: Deposit Tests", () => {
 
     const vaultConfig = {
       depositLimit: new BN(100000000000),
+      userDepositLimit: new BN(0),
       minUserDeposit: new BN(100000000),
       accountant: accountant,
       profitMaxUnlockTime: new BN(0),
       kycVerifiedOnly: false,
-      directDepositEnabled: false,
+      directDepositEnabled: true,
       whitelistedOnly: true,
     };
 
@@ -904,6 +972,30 @@ describe("Vault User Operations: Deposit Tests", () => {
         vaultConfig: vaultConfig,
         sharesConfig: sharesConfig,
       });
+
+    const strategyConfig = new SimpleStrategyConfig({
+      depositLimit: new BN(100000000000),
+      performanceFee: new BN(1000),
+      feeManager: generalAdmin.publicKey,
+    });
+
+    const [strategy, strategyTokenAccount] = await initializeSimpleStrategy({
+      strategyProgram,
+      vault: vault,
+      underlyingMint,
+      signer: generalAdmin,
+      config: strategyConfig,
+    });
+
+    await vaultProgram.methods
+      .addStrategy(new BN(100000000000))
+      .accounts({
+        vault: vault,
+        strategy: strategy,
+        signer: generalAdmin.publicKey,
+      })
+      .signers([generalAdmin])
+      .rpc();
 
     await accountantProgram.methods
       .initTokenAccount()
@@ -941,8 +1033,17 @@ describe("Vault User Operations: Deposit Tests", () => {
       whitelistedUser.publicKey
     );
 
+    const kycVerified = anchor.web3.PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("user_role"),
+        whitelistedUser.publicKey.toBuffer(),
+        ROLES_BUFFER.KYC_VERIFIED,
+      ],
+      accessControlProgram.programId
+    )[0];
+
     await vaultProgram.methods
-      .deposit(new BN(depositAmount))
+      .directDeposit(new BN(depositAmount))
       .accounts({
         vault: vault,
         accountant: accountant,
@@ -950,27 +1051,39 @@ describe("Vault User Operations: Deposit Tests", () => {
         userTokenAccount: whitelistedUserTokenAccount,
         userSharesAccount: userSharesAccount,
         underlyingMint: underlyingMint,
+        strategy: strategy,
         tokenProgram: token.TOKEN_PROGRAM_ID,
       })
       .signers([whitelistedUser])
+      .remainingAccounts([
+        {
+          pubkey: kycVerified,
+          isWritable: false,
+          isSigner: false,
+        },
+      ])
       .rpc();
 
     whitelistedUserCurrentAmount -= depositAmount;
 
-    await validateDeposit({
+    await validateDirectDeposit({
       userTokenAccount: whitelistedUserTokenAccount,
       userTokenAccountAmountExpected: whitelistedUserCurrentAmount,
       userSharesAccount: userSharesAccount,
       userSharesAccountAmountExpected: depositAmount,
       vaultTokenAccount: vaultTokenAccount,
-      vaultTokenAccountAmountExpected: depositAmount,
+      vaultTokenAccountAmountExpected: 0,
       vault: vault,
-      vaultTotalIdleAmountExpected: depositAmount,
+      vaultTotalDebtAmountExpected: depositAmount,
       vaultTotalSharesAmountExpected: depositAmount,
+      strategyTokenAccount: strategyTokenAccount,
+      strategyTokenAccountAmountExpected: depositAmount,
+      strategy: strategy,
+      strategyCurrentDebtAmountExpected: depositAmount,
     });
   });
 
-  it("Depositing valid amount into non-KYC and non-whitelist required vault with non-KYC verified and non-whitelisted user is successful", async () => {
+  it("Directly depositing valid amount into direct deposit enabled, non-KYC and non-whitelist required vault with non-KYC verified and non-whitelisted user is successful", async () => {
     const depositAmount = 5000000000;
 
     accountantConfigAccount = await accountantProgram.account.config.fetch(
@@ -998,11 +1111,12 @@ describe("Vault User Operations: Deposit Tests", () => {
 
     const vaultConfig = {
       depositLimit: new BN(100000000000),
+      userDepositLimit: new BN(0),
       minUserDeposit: new BN(100000000),
       accountant: accountant,
       profitMaxUnlockTime: new BN(0),
       kycVerifiedOnly: false,
-      directDepositEnabled: false,
+      directDepositEnabled: true,
       whitelistedOnly: false,
     };
 
@@ -1020,6 +1134,30 @@ describe("Vault User Operations: Deposit Tests", () => {
         vaultConfig: vaultConfig,
         sharesConfig: sharesConfig,
       });
+
+    const strategyConfig = new SimpleStrategyConfig({
+      depositLimit: new BN(100000000000),
+      performanceFee: new BN(1000),
+      feeManager: generalAdmin.publicKey,
+    });
+
+    const [strategy, strategyTokenAccount] = await initializeSimpleStrategy({
+      strategyProgram,
+      vault: vault,
+      underlyingMint,
+      signer: generalAdmin,
+      config: strategyConfig,
+    });
+
+    await vaultProgram.methods
+      .addStrategy(new BN(100000000000))
+      .accounts({
+        vault: vault,
+        strategy: strategy,
+        signer: generalAdmin.publicKey,
+      })
+      .signers([generalAdmin])
+      .rpc();
 
     await accountantProgram.methods
       .initTokenAccount()
@@ -1049,7 +1187,7 @@ describe("Vault User Operations: Deposit Tests", () => {
     );
 
     await vaultProgram.methods
-      .deposit(new BN(depositAmount))
+      .directDeposit(new BN(depositAmount))
       .accounts({
         vault: vault,
         accountant: accountant,
@@ -1057,6 +1195,7 @@ describe("Vault User Operations: Deposit Tests", () => {
         userTokenAccount: nonVerifiedUserTokenAccount,
         userSharesAccount: userSharesAccount,
         underlyingMint: underlyingMint,
+        strategy: strategy,
         tokenProgram: token.TOKEN_PROGRAM_ID,
       })
       .signers([nonVerifiedUser])
@@ -1064,16 +1203,437 @@ describe("Vault User Operations: Deposit Tests", () => {
 
     nonVerifiedUserCurrentAmount -= depositAmount;
 
-    await validateDeposit({
+    await validateDirectDeposit({
       userTokenAccount: nonVerifiedUserTokenAccount,
       userTokenAccountAmountExpected: nonVerifiedUserCurrentAmount,
       userSharesAccount: userSharesAccount,
       userSharesAccountAmountExpected: depositAmount,
       vaultTokenAccount: vaultTokenAccount,
-      vaultTokenAccountAmountExpected: depositAmount,
+      vaultTokenAccountAmountExpected: 0,
       vault: vault,
-      vaultTotalIdleAmountExpected: depositAmount,
+      vaultTotalDebtAmountExpected: depositAmount,
       vaultTotalSharesAmountExpected: depositAmount,
+      strategyTokenAccount: strategyTokenAccount,
+      strategyTokenAccountAmountExpected: depositAmount,
+      strategy: strategy,
+      strategyCurrentDebtAmountExpected: depositAmount,
+    });
+  });
+
+  it("Directly depositing valid amount into direct deposit disabled vault should revert", async () => {
+    const depositAmount = 5000000000;
+
+    accountantConfigAccount = await accountantProgram.account.config.fetch(
+      accountantConfig
+    );
+    const accountantIndex =
+      accountantConfigAccount.nextAccountantIndex.toNumber();
+
+    const accountant = anchor.web3.PublicKey.findProgramAddressSync(
+      [
+        Buffer.from(
+          new Uint8Array(new BigUint64Array([BigInt(accountantIndex)]).buffer)
+        ),
+      ],
+      accountantProgram.programId
+    )[0];
+
+    await accountantProgram.methods
+      .initAccountant(accountantType)
+      .accounts({
+        signer: generalAdmin.publicKey,
+      })
+      .signers([generalAdmin])
+      .rpc();
+
+    const vaultConfig = {
+      depositLimit: new BN(100000000000),
+      userDepositLimit: new BN(0),
+      minUserDeposit: new BN(100000000),
+      accountant: accountant,
+      profitMaxUnlockTime: new BN(0),
+      kycVerifiedOnly: false,
+      directDepositEnabled: false,
+      whitelistedOnly: false,
+    };
+
+    const sharesConfig = {
+      name: "Test Roles and Permissions One",
+      symbol: "TRPV1",
+      uri: "https://gist.githubusercontent.com/vito-kovalione/08b86d3c67440070a8061ae429572494/raw/833e3d5f5988c18dce2b206a74077b2277e13ab6/PVT.json",
+    };
+
+    const [vault, sharesMint, metadataAccount, vaultTokenAccount] =
+      await initializeVault({
+        vaultProgram,
+        underlyingMint,
+        signer: generalAdmin,
+        vaultConfig: vaultConfig,
+        sharesConfig: sharesConfig,
+      });
+
+    const strategyConfig = new SimpleStrategyConfig({
+      depositLimit: new BN(100000000000),
+      performanceFee: new BN(1000),
+      feeManager: generalAdmin.publicKey,
+    });
+
+    const [strategy, strategyTokenAccount] = await initializeSimpleStrategy({
+      strategyProgram,
+      vault: vault,
+      underlyingMint,
+      signer: generalAdmin,
+      config: strategyConfig,
+    });
+
+    await vaultProgram.methods
+      .addStrategy(new BN(100000000000))
+      .accounts({
+        vault: vault,
+        strategy: strategy,
+        signer: generalAdmin.publicKey,
+      })
+      .signers([generalAdmin])
+      .rpc();
+
+    await accountantProgram.methods
+      .initTokenAccount()
+      .accounts({
+        accountant: accountant,
+        signer: generalAdmin.publicKey,
+        mint: sharesMint,
+      })
+      .signers([generalAdmin])
+      .rpc();
+
+    await accountantProgram.methods
+      .initTokenAccount()
+      .accounts({
+        accountant: accountant,
+        signer: generalAdmin.publicKey,
+        mint: underlyingMint,
+      })
+      .signers([generalAdmin])
+      .rpc();
+
+    const userSharesAccount = await token.createAccount(
+      provider.connection,
+      nonVerifiedUser,
+      sharesMint,
+      nonVerifiedUser.publicKey
+    );
+
+    try {
+      await vaultProgram.methods
+        .directDeposit(new BN(depositAmount))
+        .accounts({
+          vault: vault,
+          accountant: accountant,
+          user: nonVerifiedUser.publicKey,
+          userTokenAccount: nonVerifiedUserTokenAccount,
+          userSharesAccount: userSharesAccount,
+          underlyingMint: underlyingMint,
+          strategy: strategy,
+          tokenProgram: token.TOKEN_PROGRAM_ID,
+        })
+        .signers([nonVerifiedUser])
+        .rpc();
+    } catch (err) {
+      expect(err.message).to.contain(errorStrings.directDepositDisabled);
+    }
+
+    await validateDirectDeposit({
+      userTokenAccount: nonVerifiedUserTokenAccount,
+      userTokenAccountAmountExpected: nonVerifiedUserCurrentAmount,
+      userSharesAccount: userSharesAccount,
+      userSharesAccountAmountExpected: 0,
+      vaultTokenAccount: vaultTokenAccount,
+      vaultTokenAccountAmountExpected: 0,
+      vault: vault,
+      vaultTotalDebtAmountExpected: 0,
+      vaultTotalSharesAmountExpected: 0,
+      strategyTokenAccount: strategyTokenAccount,
+      strategyTokenAccountAmountExpected: 0,
+      strategy: strategy,
+      strategyCurrentDebtAmountExpected: 0,
+    });
+  });
+
+  it("Directly depositing more than strategy deposit limit into direct deposit enabled vault should revert", async () => {
+    const depositAmount = 10000000001;
+
+    accountantConfigAccount = await accountantProgram.account.config.fetch(
+      accountantConfig
+    );
+    const accountantIndex =
+      accountantConfigAccount.nextAccountantIndex.toNumber();
+
+    const accountant = anchor.web3.PublicKey.findProgramAddressSync(
+      [
+        Buffer.from(
+          new Uint8Array(new BigUint64Array([BigInt(accountantIndex)]).buffer)
+        ),
+      ],
+      accountantProgram.programId
+    )[0];
+
+    await accountantProgram.methods
+      .initAccountant(accountantType)
+      .accounts({
+        signer: generalAdmin.publicKey,
+      })
+      .signers([generalAdmin])
+      .rpc();
+
+    const vaultConfig = {
+      depositLimit: new BN(100000000000),
+      userDepositLimit: new BN(0),
+      minUserDeposit: new BN(100000000),
+      accountant: accountant,
+      profitMaxUnlockTime: new BN(0),
+      kycVerifiedOnly: false,
+      directDepositEnabled: true,
+      whitelistedOnly: false,
+    };
+
+    const sharesConfig = {
+      name: "Test Roles and Permissions One",
+      symbol: "TRPV1",
+      uri: "https://gist.githubusercontent.com/vito-kovalione/08b86d3c67440070a8061ae429572494/raw/833e3d5f5988c18dce2b206a74077b2277e13ab6/PVT.json",
+    };
+
+    const [vault, sharesMint, metadataAccount, vaultTokenAccount] =
+      await initializeVault({
+        vaultProgram,
+        underlyingMint,
+        signer: generalAdmin,
+        vaultConfig: vaultConfig,
+        sharesConfig: sharesConfig,
+      });
+
+    const strategyConfig = new SimpleStrategyConfig({
+      depositLimit: new BN(10000000000),
+      performanceFee: new BN(1000),
+      feeManager: generalAdmin.publicKey,
+    });
+
+    const [strategy, strategyTokenAccount] = await initializeSimpleStrategy({
+      strategyProgram,
+      vault: vault,
+      underlyingMint,
+      signer: generalAdmin,
+      config: strategyConfig,
+    });
+
+    await vaultProgram.methods
+      .addStrategy(new BN(100000000000))
+      .accounts({
+        vault: vault,
+        strategy: strategy,
+        signer: generalAdmin.publicKey,
+      })
+      .signers([generalAdmin])
+      .rpc();
+
+    await accountantProgram.methods
+      .initTokenAccount()
+      .accounts({
+        accountant: accountant,
+        signer: generalAdmin.publicKey,
+        mint: sharesMint,
+      })
+      .signers([generalAdmin])
+      .rpc();
+
+    await accountantProgram.methods
+      .initTokenAccount()
+      .accounts({
+        accountant: accountant,
+        signer: generalAdmin.publicKey,
+        mint: underlyingMint,
+      })
+      .signers([generalAdmin])
+      .rpc();
+
+    const userSharesAccount = await token.createAccount(
+      provider.connection,
+      nonVerifiedUser,
+      sharesMint,
+      nonVerifiedUser.publicKey
+    );
+
+    try {
+      await vaultProgram.methods
+        .directDeposit(new BN(depositAmount))
+        .accounts({
+          vault: vault,
+          accountant: accountant,
+          user: nonVerifiedUser.publicKey,
+          userTokenAccount: nonVerifiedUserTokenAccount,
+          userSharesAccount: userSharesAccount,
+          underlyingMint: underlyingMint,
+          strategy: strategy,
+          tokenProgram: token.TOKEN_PROGRAM_ID,
+        })
+        .signers([nonVerifiedUser])
+        .rpc();
+    } catch (err) {
+      expect(err.message).to.contain(errorStrings.maxDepositReached);
+    }
+
+    await validateDirectDeposit({
+      userTokenAccount: nonVerifiedUserTokenAccount,
+      userTokenAccountAmountExpected: nonVerifiedUserCurrentAmount,
+      userSharesAccount: userSharesAccount,
+      userSharesAccountAmountExpected: 0,
+      vaultTokenAccount: vaultTokenAccount,
+      vaultTokenAccountAmountExpected: 0,
+      vault: vault,
+      vaultTotalDebtAmountExpected: 0,
+      vaultTotalSharesAmountExpected: 0,
+      strategyTokenAccount: strategyTokenAccount,
+      strategyTokenAccountAmountExpected: 0,
+      strategy: strategy,
+      strategyCurrentDebtAmountExpected: 0,
+    });
+  });
+
+  it.skip("Directly depositing more than strategy max debt into direct deposit enabled vault should revert", async () => {
+    const depositAmount = 10000000001;
+
+    accountantConfigAccount = await accountantProgram.account.config.fetch(
+      accountantConfig
+    );
+    const accountantIndex =
+      accountantConfigAccount.nextAccountantIndex.toNumber();
+
+    const accountant = anchor.web3.PublicKey.findProgramAddressSync(
+      [
+        Buffer.from(
+          new Uint8Array(new BigUint64Array([BigInt(accountantIndex)]).buffer)
+        ),
+      ],
+      accountantProgram.programId
+    )[0];
+
+    await accountantProgram.methods
+      .initAccountant(accountantType)
+      .accounts({
+        signer: generalAdmin.publicKey,
+      })
+      .signers([generalAdmin])
+      .rpc();
+
+    const vaultConfig = {
+      depositLimit: new BN(100000000000),
+      userDepositLimit: new BN(0),
+      minUserDeposit: new BN(100000000),
+      accountant: accountant,
+      profitMaxUnlockTime: new BN(0),
+      kycVerifiedOnly: false,
+      directDepositEnabled: true,
+      whitelistedOnly: false,
+    };
+
+    const sharesConfig = {
+      name: "Test Roles and Permissions One",
+      symbol: "TRPV1",
+      uri: "https://gist.githubusercontent.com/vito-kovalione/08b86d3c67440070a8061ae429572494/raw/833e3d5f5988c18dce2b206a74077b2277e13ab6/PVT.json",
+    };
+
+    const [vault, sharesMint, metadataAccount, vaultTokenAccount] =
+      await initializeVault({
+        vaultProgram,
+        underlyingMint,
+        signer: generalAdmin,
+        vaultConfig: vaultConfig,
+        sharesConfig: sharesConfig,
+      });
+
+    const strategyConfig = new SimpleStrategyConfig({
+      depositLimit: new BN(100000000000),
+      performanceFee: new BN(1000),
+      feeManager: generalAdmin.publicKey,
+    });
+
+    const [strategy, strategyTokenAccount] = await initializeSimpleStrategy({
+      strategyProgram,
+      vault: vault,
+      underlyingMint,
+      signer: generalAdmin,
+      config: strategyConfig,
+    });
+
+    await vaultProgram.methods
+      .addStrategy(new BN(10000000000))
+      .accounts({
+        vault: vault,
+        strategy: strategy,
+        signer: generalAdmin.publicKey,
+      })
+      .signers([generalAdmin])
+      .rpc();
+
+    await accountantProgram.methods
+      .initTokenAccount()
+      .accounts({
+        accountant: accountant,
+        signer: generalAdmin.publicKey,
+        mint: sharesMint,
+      })
+      .signers([generalAdmin])
+      .rpc();
+
+    await accountantProgram.methods
+      .initTokenAccount()
+      .accounts({
+        accountant: accountant,
+        signer: generalAdmin.publicKey,
+        mint: underlyingMint,
+      })
+      .signers([generalAdmin])
+      .rpc();
+
+    const userSharesAccount = await token.createAccount(
+      provider.connection,
+      nonVerifiedUser,
+      sharesMint,
+      nonVerifiedUser.publicKey
+    );
+
+    try {
+      await vaultProgram.methods
+        .directDeposit(new BN(depositAmount))
+        .accounts({
+          vault: vault,
+          accountant: accountant,
+          user: nonVerifiedUser.publicKey,
+          userTokenAccount: nonVerifiedUserTokenAccount,
+          userSharesAccount: userSharesAccount,
+          underlyingMint: underlyingMint,
+          strategy: strategy,
+          tokenProgram: token.TOKEN_PROGRAM_ID,
+        })
+        .signers([nonVerifiedUser])
+        .rpc();
+    } catch (err) {
+      console.log(err.message);
+    }
+
+    await validateDirectDeposit({
+      userTokenAccount: nonVerifiedUserTokenAccount,
+      userTokenAccountAmountExpected: nonVerifiedUserCurrentAmount,
+      userSharesAccount: userSharesAccount,
+      userSharesAccountAmountExpected: 0,
+      vaultTokenAccount: vaultTokenAccount,
+      vaultTokenAccountAmountExpected: 0,
+      vault: vault,
+      vaultTotalDebtAmountExpected: 0,
+      vaultTotalSharesAmountExpected: 0,
+      strategyTokenAccount: strategyTokenAccount,
+      strategyTokenAccountAmountExpected: 0,
+      strategy: strategy,
+      strategyCurrentDebtAmountExpected: 0,
     });
   });
 });

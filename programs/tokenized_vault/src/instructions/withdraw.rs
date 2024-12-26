@@ -6,7 +6,7 @@ use anchor_spl::{
 
 use strategy::program::Strategy;
 
-use crate::constants::{MAX_BPS, USER_DATA_SEED, SHARES_SEED};
+use crate::constants::{MAX_BPS, ONE_SHARE_TOKEN, SHARES_SEED, USER_DATA_SEED};
 use crate::errors::ErrorCode;
 use crate::events::VaultWithdrawlEvent;
 use crate::state::{StrategyData, UserData, Vault};
@@ -196,6 +196,7 @@ fn handle_internal<'info>(
     }
 
     let vault = ctx.accounts.vault.load()?;
+    let share_price = vault.convert_to_underlying(ONE_SHARE_TOKEN);
 
     emit!(VaultWithdrawlEvent {
         vault_key: vault.key,
@@ -208,6 +209,8 @@ fn handle_internal<'info>(
         token_mint: ctx.accounts.vault_token_account.mint,
         share_mint: ctx.accounts.shares_mint.to_account_info().key(),
         authority: ctx.accounts.user.to_account_info().key(),
+        share_price,
+        timestamp: Clock::get()?.unix_timestamp,
     });
 
     Ok(())

@@ -25,6 +25,7 @@ import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
   getAssociatedTokenAddress,
 } from "@solana/spl-token";
+import { formatInvestTrackerData } from "./utils/format-invest-tracker";
 
 
 // Constants
@@ -42,8 +43,8 @@ const WHIRLPOOL_ID_WSOL = new PublicKey(
 );
 const TICK_ARRAY_ADDRESSES_WSOL = [
   new PublicKey("3aBJJLAR3QxGcGsesNXeW3f64Rv3TckF7EQ6sXtAuvGM"),
-  new PublicKey("3aBJJLAR3QxGcGsesNXeW3f64Rv3TckF7EQ6sXtAuvGM"),
-  new PublicKey("3aBJJLAR3QxGcGsesNXeW3f64Rv3TckF7EQ6sXtAuvGM"),
+  new PublicKey("A1vrG379E5ttoaWmyQBiunsMdyrpoUp7mSQwu8DgLcip"),
+  new PublicKey("6457MVShLFLePXXpyj2uwL2P23wkraT4QnP5u5orTRDU"),
 ];
 const ORACLE_ADDRESS_WSOL = new PublicKey(
   "2KEWNc3b6EfqoWQpfKQMHh4mhRyKXYRdPbtGRTJX3Cip"
@@ -58,17 +59,41 @@ const WHIRLPOOL_ID_TMAC = new PublicKey(
 );
 const TICK_ARRAY_ADDRESSES_TMAC = [
   new PublicKey("5NApkpCKADoeYk8s2SHa2u1nHBPEXr937c1amNgjMDdy"),
-  new PublicKey("5NApkpCKADoeYk8s2SHa2u1nHBPEXr937c1amNgjMDdy"),
-  new PublicKey("5NApkpCKADoeYk8s2SHa2u1nHBPEXr937c1amNgjMDdy"),
+  new PublicKey("GLsD5jys1yN9oFuvXPWkgWcTMXytRRHtUpaytdpoEkEz"),
+  new PublicKey("6tWqaXhC6DzL3qF3C7jqd4fp8GfZ4eZ81HaZxP1q42FF"),
 ];
 const ORACLE_ADDRESS_TMAC = new PublicKey(
   "34mJni6KtJBUWoqsT5yZUJ89ywHnYaU11bh27cNHPTov"
 );
 
+/// Swap Vaults for USDT
+const WHIRLPOOL_PROGRAM_ID_USDT = new PublicKey("whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc");
+const WHIRLPOOL_ID_USDT = new PublicKey("63cMwvN8eoaD39os9bKP8brmA7Xtov9VxahnPufWCSdg");
+
+const TICK_ARRAY_ADDRESSES_USDT = [
+  new PublicKey("EBHQcAfc4ncUkCxgGYxEWCSu744qFaBEBmyv3U9ajNzX"),
+  new PublicKey("4cCMLotR9ATrdxznfA6uJjySPJ96yEqzqUejxVxHrV9x"),
+  new PublicKey("HZUZhi5xeybSiKJqBu1XXRh4y9azNLNSdgQ7owyarzQ"),
+];
+const ORACLE_ADDRESS_USDT = new PublicKey("BMy2iNjiFUoVR3xLkaPjfEHXtwjvvS9Dja4mD4Yzh5Fw");
+
+/// Swap Vaults for SAMO
+const WHIRLPOOL_PROGRAM_ID_SAMO = new PublicKey("whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc");
+const WHIRLPOOL_ID_SAMO = new PublicKey("EgxU92G34jw6QDG9RuTX9StFg1PmHuDqkRKAE5kVEiZ4");
+
+const TICK_ARRAY_ADDRESSES_SAMO = [
+  new PublicKey("9H4aVdyXbnnmbSJLjYahvZzrgdHyWVMq8i1v1fD7jqBt"),
+  new PublicKey("B6n4APQbms1BdY5Ev1V9hjgz3NC94f7ws8qG9e3bpedE"),
+  new PublicKey("9AQxHkiVJqoXRUvP9FpoXUcZ1HCEHpJHp8eZVRocK7Wx"),
+];
+const ORACLE_ADDRESS_SAMO = new PublicKey("3dWJWYaTPMoADQvVihAc8hFu4nYXsEtBAGQwPMBXau1t");
+
 // Token Mints
 const WSOL_MINT = new PublicKey("So11111111111111111111111111111111111111112");
 const TMAC_MINT = new PublicKey("Afn8YB1p4NsoZeS5XJBZ18LTfEy5NFPwN46wapZcBQr6");
 const USDC_MINT = new PublicKey("BRjpCHtyQLNCo8gqRUr8jtdAj5AjPYQaoqbvcZiHok1k");
+const USDT_MINT = new PublicKey("H8UekPGwePSmQ3ttuYGPU1szyFfjZR4N53rymSFwpLPm");
+const SAMO_MINT = new PublicKey("Jd4M8bfJG3sAkd82RsGWyEXoaBXQP7njFzBwEaCTuDa");
 
 // Swap Vaults for WSOL
 const TOKEN_VAULT_A_WSOL = new PublicKey("C9zLV5zWF66j3rZj3uuhDqvfuA8esJyWnruGzDW9qEj2");
@@ -77,6 +102,15 @@ const TOKEN_VAULT_B_WSOL = new PublicKey("7DM3RMz2yzUB8yPRQM3FMZgdFrwZGMsabsfsKo
 // Swap Vaults for TMAC
 const TOKEN_VAULT_A_TMAC = new PublicKey("2qE191zsJCJdMXsPcwkVJ5MyiSfreNpQtKpXgAMkwhUf");
 const TOKEN_VAULT_B_TMAC = new PublicKey("G6qeUBPqU3Ryabi4rwVUgHpLh6wmHLvi8jDQexTR1CTU");
+
+/// Swap Vaults for USDT
+const TOKEN_VAULT_A_USDT = new PublicKey("FeBffJzs1FHzkBWb2g9d4BfCBZVfxSGUqxndUij4Dva3");
+const TOKEN_VAULT_B_USDT = new PublicKey("5ETZXHhJmodgw7KPuNyKEvKhniGcxW99xS7VpZVbWvKH");
+
+/// Swap Vaults for SAMO
+const TOKEN_VAULT_A_SAMO = new PublicKey("GedZgiHw8dJpR6Fyt1PNgSwYznEyh18qgZvobuxYxMQ3");
+const TOKEN_VAULT_B_SAMO = new PublicKey("4KDudC7XagDiZZbd9Xzabcy5yZMC8bvz7c8q7Bb9vXTa");
+
 
 async function main() {
   try {
@@ -217,6 +251,48 @@ async function main() {
       strategyProgram.programId
     );
     console.log("Invest Tracker TMAC Account:", INVEST_TRACKER_ACCOUNT_TMAC.toBase58());
+
+    // Derive token accounts for USDT and SAMO
+    const [strategyUSDTAccount] = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("token_account"),
+        USDT_MINT.toBuffer(),
+        strategy.toBuffer(),
+      ],
+      strategyProgram.programId
+    );
+    console.log("Strategy USDT Token Account:", strategyUSDTAccount.toBase58());
+
+    const [strategySAMOAccount] = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("token_account"),
+        SAMO_MINT.toBuffer(),
+        strategy.toBuffer(),
+      ],
+      strategyProgram.programId
+    );
+    console.log("Strategy SAMO Token Account:", strategySAMOAccount.toBase58());
+
+    // Derive Invest Tracker PDAs for USDT and SAMO
+    const [INVEST_TRACKER_ACCOUNT_USDT] = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("invest_tracker"),
+        USDT_MINT.toBuffer(),
+        strategy.toBuffer(),
+      ],
+      strategyProgram.programId
+    );
+    console.log("Invest Tracker USDT Account:", INVEST_TRACKER_ACCOUNT_USDT.toBase58());
+
+    const [INVEST_TRACKER_ACCOUNT_SAMO] = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("invest_tracker"),
+        SAMO_MINT.toBuffer(),
+        strategy.toBuffer(),
+      ],
+      strategyProgram.programId
+    );
+    console.log("Invest Tracker SAMO Account:", INVEST_TRACKER_ACCOUNT_SAMO.toBase58());
 
     // ============================
     // Build remainingAccounts and remainingAccountsMap
@@ -360,8 +436,151 @@ async function main() {
       },
     ];
 
+    // For USDT
+    const remainingAccountsForUSDT = [
+      {
+        pubkey: WHIRLPOOL_PROGRAM_ID_USDT, // index 26
+        isWritable: false,
+        isSigner: false,
+      },
+      {
+        pubkey: WHIRLPOOL_ID_USDT, // index 27
+        isWritable: true,
+        isSigner: false,
+      },
+      {
+        pubkey: strategyTokenAccount, // index 28
+        isWritable: true,
+        isSigner: false,
+      },
+      {
+        pubkey: TOKEN_VAULT_A_USDT, // index 29
+        isWritable: true,
+        isSigner: false,
+      },
+      {
+        pubkey: strategyUSDTAccount, // index 30
+        isWritable: true,
+        isSigner: false,
+      },
+      {
+        pubkey: TOKEN_VAULT_B_USDT, // index 31
+        isWritable: true,
+        isSigner: false,
+      },
+      {
+        pubkey: TICK_ARRAY_ADDRESSES_USDT[0], // index 32
+        isWritable: true,
+        isSigner: false,
+      },
+      {
+        pubkey: TICK_ARRAY_ADDRESSES_USDT[1], // index 33
+        isWritable: true,
+        isSigner: false,
+      },
+      {
+        pubkey: TICK_ARRAY_ADDRESSES_USDT[2], // index 34
+        isWritable: true,
+        isSigner: false,
+      },
+      {
+        pubkey: ORACLE_ADDRESS_USDT, // index 35
+        isWritable: true,
+        isSigner: false,
+      },
+      {
+        pubkey: INVEST_TRACKER_ACCOUNT_USDT, // index 36
+        isWritable: true,
+        isSigner: false,
+      },
+      {
+        pubkey: strategy, // index 37
+        isWritable: true,
+        isSigner: false,
+      },
+      {
+        pubkey: strategyData, // index 38
+        isWritable: true,
+        isSigner: false,
+      },
+    ];
+
+    // For SAMO
+    const remainingAccountsForSAMO = [
+      {
+        pubkey: WHIRLPOOL_PROGRAM_ID_SAMO, // index 39
+        isWritable: false,
+        isSigner: false,
+      },
+      {
+        pubkey: WHIRLPOOL_ID_SAMO, // index 40
+        isWritable: true,
+        isSigner: false,
+      },
+      {
+        pubkey: strategySAMOAccount, // index 41
+        isWritable: true,
+        isSigner: false,
+      },
+      {
+        pubkey: TOKEN_VAULT_A_SAMO, // index 42
+        isWritable: true,
+        isSigner: false,
+      },
+      {
+        pubkey: strategyTokenAccount, // index 43
+        isWritable: true,
+        isSigner: false,
+      },
+      {
+        pubkey: TOKEN_VAULT_B_SAMO, // index 44
+        isWritable: true,
+        isSigner: false,
+      },
+      {
+        pubkey: TICK_ARRAY_ADDRESSES_SAMO[0], // index 45
+        isWritable: true,
+        isSigner: false,
+      },
+      {
+        pubkey: TICK_ARRAY_ADDRESSES_SAMO[1], // index 46
+        isWritable: true,
+        isSigner: false,
+      },
+      {
+        pubkey: TICK_ARRAY_ADDRESSES_SAMO[2], // index 47
+        isWritable: true,
+        isSigner: false,
+      },
+      {
+        pubkey: ORACLE_ADDRESS_SAMO, // index 48
+        isWritable: true,
+        isSigner: false,
+      },
+      {
+        pubkey: INVEST_TRACKER_ACCOUNT_SAMO, // index 49
+        isWritable: true,
+        isSigner: false,
+      },
+      {
+        pubkey: strategy, // index 50
+        isWritable: true,
+        isSigner: false,
+      },
+      {
+        pubkey: strategyData, // index 51
+        isWritable: true,
+        isSigner: false,
+      },
+    ];
+
     // Combine remaining accounts
-    const combinedRemainingAccounts = [...remainingAccountsForWSOL, ...remainingAccountsForTMAC];
+    const combinedRemainingAccounts = [
+      ...remainingAccountsForWSOL,
+      ...remainingAccountsForTMAC,
+      ...remainingAccountsForUSDT,
+      ...remainingAccountsForSAMO,
+    ];
     // Build remainingAccountsMap
     const remainingAccountsMap = {
       accountsMap: [
@@ -394,6 +613,30 @@ async function main() {
             new BN(22),
             new BN(23),
             new BN(24),
+            new BN(26),
+            new BN(27),
+            new BN(28),
+            new BN(29),
+            new BN(30),
+            new BN(31),
+            new BN(32),
+            new BN(33),
+            new BN(34),
+            new BN(35),
+            new BN(36),
+            new BN(37),
+            new BN(39),
+            new BN(40),
+            new BN(41),
+            new BN(42),
+            new BN(43),
+            new BN(44),
+            new BN(45),
+            new BN(46),
+            new BN(47),
+            new BN(48),
+            new BN(49),
+            new BN(50),
           ],
         },
       ],
@@ -415,6 +658,12 @@ async function main() {
     const investTrackerTMACBefore = await strategyProgram.account.investTracker.fetch(
       INVEST_TRACKER_ACCOUNT_TMAC
     );
+    const investTrackerUSDTBefore = await strategyProgram.account.investTracker.fetch(
+      INVEST_TRACKER_ACCOUNT_USDT
+    );
+    const investTrackerSAMOBefore = await strategyProgram.account.investTracker.fetch(
+      INVEST_TRACKER_ACCOUNT_SAMO
+    );
 
     console.log("\nInitial Balances:");
     console.log("WSOL Invest Tracker before:", {
@@ -430,6 +679,20 @@ async function main() {
       assetAmount: investTrackerTMACBefore.assetAmount.toString(),
       assetPrice: investTrackerTMACBefore.assetPrice.toString(),
       aToBForPurchase: investTrackerTMACBefore.aToBForPurchase
+    });
+    console.log("USDT Invest Tracker before:", {
+      amountInvested: investTrackerUSDTBefore.amountInvested.toString(),
+      amountWithdrawn: investTrackerUSDTBefore.amountWithdrawn.toString(),
+      assetAmount: investTrackerUSDTBefore.assetAmount.toString(),
+      assetPrice: investTrackerUSDTBefore.assetPrice.toString(),
+      aToBForPurchase: investTrackerUSDTBefore.aToBForPurchase
+    });
+    console.log("SAMO Invest Tracker before:", {
+      amountInvested: investTrackerSAMOBefore.amountInvested.toString(),
+      amountWithdrawn: investTrackerSAMOBefore.amountWithdrawn.toString(),
+      assetAmount: investTrackerSAMOBefore.assetAmount.toString(),
+      assetPrice: investTrackerSAMOBefore.assetPrice.toString(),
+      aToBForPurchase: investTrackerSAMOBefore.aToBForPurchase
     });
 
     // Existing balance checks...
@@ -453,7 +716,7 @@ async function main() {
 
     // Define redeemAmount and maxLoss
     const redeemAmount = userSharesBalance
-      .mul(new BN(60))
+      .mul(new BN(50))
       .div(new BN(100)); // Redeem 60% of the user's shares
     
     const maxLoss = new BN(500000);
@@ -465,23 +728,51 @@ async function main() {
     // Create Lookup Table
     // ============================
 
-    // Gather all unique public keys from combinedRemainingAccounts
-    const addresses = combinedRemainingAccounts.map((acc) => acc.pubkey);
+        // Gather all unique public keys from combinedRemainingAccounts
+        // const addresses = combinedRemainingAccounts.map((acc) => acc.pubkey);
 
-    // Create Lookup Table
-    const lookupTableAddress = await createLookupTable(admin, provider.connection, addresses);
+        // Create Lookup Table
+        // const lookupTableAddress = await createLookupTable(admin, provider.connection, addresses);
+        // Read lookup table address from ALT.json
+    // Replace the lookup table section with:
+    const altJsonPath = path.join(__dirname, 'ALT', 'ALT.json');
+    const altJson = JSON.parse(fs.readFileSync(altJsonPath, 'utf8'));
 
-    // Wait for new block before using the lookup table
-    await waitForNewBlock(provider.connection, 1);
+    // const lookupTableAddress = new PublicKey(altJson.lookupTableAddress);
+    // // Wait for new block before using the lookup table
+    // await waitForNewBlock(provider.connection, 1);
 
-    // Fetch the lookup table account
-    const lookupTableAccount = (
-      await provider.connection.getAddressLookupTable(lookupTableAddress)
-    ).value;
 
-    if (!lookupTableAccount) {
-      throw new Error("Lookup table not found");
-    }
+    
+    // // Fetch the lookup table account
+    // const lookupTableAccount = (
+    //   await provider.connection.getAddressLookupTable(lookupTableAddress)
+    // ).value;
+
+    // console.log("Lookup Table Account:", lookupTableAccount);
+
+    // if (!lookupTableAccount) {
+    //   throw new Error("Lookup table not found");
+    // }
+
+    // Load all lookup tables
+    const lookupTableAccounts = await Promise.all(
+      Object.values(altJson.lookupTableAddresses).map(async (address) => {
+        const lookupTableAccount = (
+          await provider.connection.getAddressLookupTable(new PublicKey(address))
+        ).value;
+        
+        if (!lookupTableAccount) {
+          throw new Error(`Lookup table not found for address: ${address}`);
+        }
+        return lookupTableAccount;
+      })
+    );
+
+    console.log("Loaded lookup tables:", {
+      programOperations: altJson.lookupTableAddresses.programOperations,
+      poolOperations: altJson.lookupTableAddresses.poolOperations
+    });
 
     // ============================
     // Build the Versioned Transaction
@@ -489,7 +780,7 @@ async function main() {
 
     // Build the instruction for compute budget (add this before redeemIx)
     const computeUnitLimitIx = ComputeBudgetProgram.setComputeUnitLimit({
-      units: 300000, // Increase this value as needed
+      units: 600000, // Increase this value as needed
     });
 
     // Build the instruction for redeem
@@ -509,12 +800,15 @@ async function main() {
     // Get latest blockhash before creating transaction
     const latestBlockhash = await provider.connection.getLatestBlockhash();
 
-    // Create a TransactionMessage with both instructions
+    // Create a TransactionMessage with all lookup tables
     const messageV0 = new TransactionMessage({
       payerKey: admin.publicKey,
       recentBlockhash: latestBlockhash.blockhash,
       instructions: [computeUnitLimitIx, redeemIx],
-    }).compileToV0Message([lookupTableAccount]);
+    // }).compileToV0Message([lookupTableAccount]);
+    }).compileToV0Message(lookupTableAccounts);
+
+    console.log("Lookup table accounts:", lookupTableAccounts);
 
     // Create VersionedTransaction
     const transaction = new VersionedTransaction(messageV0);
@@ -563,36 +857,18 @@ async function main() {
     const investTrackerTMACAfter = await strategyProgram.account.investTracker.fetch(
       INVEST_TRACKER_ACCOUNT_TMAC
     );
+    const investTrackerUSDTAfter = await strategyProgram.account.investTracker.fetch(
+      INVEST_TRACKER_ACCOUNT_USDT
+    );
+    const investTrackerSAMOAfter = await strategyProgram.account.investTracker.fetch(
+      INVEST_TRACKER_ACCOUNT_SAMO
+    );
 
-    console.log("\nInvest Tracker Changes:");
-    console.log("WSOL Invest Tracker after:", {
-      amountInvested: investTrackerWSOLAfter.amountInvested.toString(),
-      amountWithdrawn: investTrackerWSOLAfter.amountWithdrawn.toString(),
-      assetAmount: investTrackerWSOLAfter.assetAmount.toString(),
-      assetPrice: investTrackerWSOLAfter.assetPrice.toString(),
-      aToBForPurchase: investTrackerWSOLAfter.aToBForPurchase
-    });
-    console.log("TMAC Invest Tracker after:", {
-      amountInvested: investTrackerTMACAfter.amountInvested.toString(),
-      amountWithdrawn: investTrackerTMACAfter.amountWithdrawn.toString(),
-      assetAmount: investTrackerTMACAfter.assetAmount.toString(),
-      assetPrice: investTrackerTMACAfter.assetPrice.toString(),
-      aToBForPurchase: investTrackerTMACAfter.aToBForPurchase
-    });
-
-    // Add invest tracker changes
-    console.log("WSOL Invest Tracker changes:", {
-      amountInvested: investTrackerWSOLAfter.amountInvested.sub(investTrackerWSOLBefore.amountInvested).toString(),
-      amountWithdrawn: investTrackerWSOLAfter.amountWithdrawn.sub(investTrackerWSOLBefore.amountWithdrawn).toString(),
-      assetAmount: investTrackerWSOLAfter.assetAmount.sub(investTrackerWSOLBefore.assetAmount).toString(),
-      assetPrice: investTrackerWSOLAfter.assetPrice.sub(investTrackerWSOLBefore.assetPrice).toString()
-    });
-    console.log("TMAC Invest Tracker changes:", {
-      amountInvested: investTrackerTMACAfter.amountInvested.sub(investTrackerTMACBefore.amountInvested).toString(),
-      amountWithdrawn: investTrackerTMACAfter.amountWithdrawn.sub(investTrackerTMACBefore.amountWithdrawn).toString(),
-      assetAmount: investTrackerTMACAfter.assetAmount.sub(investTrackerTMACBefore.assetAmount).toString(),
-      assetPrice: investTrackerTMACAfter.assetPrice.sub(investTrackerTMACBefore.assetPrice).toString()
-    });
+    console.log("\nInvest Tracker States AFTER redeem:");
+    console.log("WSOL Invest Tracker:", formatInvestTrackerData(investTrackerWSOLAfter));
+    console.log("TMAC Invest Tracker:", formatInvestTrackerData(investTrackerTMACAfter));
+    console.log("USDT Invest Tracker:", formatInvestTrackerData(investTrackerUSDTAfter));
+    console.log("SAMO Invest Tracker:", formatInvestTrackerData(investTrackerSAMOAfter));
 
   } catch (error) {
     console.error("Error occurred:", error);

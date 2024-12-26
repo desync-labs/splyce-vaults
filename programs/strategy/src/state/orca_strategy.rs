@@ -5,7 +5,8 @@ use super::base_strategy::*;
 use super::StrategyType;
 use super::fee_data::*;
 use crate::error::ErrorCode;
-use crate::events::{StrategyDepositEvent, AMMStrategyInitEvent, StrategyWithdrawEvent, HarvestAndReportDTFEvent, InvestTrackerSwapEvent};
+use crate::events::{StrategyDepositEvent, StrategyInitEvent, StrategyWithdrawEvent, HarvestAndReportDTFEvent, InvestTrackerSwapEvent, StrategyDeployFundsEvent, StrategyFreeFundsEvent};
+
 use crate::instructions::{Report, ReportProfit, ReportLoss, DeployFunds, FreeFunds, Rebalance};
 use crate::constants::{
     MAX_SQRT_PRICE_X64, 
@@ -34,7 +35,7 @@ pub struct OrcaStrategy {
     pub underlying_token_acc: Pubkey,
     pub underlying_decimals: u8,
 
-    pub total_invested: u64,
+    pub total_invested: u64, // It's here but not used since total_invested can underflow in orca_strategy when withdrawl amount gets bigger than deposited amount due to asset appreciation
     pub total_assets: u64, // In orca, this is not actual total assets but total asset value in underlying token units (total asset value)
     pub deposit_limit: u64, // Use it when testing beta version
 
@@ -263,6 +264,12 @@ impl Strategy for OrcaStrategy {
             )?;
         }
 
+        emit!(StrategyFreeFundsEvent {
+            account_key: self.key(),
+            amount,
+            timestamp: Clock::get()?.unix_timestamp,
+        });
+
         Ok(())
     }
 
@@ -317,6 +324,12 @@ impl Strategy for OrcaStrategy {
                 is_a_to_b,     // Pass is_a_to_b
             )?;
         }
+
+        emit!(StrategyDeployFundsEvent {
+            account_key: self.key(),
+            amount,
+            timestamp: Clock::get()?.unix_timestamp,
+        });
 
         Ok(())
     }
@@ -536,15 +549,17 @@ impl StrategyInit for OrcaStrategy {
         };
 
         emit!(
-            AMMStrategyInitEvent 
+            StrategyInitEvent 
             {
                 account_key: self.key(),
-                strategy_type: String::from("trade-fintech"),
+                strategy_type: String::from("DETF-Strategy"),
                 vault: self.vault,
                 underlying_mint: self.underlying_mint,
                 underlying_token_acc: self.underlying_token_acc,
-                undelying_decimals: self.underlying_decimals,
+                underlying_decimals: self.underlying_decimals,
                 deposit_limit: self.deposit_limit,
+                deposit_period_ends: config.deposit_period_ends,
+                lock_period_ends: config.lock_period_ends,
             });
 
         Ok(())
@@ -763,15 +778,17 @@ impl OrcaStrategy {
         underlying_balance_after: u64,
         asset_balance_before: u64,
         asset_balance_after: u64,
-        is_buying: bool,  // true when deploying funds or buying during rebalance
+        is_buying: bool,
     ) -> Result<()> {
         let mut data = invest_tracker_account.try_borrow_mut_data()?;
         let mut invest_tracker_data = InvestTracker::try_from_slice(&data[8..])?;
+        
+        // Initialize per-transaction realized profit/loss
+        let mut realized_profit_in_this_tx: u64 = 0;
+        let mut realized_loss_in_this_tx: u64 = 0;
     
         if is_buying {
-            // When buying assets:
-            // - asset_amount increases by what we received
-            // - amount_invested increases by what we spent
+            // Buying scenario:
             let new_asset_amount = asset_balance_after
                 .checked_sub(asset_balance_before)
                 .ok_or(OrcaStrategyErrorCode::MathError)?;
@@ -786,16 +803,21 @@ impl OrcaStrategy {
                 .checked_add(underlying_spent)
                 .ok_or(OrcaStrategyErrorCode::MathError)?;
     
-            self.total_invested = self.total_invested
+            invest_tracker_data.effective_invested_amount = invest_tracker_data.effective_invested_amount
                 .checked_add(underlying_spent)
                 .ok_or(OrcaStrategyErrorCode::MathError)?;
+    
+            // Buying: no realized profit or loss
+            realized_profit_in_this_tx = 0;
+            realized_loss_in_this_tx = 0;
         } else {
-            // When selling assets:
-            // - asset_amount decreases by what we sold
-            // - amount_withdrawn increases by what we received
+            // Selling scenario:
+            let asset_amount_before_sale = invest_tracker_data.asset_amount; // snapshot before reducing
             let asset_amount_sold = asset_balance_before
                 .checked_sub(asset_balance_after)
                 .ok_or(OrcaStrategyErrorCode::MathError)?;
+    
+            // Update asset_amount after the sale
             invest_tracker_data.asset_amount = invest_tracker_data.asset_amount
                 .checked_sub(asset_amount_sold)
                 .ok_or(OrcaStrategyErrorCode::MathError)?;
@@ -807,29 +829,103 @@ impl OrcaStrategy {
                 .checked_add(underlying_received)
                 .ok_or(OrcaStrategyErrorCode::MathError)?;
     
-            // Decrease total_invested by the amount of underlying tokens received
-            self.total_invested = self.total_invested
-                .checked_sub(underlying_received)
+            if invest_tracker_data.effective_invested_amount == 0 {
+                // If we have no remaining cost basis, all proceeds are scenario-based profit.
+                realized_profit_in_this_tx = underlying_received;
+                realized_loss_in_this_tx = 0;
+    
+                invest_tracker_data.scenario_realized_profit = invest_tracker_data.scenario_realized_profit
+                    .checked_add(realized_profit_in_this_tx)
+                    .ok_or(OrcaStrategyErrorCode::MathError)?;
+            } else {
+                // Normal cost basis calculation:
+                // Check to avoid division by zero:
+                if asset_amount_before_sale == 0 {
+                    // Selling without having any asset_amount recorded
+                    return Err(OrcaStrategyErrorCode::MathError.into());
+                }
+    
+                // cost_basis_for_sale = (effective_invested_amount * asset_amount_sold) / asset_amount_before_sale
+                let cost_basis_for_sale = (invest_tracker_data.effective_invested_amount as u128)
+                    .checked_mul(asset_amount_sold as u128)
+                    .ok_or(OrcaStrategyErrorCode::MathError)?
+                    .checked_div(asset_amount_before_sale as u128)
+                    .ok_or(OrcaStrategyErrorCode::MathError)? as u64;
+    
+                // Update effective_invested_amount after removing the cost basis for the sold portion
+                invest_tracker_data.effective_invested_amount = invest_tracker_data.effective_invested_amount
+                    .checked_sub(cost_basis_for_sale)
+                    .ok_or(OrcaStrategyErrorCode::MathError)?;
+    
+                // Realized profit or loss = underlying_received - cost_basis_for_sale
+                if underlying_received > cost_basis_for_sale {
+                    realized_profit_in_this_tx = underlying_received
+                        .checked_sub(cost_basis_for_sale)
+                        .ok_or(OrcaStrategyErrorCode::MathError)?;
+                    realized_loss_in_this_tx = 0;
+    
+                    // If effective_invested_amount is now zero after this sale, 
+                    // the realized profit is scenario-based profit.
+                    if invest_tracker_data.effective_invested_amount == 0 && realized_profit_in_this_tx > 0 {
+                        invest_tracker_data.scenario_realized_profit = invest_tracker_data.scenario_realized_profit
+                            .checked_add(realized_profit_in_this_tx)
+                            .ok_or(OrcaStrategyErrorCode::MathError)?;
+                    }
+                } else if underlying_received < cost_basis_for_sale {
+                    realized_loss_in_this_tx = cost_basis_for_sale
+                        .checked_sub(underlying_received)
+                        .ok_or(OrcaStrategyErrorCode::MathError)?;
+                    realized_profit_in_this_tx = 0;
+                } else {
+                    // underlying_received == cost_basis_for_sale
+                    realized_profit_in_this_tx = 0;
+                    realized_loss_in_this_tx = 0;
+                }
+            }
+        }
+    
+        // Accumulate transaction-based realized profit and loss
+        if realized_profit_in_this_tx > 0 {
+            invest_tracker_data.tx_realized_profit_accumulated = invest_tracker_data.tx_realized_profit_accumulated
+                .checked_add(realized_profit_in_this_tx)
                 .ok_or(OrcaStrategyErrorCode::MathError)?;
         }
     
-        // Serialize and save the updated data
+        if realized_loss_in_this_tx > 0 {
+            invest_tracker_data.tx_realized_loss_accumulated = invest_tracker_data.tx_realized_loss_accumulated
+                .checked_add(realized_loss_in_this_tx)
+                .ok_or(OrcaStrategyErrorCode::MathError)?;
+        }
+    
+        // Recalculate unrealized profit/loss
+        let effective_invested = invest_tracker_data.effective_invested_amount as u128;
+        let asset_value = invest_tracker_data.asset_value;
+    
+        if asset_value > effective_invested {
+            invest_tracker_data.unrealized_profit = (asset_value - effective_invested) as u64;
+            invest_tracker_data.unrealized_loss = 0;
+        } else {
+            invest_tracker_data.unrealized_profit = 0;
+            invest_tracker_data.unrealized_loss = (effective_invested - asset_value) as u64;
+        }
+    
         let serialized = invest_tracker_data.try_to_vec()?;
         data[8..].copy_from_slice(&serialized);
     
-        // Emit event with the latest state
+        // Emit event with both per-tx
         emit!(InvestTrackerSwapEvent {
             account_key: self.key(),
             invest_tracker_account_key: invest_tracker_account.key(),
             asset_mint: invest_tracker_data.asset_mint,
-            invested_underlying_amount: invest_tracker_data.amount_invested
-                .checked_sub(invest_tracker_data.amount_withdrawn)
-                .ok_or(OrcaStrategyErrorCode::MathError)?,
             asset_amount: invest_tracker_data.asset_amount,
-            asset_price: invest_tracker_data.sqrt_price as u64,
+            effective_invested_amount: invest_tracker_data.effective_invested_amount,
+            scenario_realized_profit: invest_tracker_data.scenario_realized_profit,
+            realized_profit_in_this_tx: realized_profit_in_this_tx,    // per tx profit
+            realized_loss_in_this_tx: realized_loss_in_this_tx,        // per tx loss
+            is_buy: is_buying,
             timestamp: Clock::get()?.unix_timestamp,
         });
-        
+    
         Ok(())
     }
 }

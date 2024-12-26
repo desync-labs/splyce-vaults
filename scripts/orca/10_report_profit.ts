@@ -7,7 +7,9 @@ import * as fs from "fs";
 import * as path from "path";
 import { PublicKey } from "@solana/web3.js";
 import { AccessControl } from "../../target/types/access_control";
+import { Accountant } from "../../target/types/accountant";
 import { TOKEN_PROGRAM_ID, getAssociatedTokenAddress } from "@solana/spl-token";
+import { formatInvestTrackerData } from "./utils/format-invest-tracker";
 
 const WSOL_MINT = new PublicKey(
   "So11111111111111111111111111111111111111112"
@@ -18,6 +20,8 @@ const TMAC_MINT = new PublicKey(
 
 const USDC_MINT = new PublicKey("BRjpCHtyQLNCo8gqRUr8jtdAj5AjPYQaoqbvcZiHok1k");
 
+const USDT_MINT = new PublicKey("H8UekPGwePSmQ3ttuYGPU1szyFfjZR4N53rymSFwpLPm");
+const SAMO_MINT = new PublicKey("Jd4M8bfJG3sAkd82RsGWyEXoaBXQP7njFzBwEaCTuDa");
 
 function deserializeOrcaStrategy(data: Buffer) {
     // Skip 8 byte discriminator
@@ -98,7 +102,7 @@ async function main() {
     const tokenizedVaultProgram = anchor.workspace.TokenizedVault as Program<TokenizedVault>;
     const strategyProgram = anchor.workspace.Strategy as Program<Strategy>;
     const accessControlProgram = anchor.workspace.AccessControl as Program<AccessControl>;
-
+    const accountantProgram = anchor.workspace.Accountant as Program<Accountant>;
     // Get vault PDA
     const vaultIndex = 0;
     const [vaultPDA] = anchor.web3.PublicKey.findProgramAddressSync(
@@ -137,6 +141,24 @@ async function main() {
       strategyProgram.programId
     );
 
+    const [INVEST_TRACKER_ACCOUNT_USDT] = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("invest_tracker"),
+        USDT_MINT.toBuffer(),
+        strategy.toBuffer(),
+      ],
+      strategyProgram.programId
+    );
+
+    const [INVEST_TRACKER_ACCOUNT_SAMO] = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("invest_tracker"),
+        SAMO_MINT.toBuffer(),
+        strategy.toBuffer(),
+      ],
+      strategyProgram.programId
+    );
+
     // Get raw account data and deserialize strategy
     const strategyAccountInfo = await provider.connection.getAccountInfo(strategy);
     if (!strategyAccountInfo) {
@@ -147,20 +169,16 @@ async function main() {
     console.log("\nInvest Tracker States BEFORE report:");
     const tmacTrackerBefore = await strategyProgram.account.investTracker.fetch(INVEST_TRACKER_ACCOUNT_TMAC);
     const wsolTrackerBefore = await strategyProgram.account.investTracker.fetch(INVEST_TRACKER_ACCOUNT_WSOL);
+    const usdtTrackerBefore = await strategyProgram.account.investTracker.fetch(INVEST_TRACKER_ACCOUNT_USDT);
+    const samoTrackerBefore = await strategyProgram.account.investTracker.fetch(INVEST_TRACKER_ACCOUNT_SAMO);
+
+    console.log("TMAC Tracker:", formatInvestTrackerData(tmacTrackerBefore));
     
-    console.log("TMAC Tracker:", {
-      amount_invested: tmacTrackerBefore.amountInvested.toString(),
-      amount_withdrawn: tmacTrackerBefore.amountWithdrawn.toString(),
-      asset_amount: tmacTrackerBefore.assetAmount.toString(),
-      asset_value: tmacTrackerBefore.assetValue.toString(),
-    });
-    
-    console.log("WSOL Tracker:", {
-      amount_invested: wsolTrackerBefore.amountInvested.toString(),
-      amount_withdrawn: wsolTrackerBefore.amountWithdrawn.toString(),
-      asset_amount: wsolTrackerBefore.assetAmount.toString(),
-      asset_value: wsolTrackerBefore.assetValue.toString(),
-    });
+    console.log("WSOL Tracker:", formatInvestTrackerData(wsolTrackerBefore));
+
+    console.log("USDT Tracker:", formatInvestTrackerData(usdtTrackerBefore));
+
+    console.log("SAMO Tracker:", formatInvestTrackerData(samoTrackerBefore));
 
     // Deserialize and log strategy state
     const strategyBefore = deserializeOrcaStrategy(Buffer.from(strategyAccountInfo.data));
@@ -195,6 +213,26 @@ async function main() {
         },
         {
           pubkey: TMAC_MINT,
+          isWritable: false,
+          isSigner: false,
+        },
+        {
+          pubkey: INVEST_TRACKER_ACCOUNT_USDT,
+          isWritable: true,
+          isSigner: false,
+        },
+        {
+          pubkey: USDT_MINT,
+          isWritable: false,
+          isSigner: false,
+        },
+        {
+          pubkey: INVEST_TRACKER_ACCOUNT_SAMO,
+          isWritable: true,
+          isSigner: false,
+        },
+        {
+          pubkey: SAMO_MINT,
           isWritable: false,
           isSigner: false,
         },
@@ -243,13 +281,21 @@ async function main() {
       tokenizedVaultProgram.programId
     );
 
+    // Get accountant PDA      //calculate accountant PDA
+      const accountant = anchor.web3.PublicKey.findProgramAddressSync(
+        [
+          Buffer.from(new Uint8Array(new BigUint64Array([BigInt(0)]).buffer))
+        ],
+        accountantProgram.programId
+      )[0];
+
     // Call process_report with all required accounts
     await tokenizedVaultProgram.methods
       .processReport()
       .accounts({
         vault: vaultPDA,
         strategy,
-        accountant: admin.publicKey,
+        accountant: accountant,
       })
       .signers([admin])
       .rpc();
@@ -291,20 +337,16 @@ async function main() {
     console.log("\nInvest Tracker States AFTER report:");
     const tmacTrackerAfter = await strategyProgram.account.investTracker.fetch(INVEST_TRACKER_ACCOUNT_TMAC);
     const wsolTrackerAfter = await strategyProgram.account.investTracker.fetch(INVEST_TRACKER_ACCOUNT_WSOL);
+    const usdtTrackerAfter = await strategyProgram.account.investTracker.fetch(INVEST_TRACKER_ACCOUNT_USDT);
+    const samoTrackerAfter = await strategyProgram.account.investTracker.fetch(INVEST_TRACKER_ACCOUNT_SAMO);
+
+    console.log("TMAC Tracker:", formatInvestTrackerData(tmacTrackerAfter));
     
-    console.log("TMAC Tracker:", {
-      amount_invested: tmacTrackerAfter.amountInvested.toString(),
-      amount_withdrawn: tmacTrackerAfter.amountWithdrawn.toString(),
-      asset_amount: tmacTrackerAfter.assetAmount.toString(),
-      asset_value: tmacTrackerAfter.assetValue.toString(),
-    });
-    
-    console.log("WSOL Tracker:", {
-      amount_invested: wsolTrackerAfter.amountInvested.toString(),
-      amount_withdrawn: wsolTrackerAfter.amountWithdrawn.toString(),
-      asset_amount: wsolTrackerAfter.assetAmount.toString(),
-      asset_value: wsolTrackerAfter.assetValue.toString(),
-    });
+    console.log("WSOL Tracker:", formatInvestTrackerData(wsolTrackerAfter));
+
+    console.log("USDT Tracker:", formatInvestTrackerData(usdtTrackerAfter));
+
+    console.log("SAMO Tracker:", formatInvestTrackerData(samoTrackerAfter));
 
   } catch (error) {
     console.error("Error occurred:", error);

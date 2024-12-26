@@ -18,16 +18,15 @@ pub struct TokenData {
 pub struct VaultInitEvent {
     pub vault_key: Pubkey, 
     pub underlying_token: TokenData,
-    pub share_token: TokenData,
     pub accountant: Pubkey,
+    pub share_token: TokenData,
     pub deposit_limit: u64,
     pub min_user_deposit: u64,
-    pub profit_max_unlock_time: u64,
     pub kyc_verified_only: bool,
     pub direct_deposit_enabled: bool,
     pub whitelisted_only: bool,
+    pub profit_max_unlock_time: u64,
 }
-
 
 #[event]
 pub struct VaultAddStrategyEvent {
@@ -52,6 +51,8 @@ pub struct VaultDepositEvent {
     pub token_mint: Pubkey,
     pub share_mint: Pubkey,
     pub authority: Pubkey,
+    pub share_price: u64,
+    pub timestamp: i64,
 }
 
 
@@ -67,6 +68,8 @@ pub struct VaultWithdrawlEvent {
     pub token_mint: Pubkey,
     pub share_mint: Pubkey,
     pub authority: Pubkey,
+    pub share_price: u64,
+    pub timestamp: i64,
 }
 
 #[event]
@@ -98,6 +101,8 @@ pub struct StrategyReportedEvent {
     pub current_debt: u64,
     pub protocol_fees: u64,
     pub total_fees: u64,
+    pub total_shares: u64,
+    pub share_price: u64,
     pub timestamp: i64,
 }
 

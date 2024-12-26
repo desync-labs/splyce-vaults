@@ -8,6 +8,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { PublicKey } from "@solana/web3.js";
 import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import { formatInvestTrackerData } from "./utils/format-invest-tracker";
 
 // Swap-related constants for WSOL
 const WHIRLPOOL_PROGRAM_ID_WSOL = new PublicKey(
@@ -280,25 +281,9 @@ async function main() {
     const wsolTrackerBefore = await strategyProgram.account.investTracker.fetch(INVEST_TRACKER_ACCOUNT_WSOL);
     const tmacTrackerBefore = await strategyProgram.account.investTracker.fetch(INVEST_TRACKER_ACCOUNT_TMAC);
 
-    console.log("\nWSol Invest Tracker Before:");
-    console.log({
-      amountInvested: wsolTrackerBefore.amountInvested.toString(),
-      amountWithdrawn: wsolTrackerBefore.amountWithdrawn.toString(),
-      assetAmount: wsolTrackerBefore.assetAmount.toString(),
-      assetPrice: wsolTrackerBefore.assetPrice.toString(),
-      assetValue: wsolTrackerBefore.assetValue.toString(),
-      currentWeight: wsolTrackerBefore.currentWeight,
-    });
-
-    console.log("\nTMAC Invest Tracker Before:");
-    console.log({
-      amountInvested: tmacTrackerBefore.amountInvested.toString(),
-      amountWithdrawn: tmacTrackerBefore.amountWithdrawn.toString(),
-      assetAmount: tmacTrackerBefore.assetAmount.toString(),
-      assetPrice: tmacTrackerBefore.assetPrice.toString(),
-      assetValue: tmacTrackerBefore.assetValue.toString(),
-      currentWeight: tmacTrackerBefore.currentWeight,
-    });
+    console.log("\nInvest Tracker States BEFORE rebalance:");
+    console.log("WSOL Invest Tracker:", formatInvestTrackerData(wsolTrackerBefore));
+    console.log("TMAC Invest Tracker:", formatInvestTrackerData(tmacTrackerBefore));
 
     // Call rebalance instruction
     await strategyProgram.methods
@@ -324,50 +309,9 @@ async function main() {
     const wsolTrackerAfter = await strategyProgram.account.investTracker.fetch(INVEST_TRACKER_ACCOUNT_WSOL);
     const tmacTrackerAfter = await strategyProgram.account.investTracker.fetch(INVEST_TRACKER_ACCOUNT_TMAC);
 
-    console.log("\nBalance Changes:");
-    console.log("WSOL Change:", wsolBalanceAfter.value.uiAmount - wsolBalanceBefore.value.uiAmount);
-    console.log("TMAC Change:", tmacBalanceAfter.value.uiAmount - tmacBalanceBefore.value.uiAmount);
-
-    console.log("\nWSol Invest Tracker After:");
-    console.log({
-      amountInvested: wsolTrackerAfter.amountInvested.toString(),
-      amountWithdrawn: wsolTrackerAfter.amountWithdrawn.toString(),
-      assetAmount: wsolTrackerAfter.assetAmount.toString(),
-      assetPrice: wsolTrackerAfter.assetPrice.toString(),
-      assetValue: wsolTrackerAfter.assetValue.toString(),
-      currentWeight: wsolTrackerAfter.currentWeight,
-    });
-
-    console.log("\nTMAC Invest Tracker After:");
-    console.log({
-      amountInvested: tmacTrackerAfter.amountInvested.toString(),
-      amountWithdrawn: tmacTrackerAfter.amountWithdrawn.toString(),
-      assetAmount: tmacTrackerAfter.assetAmount.toString(),
-      assetPrice: tmacTrackerAfter.assetPrice.toString(),
-      assetValue: tmacTrackerAfter.assetValue.toString(),
-      currentWeight: tmacTrackerAfter.currentWeight,
-    });
-
-    console.log("\nInvest Tracker Changes:");
-    console.log("\nWSOL Changes:");
-    console.log({
-      amountInvested: (wsolTrackerAfter.amountInvested.sub(wsolTrackerBefore.amountInvested)).toString(),
-      amountWithdrawn: (wsolTrackerAfter.amountWithdrawn.sub(wsolTrackerBefore.amountWithdrawn)).toString(),
-      assetAmount: (wsolTrackerAfter.assetAmount.sub(wsolTrackerBefore.assetAmount)).toString(),
-      assetPrice: (wsolTrackerAfter.assetPrice.sub(wsolTrackerBefore.assetPrice)).toString(),
-      assetValue: (wsolTrackerAfter.assetValue.sub(wsolTrackerBefore.assetValue)).toString(),
-      currentWeight: wsolTrackerAfter.currentWeight - wsolTrackerBefore.currentWeight,
-    });
-
-    console.log("\nTMAC Changes:");
-    console.log({
-      amountInvested: (tmacTrackerAfter.amountInvested.sub(tmacTrackerBefore.amountInvested)).toString(),
-      amountWithdrawn: (tmacTrackerAfter.amountWithdrawn.sub(tmacTrackerBefore.amountWithdrawn)).toString(),
-      assetAmount: (tmacTrackerAfter.assetAmount.sub(tmacTrackerBefore.assetAmount)).toString(),
-      assetPrice: (tmacTrackerAfter.assetPrice.sub(tmacTrackerBefore.assetPrice)).toString(),
-      assetValue: (tmacTrackerAfter.assetValue.sub(tmacTrackerBefore.assetValue)).toString(),
-      currentWeight: tmacTrackerAfter.currentWeight - tmacTrackerBefore.currentWeight,
-    });
+    console.log("\nInvest Tracker States AFTER rebalance:");
+    console.log("WSOL Invest Tracker:", formatInvestTrackerData(wsolTrackerAfter));
+    console.log("TMAC Invest Tracker:", formatInvestTrackerData(tmacTrackerAfter));
 
   } catch (error) {
     console.error("Error occurred:", error);

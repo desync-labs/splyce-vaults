@@ -13,8 +13,7 @@ use strategy::{
     constants::UNDERLYING_SEED,
     program::Strategy
 };
-
-use crate::constants::{SHARES_SEED, STRATEGY_DATA_SEED, USER_DATA_SEED};
+use crate::constants::{SHARES_SEED, STRATEGY_DATA_SEED, ONE_SHARE_TOKEN, USER_DATA_SEED};
 use crate::events::{VaultDepositEvent, UpdatedCurrentDebtForStrategyEvent};
 use crate::state::{UserData, Vault, StrategyData};
 use crate::utils::{accountant, strategy as strategy_utils, token, vault};
@@ -180,6 +179,8 @@ pub fn handle_direct_deposit<'info>(ctx: Context<'_, '_, '_, 'info, DirectDeposi
     vault.handle_direct_deposit(amount, shares);
     ctx.accounts.user_data.deposited += amount;
 
+    let share_price = vault.convert_to_underlying(ONE_SHARE_TOKEN);
+
     emit!(VaultDepositEvent {
         vault_key: vault.key,
         total_debt: vault.total_debt,
@@ -192,6 +193,8 @@ pub fn handle_direct_deposit<'info>(ctx: Context<'_, '_, '_, 'info, DirectDeposi
         token_mint: ctx.accounts.vault_token_account.mint,
         share_mint: ctx.accounts.shares_mint.to_account_info().key(),
         authority: ctx.accounts.user.to_account_info().key(),
+        share_price,
+        timestamp: Clock::get()?.unix_timestamp,
     });
 
     emit!(UpdatedCurrentDebtForStrategyEvent {
