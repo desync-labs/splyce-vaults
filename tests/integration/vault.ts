@@ -355,14 +355,6 @@ describe("tokenized_vault", () => {
     console.log("Vault deposit limit: ", vaultAccount.depositLimit.toString());
     console.log("minUserDeposit: ", vaultAccount.minUserDeposit.toString());
 
-    await vaultProgram.methods.initVaultShares(new BN(0), sharesConfig)
-      .accounts({
-        metadata: metadataAddress,
-        signer: admin.publicKey,
-      })
-      .signers([admin])
-      .rpc();
-
     const config = web3.PublicKey.findProgramAddressSync(
       [Buffer.from("config")],
       vaultProgram.programId,

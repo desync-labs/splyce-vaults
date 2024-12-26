@@ -9,7 +9,7 @@ pub struct TokenMetaData {
 #[derive(Debug, AnchorDeserialize, AnchorSerialize)]
 pub struct TokenData {
     pub mint: Pubkey,
-    // pub account: Pubkey,
+    pub account: Pubkey,
     pub decimals: u8,
     pub metadata: TokenMetaData,
 }

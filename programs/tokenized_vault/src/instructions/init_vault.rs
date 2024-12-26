@@ -5,7 +5,7 @@ use access_control::{
     state::{UserRole, Role}
 };
 use anchor_spl::{
-    associated_token::AssociatedToken,
+    associated_token::{AssociatedToken, get_associated_token_address},
     metadata::{
         create_metadata_accounts_v3,
         mpl_token_metadata::types::DataV2,
@@ -49,16 +49,15 @@ pub struct InitVault<'info> {
         payer = signer, 
         mint::decimals = 9, 
         mint::authority = shares_mint,
+        mint::token_program = shares_token_program,
     )]
     pub shares_mint: Box<InterfaceAccount<'info, Mint>>,
-
-
     
     /// CHECK: We initialize this metadata account via the Metaplex Metadata Program, so we don't have to check it here
     #[account(mut)]
     pub metadata: UncheckedAccount<'info>,
 
-    #[account(mut)]
+    #[account()]
     pub underlying_mint: Box<InterfaceAccount<'info, Mint>>,
     
     #[account(mut, seeds = [CONFIG_SEED.as_bytes()], bump)]
@@ -110,6 +109,10 @@ pub fn handle_init_vault(ctx: Context<InitVault>, config: Box<VaultConfig>, shar
         uses: None,
     };
 
+    let vault_key = ctx.accounts.vault.key();
+    let seeds = &[SHARES_SEED.as_bytes(), vault_key.as_ref(), &[ctx.bumps.shares_mint]];
+    let signer = [&seeds[..]];
+
     create_metadata_accounts_v3(
         CpiContext::new_with_signer(
             ctx.accounts.metadata_program.to_account_info(),
@@ -122,7 +125,7 @@ pub fn handle_init_vault(ctx: Context<InitVault>, config: Box<VaultConfig>, shar
                 system_program: ctx.accounts.system_program.to_account_info(),
                 rent: ctx.accounts.rent.to_account_info(),
             },
-            &[&ctx.accounts.vault.load()?.seeds_shares()]
+            &signer
         ),
         token_data,
         false,
@@ -132,17 +135,17 @@ pub fn handle_init_vault(ctx: Context<InitVault>, config: Box<VaultConfig>, shar
 
     let underlying_token = TokenData{
         mint: ctx.accounts.underlying_mint.key(),
-        // account: vault.underlying_token_acc,
+        account: ctx.accounts.underlying_token_account.key(),
         decimals: ctx.accounts.underlying_mint.decimals,
         metadata: TokenMetaData {
             name: "".to_string(),
-            symbol: "".to_string(),
+            symbol: "".to_string()
         }
     };
 
     let share_token = TokenData{
         mint: ctx.accounts.shares_mint.key(),
-        // account: ctx.accounts.shares_token_account.key(),
+        account: get_associated_token_address(&ctx.accounts.vault.key(), &ctx.accounts.shares_mint.key()),
         decimals: ctx.accounts.shares_mint.decimals,
         metadata: TokenMetaData {
             name: shares_config.name,
