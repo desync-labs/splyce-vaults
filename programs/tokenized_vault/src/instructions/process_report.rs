@@ -1,5 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_spl::{
+    associated_token::AssociatedToken,
     token::Token,
     token_interface::{ Mint, TokenAccount},
 };
@@ -9,7 +10,7 @@ use access_control::{
     state::{UserRole, Role}
 };
 
-use crate::constants::{ MAX_BPS_EXTENDED, SHARES_ACCOUNT_SEED, SHARES_SEED, STRATEGY_DATA_SEED, ONE_SHARE_TOKEN};
+use crate::constants::{ MAX_BPS_EXTENDED, SHARES_SEED, STRATEGY_DATA_SEED, ONE_SHARE_TOKEN};
 use crate::events::StrategyReportedEvent;
 use crate::state::{Vault, StrategyData};
 use crate::utils::{accountant, strategy, token};
@@ -37,7 +38,12 @@ pub struct ProcessReport<'info> {
     #[account(mut, seeds = [SHARES_SEED.as_bytes(), vault.key().as_ref()], bump)]
     pub shares_mint: Box<InterfaceAccount<'info, Mint>>,
 
-    #[account(mut, seeds = [SHARES_ACCOUNT_SEED.as_bytes(), vault.key().as_ref()], bump)]
+    #[account(
+        init_if_needed,
+        payer = signer,
+        associated_token::mint = shares_mint, 
+        associated_token::authority = vault,
+    )]
     pub vault_shares_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
 
     /// CHECK:
@@ -65,6 +71,8 @@ pub struct ProcessReport<'info> {
     #[account(mut, constraint = roles.check_role()?)]
     pub signer: Signer<'info>,
 
+    pub associated_token_program: Program<'info, AssociatedToken>,
+    pub system_program: Program<'info, System>,
     pub access_control: Program<'info, AccessControl>,
     pub token_program: Program<'info, Token>,
 }

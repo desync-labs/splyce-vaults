@@ -1,4 +1,3 @@
-use access_control::state::UserRole;
 use access_control::{
     constants::USER_ROLE_SEED,
     program::AccessControl,
@@ -10,8 +9,7 @@ use anchor_spl::{
     token_interface::{Mint, TokenAccount, TokenInterface}
 };
 
-use crate::constants::{SHARES_SEED, UNDERLYING_SEED, ONE_SHARE_TOKEN, USER_DATA_SEED};
-
+use crate::constants::{SHARES_SEED, ONE_SHARE_TOKEN, USER_DATA_SEED};
 use crate::events::VaultDepositEvent;
 use crate::state::{UserData, Vault};
 use crate::utils::{accountant, token, vault};
@@ -35,8 +33,12 @@ pub struct Deposit<'info> {
     #[account(mut)]
     pub user_token_account: InterfaceAccount<'info, TokenAccount>,
 
-    #[account(mut, seeds = [UNDERLYING_SEED.as_bytes(), vault.key().as_ref()], bump)]
-    pub vault_token_account: InterfaceAccount<'info, TokenAccount>,
+    #[account(
+        mut,
+        associated_token::mint = underlying_mint, 
+        associated_token::authority = vault,
+    )]
+    pub vault_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
 
     #[account(mut, seeds = [SHARES_SEED.as_bytes(), vault.key().as_ref()], bump)]
     pub shares_mint: InterfaceAccount<'info, Mint>,

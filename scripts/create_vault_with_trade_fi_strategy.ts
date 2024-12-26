@@ -85,7 +85,13 @@ async function main() {
 
     console.log("metadataAddress:", metadataAddress.toBase58());
 
-    await vaultProgram.methods.initVault(vaultConfig)
+    const sharesConfig = {
+      name: "Share Splyce USD",
+      symbol: "spvUSD",
+      uri: "https://gist.githubusercontent.com/vito-kovalione/a3fcf481b0cced2615ae626ebdd04288/raw/f6a648dfebce511448c81ea5b4672bdd9f14c2e2/gistfile1.txt",
+    };
+
+    await vaultProgram.methods.initVault(vaultConfig, sharesConfig)
       .accounts({
         underlyingMint,
         signer: admin.publicKey,
@@ -95,28 +101,12 @@ async function main() {
 
     console.log("Vault:", vault.toBase58());
 
-    const sharesConfig = {
-      name: "Share Splyce USD",
-      symbol: "spvUSD",
-      uri: "https://gist.githubusercontent.com/vito-kovalione/a3fcf481b0cced2615ae626ebdd04288/raw/f6a648dfebce511448c81ea5b4672bdd9f14c2e2/gistfile1.txt",
-    };
-
-    await vaultProgram.methods.initVaultShares(new BN(vault_index), sharesConfig)
-      .accounts({
-        metadata: metadataAddress,
-        signer: admin.publicKey,
-      })
-      .signers([admin])
-      .rpc();
-
-    console.log("shares inited");
-
     let adminSharesAccount = await token.createAccount(provider.connection, admin, sharesMint, admin.publicKey);
     
     await accountantProgram.methods.initAccountant({ generic: {} })
       .accounts({
         signer: admin.publicKey,
-        underlyingMint: sharesMint,
+        mint: sharesMint,
       })
       .signers([admin])
       .rpc();

@@ -1,7 +1,5 @@
 pub const VAULT_SEED: &str = "vault";
 pub const SHARES_SEED: &str = "shares";
-pub const SHARES_ACCOUNT_SEED: &str = "shares_account";
-pub const UNDERLYING_SEED: &str = "underlying";
 pub const ROLES_SEED: &str = "roles";
 pub const CONFIG_SEED: &str = "config";
 pub const STRATEGY_DATA_SEED: &str = "strategy_data";

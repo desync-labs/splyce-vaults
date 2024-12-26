@@ -82,6 +82,7 @@ impl Vault {
         &mut self,
         index: u64,
         bump: u8,
+        shares_bump: u8,
         pubkey: Pubkey,
         underlying_mint: &InterfaceAccount<Mint>,
         underlying_token_acc: Pubkey,
@@ -90,6 +91,8 @@ impl Vault {
         self.index_buffer = index.to_le_bytes();
         self.bump = [bump];
         self.key = pubkey;
+
+        self.shares_bump = [shares_bump];
 
         self.underlying_mint = underlying_mint.key();
         self.underlying_token_acc = underlying_token_acc;

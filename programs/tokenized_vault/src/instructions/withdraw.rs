@@ -6,17 +6,11 @@ use anchor_spl::{
 
 use strategy::program::Strategy;
 
+use crate::constants::{MAX_BPS, ONE_SHARE_TOKEN, SHARES_SEED, USER_DATA_SEED};
+use crate::errors::ErrorCode;
 use crate::events::VaultWithdrawlEvent;
 use crate::state::{StrategyData, UserData, Vault};
 use crate::utils::{accountant, strategy as strategy_utils, token, unchecked::*};
-use crate::errors::ErrorCode;
-use crate::constants::{
-    UNDERLYING_SEED, 
-    USER_DATA_SEED,
-    SHARES_SEED,
-    MAX_BPS,
-    ONE_SHARE_TOKEN
-};
 
 #[derive(Accounts)]
 pub struct Withdraw<'info> {
@@ -26,8 +20,12 @@ pub struct Withdraw<'info> {
     #[account(mut)]
     pub user_token_account: InterfaceAccount<'info, TokenAccount>,
 
-    #[account(mut, seeds = [UNDERLYING_SEED.as_bytes(), vault.key().as_ref()], bump)]
-    pub vault_token_account: InterfaceAccount<'info, TokenAccount>,
+    #[account(
+        mut,
+        associated_token::mint = underlying_mint, 
+        associated_token::authority = vault,
+    )]
+    pub vault_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
 
     /// CHECK:
     #[account(mut, address = vault.load()?.accountant)]

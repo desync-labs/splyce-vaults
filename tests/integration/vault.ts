@@ -90,10 +90,7 @@ describe("tokenized_vault", () => {
     )[0];
     console.log("Shares sharesMintDerived public key:", sharesMint.toBase58());
 
-    vaultTokenAccount = web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("underlying"), vault.toBuffer()],
-      vaultProgram.programId,
-    )[0];
+    vaultTokenAccount = await token.getAssociatedTokenAddress(underlyingMint, vault, true);
     console.log("Vault token account:", vaultTokenAccount.toBase58());
 
     accountant = web3.PublicKey.findProgramAddressSync(
@@ -337,9 +334,11 @@ describe("tokenized_vault", () => {
       TOKEN_METADATA_PROGRAM_ID
     );
 
-    await vaultProgram.methods.initVault(vaultConfig)
+    console.log("trying to init vault");
+    await vaultProgram.methods.initVault(vaultConfig, sharesConfig)
       .accounts({
         underlyingMint,
+        metadata: metadataAddress,
         signer: admin.publicKey,
         tokenProgram: token.TOKEN_PROGRAM_ID,
       })
@@ -351,14 +350,6 @@ describe("tokenized_vault", () => {
     assert.strictEqual(vaultAccount.depositLimit.toString(), '1000000000');
     console.log("Vault deposit limit: ", vaultAccount.depositLimit.toString());
     console.log("minUserDeposit: ", vaultAccount.minUserDeposit.toString());
-
-    await vaultProgram.methods.initVaultShares(new BN(0), sharesConfig)
-      .accounts({
-        metadata: metadataAddress,
-        signer: admin.publicKey,
-      })
-      .signers([admin])
-      .rpc();
 
     const config = web3.PublicKey.findProgramAddressSync(
       [Buffer.from("config")],
