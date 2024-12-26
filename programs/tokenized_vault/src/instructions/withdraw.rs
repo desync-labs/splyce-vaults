@@ -7,7 +7,7 @@ use anchor_spl::{
 use strategy::program::Strategy;
 
 use crate::events::VaultWithdrawlEvent;
-use crate::state::{StrategyData, UserData, Vault};
+use crate::state::{StrategyData, StrategyDataAccInfo, UserData, Vault};
 use crate::utils::{accountant, strategy as strategy_utils, token, unchecked::*};
 use crate::errors::ErrorCode;
 use crate::constants::{
@@ -192,7 +192,7 @@ fn handle_internal<'info>(
     )?;
 
     if !ctx.accounts.user_data.data_is_empty() {
-        let mut user_data: UserData = ctx.accounts.user_data.deserialize()?;
+        let mut user_data = deserialize_user_data(&ctx.accounts.user_data)?;
         user_data.handle_withdraw(assets_to_transfer)?;
         ctx.accounts.user_data.serialize(&user_data)?;
     }
@@ -264,7 +264,7 @@ fn validate_max_withdraw<'info>(
         let mut loss = 0;
 
         for strategy_accounts in strategies {
-            let current_debt = strategy_accounts.strategy_data.deserialize::<StrategyData>()?.current_debt;
+            let current_debt = strategy_accounts.strategy_data.current_debt();
 
             let mut to_withdraw = std::cmp::min(max_assets - have, current_debt);
             let mut unrealised_loss = strategy_utils::assess_share_of_unrealised_losses(
@@ -326,7 +326,7 @@ fn withdraw_assets<'info>(
 
         for i in 0..strategies.len() {
             let strategy_acc = &strategies[i].strategy_acc;
-            let mut current_debt = strategies[i].strategy_data.deserialize::<StrategyData>()?.current_debt;
+            let mut current_debt = strategies[i].strategy_data.current_debt();
 
             let mut to_withdraw = std::cmp::min(assets_needed as u64, current_debt);
             let strategy_limit = strategy_utils::get_max_withdraw(&strategy_acc)?;
@@ -393,9 +393,7 @@ fn withdraw_assets<'info>(
 
             let vault_mut = &mut vault_acc.load_mut()?;
 
-            let mut strategy_data: StrategyData = strategies[i].strategy_data.deserialize()?;
-            strategy_data.update_current_debt(new_debt)?;
-            strategies[i].strategy_data.serialize(strategy_data)?;
+            strategies[i].strategy_data.set_current_debt(new_debt)?;
 
             vault_mut.total_debt = total_debt;
             vault_mut.total_idle = total_idle;
@@ -413,4 +411,11 @@ fn withdraw_assets<'info>(
     }
 
     Ok(requested_assets)
+}
+
+fn deserialize_user_data<'info>(
+    acc_info: &AccountInfo<'info>
+) -> Result<UserData> {
+    let data = acc_info.try_borrow_data()?;
+    Ok(UserData::try_from_slice(&data[8..]).unwrap())
 }
