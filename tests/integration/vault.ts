@@ -90,10 +90,6 @@ describe("tokenized_vault", () => {
     )[0];
     console.log("Shares sharesMintDerived public key:", sharesMint.toBase58());
 
-    // vaultTokenAccount = web3.PublicKey.findProgramAddressSync(
-    //   [Buffer.from("underlying"), vault.toBuffer()],
-    //   vaultProgram.programId,
-    // )[0];
     vaultTokenAccount = await token.getAssociatedTokenAddress(underlyingMint, vault, true);
     console.log("Vault token account:", vaultTokenAccount.toBase58());
 

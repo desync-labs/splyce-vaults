@@ -565,60 +565,11 @@ describe("Roles and Permissions Tests", () => {
         whitelistedOnly: false,
       };
 
-      try {
-        await vaultProgram.methods
-          .initVault(vaultConfig)
-          .accounts({
-            underlyingMint,
-            signer: accountantAdmin.publicKey,
-            tokenProgram: token.TOKEN_PROGRAM_ID,
-          })
-          .signers([accountantAdmin])
-          .rpc();
-        assert.fail("Error was not thrown");
-      } catch (err) {
-        expect(err.message).to.contain(
-          errorStrings.accountExpectedToAlreadyBeInitialized
-        );
-      }
-    });
-
-    it("Accountant Admin - Calling init vault shares method should revert", async () => {
-      accountantConfigAccount = await accountantProgram.account.config.fetch(
-        accountantConfig
-      );
-      const accountantIndex =
-        accountantConfigAccount.nextAccountantIndex.toNumber();
-
-      const accountant = anchor.web3.PublicKey.findProgramAddressSync(
-        [
-          Buffer.from(
-            new Uint8Array(new BigUint64Array([BigInt(accountantIndex)]).buffer)
-          ),
-        ],
-        accountantProgram.programId
-      )[0];
-
-      const vaultConfig = {
-        depositLimit: new BN(1000000000),
-        userDepositLimit: new BN(0),
-        minUserDeposit: new BN(0),
-        accountant: accountant,
-        profitMaxUnlockTime: new BN(0),
-        kycVerifiedOnly: true,
-        directDepositEnabled: false,
-        whitelistedOnly: false,
+      const sharesConfig = {
+        name: "Localnet Tests Token",
+        symbol: "LTT1",
+        uri: "https://gist.githubusercontent.com/vito-kovalione/08b86d3c67440070a8061ae429572494/raw/833e3d5f5988c18dce2b206a74077b2277e13ab6/PVT.json",
       };
-
-      await vaultProgram.methods
-        .initVault(vaultConfig)
-        .accounts({
-          underlyingMint,
-          signer: vaultsAdmin.publicKey,
-          tokenProgram: token.TOKEN_PROGRAM_ID,
-        })
-        .signers([vaultsAdmin])
-        .rpc();
 
       const config = anchor.web3.PublicKey.findProgramAddressSync(
         [Buffer.from("config")],
@@ -626,7 +577,6 @@ describe("Roles and Permissions Tests", () => {
       )[0];
 
       let configAccount = await vaultProgram.account.config.fetch(config);
-
       const nextVaultIndex = configAccount.nextVaultIndex.toNumber();
 
       const vault = anchor.web3.PublicKey.findProgramAddressSync(
@@ -638,7 +588,7 @@ describe("Roles and Permissions Tests", () => {
         ],
         vaultProgram.programId
       )[0];
-
+      
       const sharesMint = anchor.web3.PublicKey.findProgramAddressSync(
         [Buffer.from("shares"), vault.toBuffer()],
         vaultProgram.programId
@@ -653,18 +603,14 @@ describe("Roles and Permissions Tests", () => {
         TOKEN_METADATA_PROGRAM_ID
       );
 
-      const sharesConfig = {
-        name: "Localnet Tests Token",
-        symbol: "LTT1",
-        uri: "https://gist.githubusercontent.com/vito-kovalione/08b86d3c67440070a8061ae429572494/raw/833e3d5f5988c18dce2b206a74077b2277e13ab6/PVT.json",
-      };
-
       try {
         await vaultProgram.methods
-          .initVaultShares(new BN(nextVaultIndex), sharesConfig)
+          .initVault(vaultConfig, sharesConfig)
           .accounts({
+            underlyingMint,
             metadata: metadataAddress,
             signer: accountantAdmin.publicKey,
+            tokenProgram: token.TOKEN_PROGRAM_ID,
           })
           .signers([accountantAdmin])
           .rpc();
@@ -674,23 +620,6 @@ describe("Roles and Permissions Tests", () => {
           errorStrings.accountExpectedToAlreadyBeInitialized
         );
       }
-
-      let configAccountAfter = await vaultProgram.account.config.fetch(config);
-
-      assert.strictEqual(
-        configAccountAfter.nextVaultIndex.toNumber(),
-        nextVaultIndex
-      );
-
-      // initVaultShares successfully to avoid conflicts in following tests
-      await vaultProgram.methods
-        .initVaultShares(new BN(nextVaultIndex), sharesConfig)
-        .accounts({
-          metadata: metadataAddress,
-          signer: vaultsAdmin.publicKey,
-        })
-        .signers([vaultsAdmin])
-        .rpc();
     });
 
     it("Accountant Admin - Calling shutdown vault method should revert", async () => {
@@ -838,6 +767,8 @@ describe("Roles and Permissions Tests", () => {
         accountantProgram.programId
       )[0];
 
+      console.log("Accountant public key:", accountant.toBase58());
+
       const vaultConfig = {
         depositLimit: new BN(1000000000),
         userDepositLimit: new BN(0),
@@ -864,6 +795,8 @@ describe("Roles and Permissions Tests", () => {
           sharesConfig: sharesConfig,
         });
 
+        console.log("Vault public key:", vault.toBase58());
+
       const strategyConfig = new SimpleStrategyConfig({
         depositLimit: new BN(1000),
         performanceFee: new BN(1000),
@@ -887,6 +820,8 @@ describe("Roles and Permissions Tests", () => {
         })
         .signers([vaultsAdmin])
         .rpc();
+
+        console.log("Strategy public key:", strategy.toBase58());
 
       const kycVerifiedUserSharesAccount = await token.createAccount(
         provider.connection,
@@ -913,6 +848,8 @@ describe("Roles and Permissions Tests", () => {
         .signers([accountantAdmin])
         .rpc();
 
+        console.log("Accountant public key:", accountant.toBase58());
+
       await accountantProgram.methods.initTokenAccount()
         .accounts({
           accountant: accountant,
@@ -921,6 +858,8 @@ describe("Roles and Permissions Tests", () => {
         })
         .signers([accountantAdmin])
         .rpc();
+
+        console.log("Shares mint public key:", sharesMint.toBase58());
 
       await vaultProgram.methods
         .deposit(new BN(depositAmount))
@@ -938,6 +877,8 @@ describe("Roles and Permissions Tests", () => {
           { pubkey: kycVerified, isWritable: false, isSigner: false },
         ])
         .rpc();
+
+        console.log("Kyc verified user public key:", kycVerifiedUser.publicKey.toBase58());
 
       kycVerifiedUserCurrentAmount -= depositAmount;
 
@@ -1723,60 +1664,11 @@ describe("Roles and Permissions Tests", () => {
         whitelistedOnly: false,
       };
 
-      try {
-        await vaultProgram.methods
-          .initVault(vaultConfig)
-          .accounts({
-            underlyingMint,
-            signer: strategiesManager.publicKey,
-            tokenProgram: token.TOKEN_PROGRAM_ID,
-          })
-          .signers([strategiesManager])
-          .rpc();
-        assert.fail("Error was not thrown");
-      } catch (err) {
-        expect(err.message).to.contain(
-          errorStrings.accountExpectedToAlreadyBeInitialized
-        );
-      }
-    });
-
-    it("Strategies Manager - Calling init vault shares method should revert", async () => {
-      accountantConfigAccount = await accountantProgram.account.config.fetch(
-        accountantConfig
-      );
-      const accountantIndex =
-        accountantConfigAccount.nextAccountantIndex.toNumber();
-
-      const accountant = anchor.web3.PublicKey.findProgramAddressSync(
-        [
-          Buffer.from(
-            new Uint8Array(new BigUint64Array([BigInt(accountantIndex)]).buffer)
-          ),
-        ],
-        accountantProgram.programId
-      )[0];
-
-      const vaultConfig = {
-        depositLimit: new BN(1000000000),
-        userDepositLimit: new BN(0),
-        minUserDeposit: new BN(0),
-        accountant: accountant,
-        profitMaxUnlockTime: new BN(0),
-        kycVerifiedOnly: true,
-        directDepositEnabled: false,
-        whitelistedOnly: false,
+      const sharesConfig = {
+        name: "Localnet Tests Token",
+        symbol: "LTT1",
+        uri: "https://gist.githubusercontent.com/vito-kovalione/08b86d3c67440070a8061ae429572494/raw/833e3d5f5988c18dce2b206a74077b2277e13ab6/PVT.json",
       };
-
-      await vaultProgram.methods
-        .initVault(vaultConfig)
-        .accounts({
-          underlyingMint,
-          signer: vaultsAdmin.publicKey,
-          tokenProgram: token.TOKEN_PROGRAM_ID,
-        })
-        .signers([vaultsAdmin])
-        .rpc();
 
       const config = anchor.web3.PublicKey.findProgramAddressSync(
         [Buffer.from("config")],
@@ -1784,7 +1676,6 @@ describe("Roles and Permissions Tests", () => {
       )[0];
 
       let configAccount = await vaultProgram.account.config.fetch(config);
-
       const nextVaultIndex = configAccount.nextVaultIndex.toNumber();
 
       const vault = anchor.web3.PublicKey.findProgramAddressSync(
@@ -1796,7 +1687,7 @@ describe("Roles and Permissions Tests", () => {
         ],
         vaultProgram.programId
       )[0];
-
+      
       const sharesMint = anchor.web3.PublicKey.findProgramAddressSync(
         [Buffer.from("shares"), vault.toBuffer()],
         vaultProgram.programId
@@ -1811,18 +1702,14 @@ describe("Roles and Permissions Tests", () => {
         TOKEN_METADATA_PROGRAM_ID
       );
 
-      const sharesConfig = {
-        name: "Localnet Tests Token",
-        symbol: "LTT1",
-        uri: "https://gist.githubusercontent.com/vito-kovalione/08b86d3c67440070a8061ae429572494/raw/833e3d5f5988c18dce2b206a74077b2277e13ab6/PVT.json",
-      };
-
       try {
         await vaultProgram.methods
-          .initVaultShares(new BN(nextVaultIndex), sharesConfig)
+          .initVault(vaultConfig, sharesConfig)
           .accounts({
+            underlyingMint,
             metadata: metadataAddress,
             signer: strategiesManager.publicKey,
+            tokenProgram: token.TOKEN_PROGRAM_ID,
           })
           .signers([strategiesManager])
           .rpc();
@@ -1832,23 +1719,6 @@ describe("Roles and Permissions Tests", () => {
           errorStrings.accountExpectedToAlreadyBeInitialized
         );
       }
-
-      let configAccountAfter = await vaultProgram.account.config.fetch(config);
-
-      assert.strictEqual(
-        configAccountAfter.nextVaultIndex.toNumber(),
-        nextVaultIndex
-      );
-
-      // initVaultShares successfully to avoid conflicts in following tests
-      await vaultProgram.methods
-        .initVaultShares(new BN(nextVaultIndex), sharesConfig)
-        .accounts({
-          metadata: metadataAddress,
-          signer: vaultsAdmin.publicKey,
-        })
-        .signers([vaultsAdmin])
-        .rpc();
     });
 
     it("Strategies Manager - Calling shutdown vault method should revert", async () => {
@@ -2761,7 +2631,6 @@ describe("Roles and Permissions Tests", () => {
       )[0];
 
       let configAccount = await vaultProgram.account.config.fetch(config);
-
       const nextVaultIndex = configAccount.nextVaultIndex.toNumber();
 
       const vaultConfig = {
@@ -2775,48 +2644,11 @@ describe("Roles and Permissions Tests", () => {
         whitelistedOnly: false,
       };
 
-      await vaultProgram.methods
-        .initVault(vaultConfig)
-        .accounts({
-          underlyingMint,
-          signer: vaultsAdmin.publicKey,
-          tokenProgram: token.TOKEN_PROGRAM_ID,
-        })
-        .signers([vaultsAdmin])
-        .rpc();
-
-      const vault = anchor.web3.PublicKey.findProgramAddressSync(
-        [
-          Buffer.from("vault"),
-          Buffer.from(
-            new Uint8Array(new BigUint64Array([BigInt(nextVaultIndex)]).buffer)
-          ),
-        ],
-        vaultProgram.programId
-      )[0];
-
-      let vaultAccount = await vaultProgram.account.vault.fetch(vault);
-      assert.strictEqual(vaultAccount.isShutdown, false);
-      assert.strictEqual(vaultAccount.depositLimit.toNumber(), 1000000000);
-      assert.strictEqual(vaultAccount.minUserDeposit.toNumber(), 0);
-      assert.strictEqual(
-        vaultAccount.accountant.toString(),
-        accountant.toBase58()
-      );
-      assert.strictEqual(vaultAccount.profitMaxUnlockTime.toNumber(), 0);
-      assert.strictEqual(vaultAccount.kycVerifiedOnly, true);
-      assert.strictEqual(vaultAccount.directDepositEnabled, false);
-    });
-
-    it("Vaults Admin - Calling init vault shares method is successful", async () => {
-      const config = anchor.web3.PublicKey.findProgramAddressSync(
-        [Buffer.from("config")],
-        vaultProgram.programId
-      )[0];
-
-      let configAccount = await vaultProgram.account.config.fetch(config);
-
-      const nextVaultIndex = configAccount.nextVaultIndex.toNumber();
+      const sharesConfig = {
+        name: "Localnet Tests Token",
+        symbol: "LTT1",
+        uri: "https://gist.githubusercontent.com/vito-kovalione/08b86d3c67440070a8061ae429572494/raw/833e3d5f5988c18dce2b206a74077b2277e13ab6/PVT.json",
+      };
 
       const vault = anchor.web3.PublicKey.findProgramAddressSync(
         [
@@ -2842,27 +2674,28 @@ describe("Roles and Permissions Tests", () => {
         TOKEN_METADATA_PROGRAM_ID
       );
 
-      const sharesConfig = {
-        name: "Localnet Tests Token",
-        symbol: "LTT1",
-        uri: "https://gist.githubusercontent.com/vito-kovalione/08b86d3c67440070a8061ae429572494/raw/833e3d5f5988c18dce2b206a74077b2277e13ab6/PVT.json",
-      };
-
       await vaultProgram.methods
-        .initVaultShares(new BN(1), sharesConfig)
+        .initVault(vaultConfig, sharesConfig)
         .accounts({
+          underlyingMint,
           metadata: metadataAddress,
           signer: vaultsAdmin.publicKey,
+          tokenProgram: token.TOKEN_PROGRAM_ID,
         })
         .signers([vaultsAdmin])
         .rpc();
 
-      let configAccountAfter = await vaultProgram.account.config.fetch(config);
-
+      let vaultAccount = await vaultProgram.account.vault.fetch(vault);
+      assert.strictEqual(vaultAccount.isShutdown, false);
+      assert.strictEqual(vaultAccount.depositLimit.toNumber(), 1000000000);
+      assert.strictEqual(vaultAccount.minUserDeposit.toNumber(), 0);
       assert.strictEqual(
-        configAccountAfter.nextVaultIndex.toNumber(),
-        nextVaultIndex + 1
+        vaultAccount.accountant.toString(),
+        accountant.toBase58()
       );
+      assert.strictEqual(vaultAccount.profitMaxUnlockTime.toNumber(), 0);
+      assert.strictEqual(vaultAccount.kycVerifiedOnly, true);
+      assert.strictEqual(vaultAccount.directDepositEnabled, false);
     });
 
     it("Vaults Admin - Calling shutdown vault method is successful", async () => {
@@ -3896,60 +3729,11 @@ describe("Roles and Permissions Tests", () => {
         whitelistedOnly: false,
       };
 
-      try {
-        await vaultProgram.methods
-          .initVault(vaultConfig)
-          .accounts({
-            underlyingMint,
-            signer: reportingManager.publicKey,
-            tokenProgram: token.TOKEN_PROGRAM_ID,
-          })
-          .signers([reportingManager])
-          .rpc();
-        assert.fail("Error was not thrown");
-      } catch (err) {
-        expect(err.message).to.contain(
-          errorStrings.accountExpectedToAlreadyBeInitialized
-        );
-      }
-    });
-
-    it("Reporting Manager - Calling init vault shares method should revert", async () => {
-      accountantConfigAccount = await accountantProgram.account.config.fetch(
-        accountantConfig
-      );
-      const accountantIndex =
-        accountantConfigAccount.nextAccountantIndex.toNumber();
-
-      const accountant = anchor.web3.PublicKey.findProgramAddressSync(
-        [
-          Buffer.from(
-            new Uint8Array(new BigUint64Array([BigInt(accountantIndex)]).buffer)
-          ),
-        ],
-        accountantProgram.programId
-      )[0];
-
-      const vaultConfig = {
-        depositLimit: new BN(1000000000),
-        userDepositLimit: new BN(0),
-        minUserDeposit: new BN(0),
-        accountant: accountant,
-        profitMaxUnlockTime: new BN(0),
-        kycVerifiedOnly: true,
-        directDepositEnabled: false,
-        whitelistedOnly: false,
+      const sharesConfig = {
+        name: "Localnet Tests Token",
+        symbol: "LTT1",
+        uri: "https://gist.githubusercontent.com/vito-kovalione/08b86d3c67440070a8061ae429572494/raw/833e3d5f5988c18dce2b206a74077b2277e13ab6/PVT.json",
       };
-
-      await vaultProgram.methods
-        .initVault(vaultConfig)
-        .accounts({
-          underlyingMint,
-          signer: vaultsAdmin.publicKey,
-          tokenProgram: token.TOKEN_PROGRAM_ID,
-        })
-        .signers([vaultsAdmin])
-        .rpc();
 
       const config = anchor.web3.PublicKey.findProgramAddressSync(
         [Buffer.from("config")],
@@ -3957,7 +3741,6 @@ describe("Roles and Permissions Tests", () => {
       )[0];
 
       let configAccount = await vaultProgram.account.config.fetch(config);
-
       const nextVaultIndex = configAccount.nextVaultIndex.toNumber();
 
       const vault = anchor.web3.PublicKey.findProgramAddressSync(
@@ -3969,7 +3752,7 @@ describe("Roles and Permissions Tests", () => {
         ],
         vaultProgram.programId
       )[0];
-
+      
       const sharesMint = anchor.web3.PublicKey.findProgramAddressSync(
         [Buffer.from("shares"), vault.toBuffer()],
         vaultProgram.programId
@@ -3984,18 +3767,14 @@ describe("Roles and Permissions Tests", () => {
         TOKEN_METADATA_PROGRAM_ID
       );
 
-      const sharesConfig = {
-        name: "Localnet Tests Token",
-        symbol: "LTT1",
-        uri: "https://gist.githubusercontent.com/vito-kovalione/08b86d3c67440070a8061ae429572494/raw/833e3d5f5988c18dce2b206a74077b2277e13ab6/PVT.json",
-      };
-
       try {
         await vaultProgram.methods
-          .initVaultShares(new BN(nextVaultIndex), sharesConfig)
+          .initVault(vaultConfig, sharesConfig)
           .accounts({
+            underlyingMint,
             metadata: metadataAddress,
             signer: reportingManager.publicKey,
+            tokenProgram: token.TOKEN_PROGRAM_ID,
           })
           .signers([reportingManager])
           .rpc();
@@ -4005,23 +3784,6 @@ describe("Roles and Permissions Tests", () => {
           errorStrings.accountExpectedToAlreadyBeInitialized
         );
       }
-
-      let configAccountAfter = await vaultProgram.account.config.fetch(config);
-
-      assert.strictEqual(
-        configAccountAfter.nextVaultIndex.toNumber(),
-        nextVaultIndex
-      );
-
-      // initVaultShares successfully to avoid conflicts in following tests
-      await vaultProgram.methods
-        .initVaultShares(new BN(nextVaultIndex), sharesConfig)
-        .accounts({
-          metadata: metadataAddress,
-          signer: vaultsAdmin.publicKey,
-        })
-        .signers([vaultsAdmin])
-        .rpc();
     });
 
     it("Reporting Manager - Calling shutdown vault method should revert", async () => {
@@ -5015,60 +4777,11 @@ describe("Roles and Permissions Tests", () => {
         whitelistedOnly: false,
       };
 
-      try {
-        await vaultProgram.methods
-          .initVault(vaultConfig)
-          .accounts({
-            underlyingMint,
-            signer: kycVerifiedUser.publicKey,
-            tokenProgram: token.TOKEN_PROGRAM_ID,
-          })
-          .signers([kycVerifiedUser])
-          .rpc();
-        assert.fail("Error was not thrown");
-      } catch (err) {
-        expect(err.message).to.contain(
-          errorStrings.accountExpectedToAlreadyBeInitialized
-        );
-      }
-    });
-
-    it("KYC Verified User - Calling init vault shares method should revert", async () => {
-      accountantConfigAccount = await accountantProgram.account.config.fetch(
-        accountantConfig
-      );
-      const accountantIndex =
-        accountantConfigAccount.nextAccountantIndex.toNumber();
-
-      const accountant = anchor.web3.PublicKey.findProgramAddressSync(
-        [
-          Buffer.from(
-            new Uint8Array(new BigUint64Array([BigInt(accountantIndex)]).buffer)
-          ),
-        ],
-        accountantProgram.programId
-      )[0];
-
-      const vaultConfig = {
-        depositLimit: new BN(1000000000),
-        userDepositLimit: new BN(0),
-        minUserDeposit: new BN(0),
-        accountant: accountant,
-        profitMaxUnlockTime: new BN(0),
-        kycVerifiedOnly: true,
-        directDepositEnabled: false,
-        whitelistedOnly: false,
+      const sharesConfig = {
+        name: "Localnet Tests Token",
+        symbol: "LTT1",
+        uri: "https://gist.githubusercontent.com/vito-kovalione/08b86d3c67440070a8061ae429572494/raw/833e3d5f5988c18dce2b206a74077b2277e13ab6/PVT.json",
       };
-
-      await vaultProgram.methods
-        .initVault(vaultConfig)
-        .accounts({
-          underlyingMint,
-          signer: vaultsAdmin.publicKey,
-          tokenProgram: token.TOKEN_PROGRAM_ID,
-        })
-        .signers([vaultsAdmin])
-        .rpc();
 
       const config = anchor.web3.PublicKey.findProgramAddressSync(
         [Buffer.from("config")],
@@ -5076,7 +4789,6 @@ describe("Roles and Permissions Tests", () => {
       )[0];
 
       let configAccount = await vaultProgram.account.config.fetch(config);
-
       const nextVaultIndex = configAccount.nextVaultIndex.toNumber();
 
       const vault = anchor.web3.PublicKey.findProgramAddressSync(
@@ -5088,7 +4800,7 @@ describe("Roles and Permissions Tests", () => {
         ],
         vaultProgram.programId
       )[0];
-
+      
       const sharesMint = anchor.web3.PublicKey.findProgramAddressSync(
         [Buffer.from("shares"), vault.toBuffer()],
         vaultProgram.programId
@@ -5103,18 +4815,14 @@ describe("Roles and Permissions Tests", () => {
         TOKEN_METADATA_PROGRAM_ID
       );
 
-      const sharesConfig = {
-        name: "Localnet Tests Token",
-        symbol: "LTT1",
-        uri: "https://gist.githubusercontent.com/vito-kovalione/08b86d3c67440070a8061ae429572494/raw/833e3d5f5988c18dce2b206a74077b2277e13ab6/PVT.json",
-      };
-
       try {
         await vaultProgram.methods
-          .initVaultShares(new BN(nextVaultIndex), sharesConfig)
+          .initVault(vaultConfig, sharesConfig)
           .accounts({
+            underlyingMint,
             metadata: metadataAddress,
             signer: kycVerifiedUser.publicKey,
+            tokenProgram: token.TOKEN_PROGRAM_ID,
           })
           .signers([kycVerifiedUser])
           .rpc();
@@ -5124,23 +4832,6 @@ describe("Roles and Permissions Tests", () => {
           errorStrings.accountExpectedToAlreadyBeInitialized
         );
       }
-
-      let configAccountAfter = await vaultProgram.account.config.fetch(config);
-
-      assert.strictEqual(
-        configAccountAfter.nextVaultIndex.toNumber(),
-        nextVaultIndex
-      );
-
-      // initVaultShares successfully to avoid conflicts in following tests
-      await vaultProgram.methods
-        .initVaultShares(new BN(nextVaultIndex), sharesConfig)
-        .accounts({
-          metadata: metadataAddress,
-          signer: vaultsAdmin.publicKey,
-        })
-        .signers([vaultsAdmin])
-        .rpc();
     });
 
     it("KYC Verified User - Calling shutdown vault method should revert", async () => {

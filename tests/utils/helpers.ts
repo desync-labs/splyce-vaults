@@ -68,10 +68,11 @@ export const initializeVault = async ({
     vaultProgram.programId
   )[0];
 
-  const vaultTokenAccount = anchor.web3.PublicKey.findProgramAddressSync(
-    [Buffer.from("underlying"), vault.toBuffer()],
-    vaultProgram.programId
-  )[0];
+  const vaultTokenAccount = await token.getAssociatedTokenAddress(
+    underlyingMint,
+    vault,
+    true
+  );
 
   const [metadataAddress] = web3.PublicKey.findProgramAddressSync(
     [
@@ -83,20 +84,12 @@ export const initializeVault = async ({
   );
 
   await vaultProgram.methods
-    .initVault(vaultConfig)
+    .initVault(vaultConfig, sharesConfig)
     .accounts({
       underlyingMint,
-      signer: signer.publicKey,
-      tokenProgram: token.TOKEN_PROGRAM_ID,
-    })
-    .signers([signer])
-    .rpc();
-
-  await vaultProgram.methods
-    .initVaultShares(new BN(nextVaultIndex), sharesConfig)
-    .accounts({
       metadata: metadataAddress,
       signer: signer.publicKey,
+      tokenProgram: token.TOKEN_PROGRAM_ID,
     })
     .signers([signer])
     .rpc();
