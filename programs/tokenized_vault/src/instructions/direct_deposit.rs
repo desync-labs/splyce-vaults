@@ -12,6 +12,7 @@ use strategy::program::Strategy;
 
 use crate::constants::{SHARES_SEED, STRATEGY_DATA_SEED, UNDERLYING_SEED, ONE_SHARE_TOKEN, USER_DATA_SEED};
 
+use crate::errors::ErrorCode;
 use crate::events::{VaultDepositEvent, UpdatedCurrentDebtForStrategyEvent};
 use crate::state::{UserData, Vault, StrategyData};
 use crate::utils::{accountant, strategy as strategy_utils, token, vault};
@@ -116,6 +117,16 @@ pub fn handle_direct_deposit<'info>(ctx: Context<'_, '_, '_, 'info, DirectDeposi
         true,
         amount_to_deposit
     )?;
+
+    let new_debt = ctx.accounts.strategy_data.current_debt + amount;
+    if new_debt > ctx.accounts.strategy_data.max_debt {
+        return Err(ErrorCode::DebtHigherThanMaxDebt.into());
+    }
+
+    let max_strategy_deposit = strategy_utils::get_max_deposit(&ctx.accounts.strategy.to_account_info())?;
+    if amount > max_strategy_deposit {
+        return Err(ErrorCode::ExceedDepositLimit.into());
+    }
 
     let mut shares = ctx.accounts.vault.load()?.convert_to_shares(amount_to_deposit);
 
