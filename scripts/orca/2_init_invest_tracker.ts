@@ -1,44 +1,24 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { Strategy } from "../../target/types/strategy";
-import { AccessControl } from "../../target/types/access_control";
 import { TokenizedVault } from "../../target/types/tokenized_vault";
 import * as fs from "fs";
 import * as path from "path";
 import { PublicKey } from "@solana/web3.js";
-import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import * as dotenv from 'dotenv';
 
-// Token Mints
-const WSOL_MINT = new PublicKey(
-  "So11111111111111111111111111111111111111112"
-);
+// Load environment variables
+dotenv.config();
 
-const TMAC_MINT = new PublicKey(
-  "Afn8YB1p4NsoZeS5XJBZ18LTfEy5NFPwN46wapZcBQr6"
-);
+// Load deployment addresses based on environment
+const ADDRESSES_FILE = path.join(__dirname, 'deployment_addresses', 'addresses.json');
+const ADDRESSES = JSON.parse(fs.readFileSync(ADDRESSES_FILE, 'utf8'));
+const ENV = process.env.CLUSTER || 'devnet';
+const CONFIG = ADDRESSES[ENV];
 
-const WHIRLPOOL_ID_for_WSOL = new PublicKey(
-  "3KBZiL2g8C7tiJ32hTv5v3KM7aK9htpqTw4cTXz1HvPt"
-);
-
-const WHIRLPOOL_ID_for_TMAC = new PublicKey(
-  "H3xhLrSEyDFm6jjG42QezbvhSxF5YHW75VdGUnqeEg5y"
-);
-
-const UNDERLYING_MINT = new PublicKey(
-  "BRjpCHtyQLNCo8gqRUr8jtdAj5AjPYQaoqbvcZiHok1k" //devUSDC
-);
-
-const USDT_MINT = new PublicKey("H8UekPGwePSmQ3ttuYGPU1szyFfjZR4N53rymSFwpLPm");
-const SAMO_MINT = new PublicKey("Jd4M8bfJG3sAkd82RsGWyEXoaBXQP7njFzBwEaCTuDa");
-
-const WHIRLPOOL_ID_USDT = new PublicKey("63cMwvN8eoaD39os9bKP8brmA7Xtov9VxahnPufWCSdg");
-const WHIRLPOOL_ID_SAMO = new PublicKey("EgxU92G34jw6QDG9RuTX9StFg1PmHuDqkRKAE5kVEiZ4");
-
-const a_to_b_for_purchase_WSOL = false;
-const a_to_b_for_purchase_TMAC = false;
-const a_to_b_for_purchase_USDT = true;
-const a_to_b_for_purchase_SAMO = false;
+if (!CONFIG) {
+  throw new Error(`No configuration found for environment: ${ENV}`);
+}
 
 async function main() {
   try {
@@ -55,16 +35,18 @@ async function main() {
     const secretKey = Uint8Array.from(JSON.parse(secretKeyString));
     const admin = anchor.web3.Keypair.fromSecretKey(secretKey);
 
+    console.log(`Initializing invest trackers on ${ENV}`);
     console.log("Admin PublicKey:", admin.publicKey.toBase58());
 
     // Initialize programs
     const strategyProgram: Program<Strategy> = anchor.workspace.Strategy;
-    const accessControlProgram = anchor.workspace.AccessControl as Program<AccessControl>;
     const vaultProgram = anchor.workspace.TokenizedVault as Program<TokenizedVault>;
 
     console.log("Strategy Program ID:", strategyProgram.programId.toBase58());
-    console.log("Access Control Program ID:", accessControlProgram.programId.toBase58());
     console.log("Vault Program ID:", vaultProgram.programId.toBase58());
+
+    // Get underlying mint
+    const underlyingMint = new PublicKey(CONFIG.mints.underlying.address);
 
     // Derive strategy PDA (using index 0)
     const [vaultPDA] = anchor.web3.PublicKey.findProgramAddressSync(
@@ -82,138 +64,88 @@ async function main() {
       strategyProgram.programId
     );
 
-    // Derive user role PDA
-    const [userRole] = anchor.web3.PublicKey.findProgramAddressSync(
-      [
-        Buffer.from("user_role"),
-        admin.publicKey.toBuffer(),
-        Buffer.from("strategies_manager")
-      ],
-      accessControlProgram.programId
-    );
+    // Get all configured assets for the environment
+    const assets = CONFIG.mints.assets;
+    const assetSymbols = Object.keys(assets);
 
-    // Initialize invest trackers for WSOL
-    const [investTrackerWSOL] = anchor.web3.PublicKey.findProgramAddressSync(
-      [
-        Buffer.from("invest_tracker"),
-        WSOL_MINT.toBuffer(),
-        strategy.toBuffer()
-      ],
-      strategyProgram.programId
-    );
+    console.log(`Found ${assetSymbols.length} assets to initialize invest trackers for:`, assetSymbols);
 
-    await strategyProgram.methods
-      .initInvestTracker(a_to_b_for_purchase_WSOL, 2500)
-      .accounts({
-        strategy: strategy,
-        assetMint: WSOL_MINT,
-        signer: admin.publicKey,
-        whirlpool: WHIRLPOOL_ID_for_WSOL,
-        underlyingMint: UNDERLYING_MINT,
-      })
-      .signers([admin])
-      .rpc();
+    // Initialize invest trackers for each asset
+    for (const symbol of assetSymbols) {
+      const assetConfig = assets[symbol];
+      const assetMint = new PublicKey(assetConfig.address);
+      const whirlpool = new PublicKey(assetConfig.pool.id);
+      const { a_to_b_for_purchase, assigned_weight_bps } = assetConfig.investment_config;
 
-    console.log(`Invest tracker initialized successfully for WSOL`);
+      console.log(`\nInitializing invest tracker for ${symbol}...`);
+      console.log(`Asset mint: ${assetMint.toBase58()}`);
+      console.log(`Whirlpool: ${whirlpool.toBase58()}`);
+      console.log(`A to B for purchase: ${a_to_b_for_purchase}`);
+      console.log(`Assigned weight (bps): ${assigned_weight_bps}`);
 
-    // Fetch and log WSOL invest tracker data
-    const wsolTrackerAccount = await strategyProgram.account.investTracker.fetch(investTrackerWSOL);
-    console.log("WSOL Invest Tracker Data:", {
-      whirlpoolId: wsolTrackerAccount.whirlpoolId.toString(),
-      assetMint: wsolTrackerAccount.assetMint.toString(),
-      amountInvested: wsolTrackerAccount.amountInvested.toString(),
-      amountWithdrawn: wsolTrackerAccount.amountWithdrawn.toString(),
-      assetAmount: wsolTrackerAccount.assetAmount.toString(),
-      assetPrice: wsolTrackerAccount.assetPrice.toString(),
-      sqrtPrice: wsolTrackerAccount.sqrtPrice.toString(),
-      assetValue: wsolTrackerAccount.assetValue.toString(),
-      assetDecimals: wsolTrackerAccount.assetDecimals,
-      underlyingDecimals: wsolTrackerAccount.underlyingDecimals,
-      aToBForPurchase: wsolTrackerAccount.aToBForPurchase,
-      assignedWeight: wsolTrackerAccount.assignedWeight,
-      currentWeight: wsolTrackerAccount.currentWeight
-    });
+      try {
+        // Calculate invest tracker PDA for verification
+        const [investTracker] = anchor.web3.PublicKey.findProgramAddressSync(
+          [
+            Buffer.from("invest_tracker"),
+            assetMint.toBuffer(),
+            strategy.toBuffer()
+          ],
+          strategyProgram.programId
+        );
 
-    // Initialize invest trackers for TMAC
-    const [investTrackerTMAC] = anchor.web3.PublicKey.findProgramAddressSync(
-      [
-        Buffer.from("invest_tracker"),
-        TMAC_MINT.toBuffer(),
-        strategy.toBuffer()
-      ],
-      strategyProgram.programId
-    );
+        // Initialize invest tracker
+        await strategyProgram.methods
+          .initInvestTracker(
+            a_to_b_for_purchase,
+            assigned_weight_bps
+          )
+          .accounts({
+            strategy: strategy,
+            underlyingMint: underlyingMint,
+            assetMint: assetMint,
+            whirlpool: whirlpool,
+            signer: admin.publicKey,
+          })
+          .signers([admin])
+          .rpc();
 
-    await strategyProgram.methods
-      .initInvestTracker(a_to_b_for_purchase_TMAC, 2500)
-      .accounts({
-        strategy: strategy,
-        assetMint: TMAC_MINT,
-        signer: admin.publicKey,
-        whirlpool: WHIRLPOOL_ID_for_TMAC,
-        underlyingMint: UNDERLYING_MINT,
-      })
-      .signers([admin])
-      .rpc();
+        // Fetch and verify the initialized invest tracker
+        const trackerAccount = await strategyProgram.account.investTracker.fetch(
+          investTracker
+        );
 
-    console.log(`Invest tracker initialized successfully for TMAC`);
+        console.log(`✓ Invest tracker initialized successfully for ${symbol}`);
+        console.log("Invest Tracker Data:", {
+          whirlpoolId: trackerAccount.whirlpoolId.toString(),
+          assetMint: trackerAccount.assetMint.toString(),
+          amountInvested: trackerAccount.amountInvested.toString(),
+          amountWithdrawn: trackerAccount.amountWithdrawn.toString(),
+          assetAmount: trackerAccount.assetAmount.toString(),
+          assetPrice: trackerAccount.assetPrice.toString(),
+          sqrtPrice: trackerAccount.sqrtPrice.toString(),
+          assetValue: trackerAccount.assetValue.toString(),
+          assetDecimals: trackerAccount.assetDecimals,
+          underlyingDecimals: trackerAccount.underlyingDecimals,
+          aToBForPurchase: trackerAccount.aToBForPurchase,
+          assignedWeight: trackerAccount.assignedWeight,
+          currentWeight: trackerAccount.currentWeight
+        });
 
-    // Fetch and log TMAC invest tracker data
-    const tmacTrackerAccount = await strategyProgram.account.investTracker.fetch(investTrackerTMAC);
-    console.log("TMAC Invest Tracker Data:", {
-      whirlpoolId: tmacTrackerAccount.whirlpoolId.toString(),
-      assetMint: tmacTrackerAccount.assetMint.toString(),
-      amountInvested: tmacTrackerAccount.amountInvested.toString(),
-      amountWithdrawn: tmacTrackerAccount.amountWithdrawn.toString(),
-      assetAmount: tmacTrackerAccount.assetAmount.toString(),
-      assetPrice: tmacTrackerAccount.assetPrice.toString(),
-      sqrtPrice: tmacTrackerAccount.sqrtPrice.toString(),
-      assetValue: tmacTrackerAccount.assetValue.toString(),
-      assetDecimals: tmacTrackerAccount.assetDecimals,
-      underlyingDecimals: tmacTrackerAccount.underlyingDecimals,
-      aToBForPurchase: tmacTrackerAccount.aToBForPurchase,
-      assignedWeight: tmacTrackerAccount.assignedWeight,
-      currentWeight: tmacTrackerAccount.currentWeight
-    });
+      } catch (error) {
+        console.error(`Error initializing invest tracker for ${symbol}:`, error);
+        if ('logs' in error) {
+          console.error("Program Logs:", error.logs);
+        }
+        throw error; // Stop execution if any asset fails
+      }
+    }
 
-    // Initialize invest tracker for USDT
-    await strategyProgram.methods
-      .initInvestTracker(
-        a_to_b_for_purchase_USDT, // a_to_b_for_purchase for USDT
-        2500
-      )
-      .accounts({
-        strategy: strategy,
-        underlyingMint: UNDERLYING_MINT,
-        assetMint: USDT_MINT,
-        whirlpool: WHIRLPOOL_ID_USDT,
-        signer: admin.publicKey,
-      })
-      .signers([admin])
-      .rpc();
-
-    console.log("Invest tracker initialized successfully for USDT");
-
-    // Initialize invest tracker for SAMO
-    await strategyProgram.methods
-      .initInvestTracker(
-        a_to_b_for_purchase_SAMO, // a_to_b_for_purchase for SAMO
-        2500
-      )
-      .accounts({
-        strategy: strategy,
-        underlyingMint: UNDERLYING_MINT,
-        assetMint: SAMO_MINT,
-        whirlpool: WHIRLPOOL_ID_SAMO,
-        signer: admin.publicKey,
-      })
-      .signers([admin])
-      .rpc();
-
-    console.log("Invest tracker initialized successfully for SAMO");
+    console.log("\nAll invest trackers initialized successfully!");
 
   } catch (error) {
     console.error("Error occurred:", error);
+    throw error;
   }
 }
 

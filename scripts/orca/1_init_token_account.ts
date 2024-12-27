@@ -6,23 +6,20 @@ import { TokenizedVault } from "../../target/types/tokenized_vault";
 import * as fs from "fs";
 import * as path from "path";
 import { PublicKey } from "@solana/web3.js";
-import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import * as dotenv from 'dotenv';
 
-// Token Mints
-const WSOL_MINT = new PublicKey(
-  "So11111111111111111111111111111111111111112"
-);
+// Load environment variables
+dotenv.config();
 
-const TMAC_MINT = new PublicKey(
-  "Afn8YB1p4NsoZeS5XJBZ18LTfEy5NFPwN46wapZcBQr6"
-);
+// Load deployment addresses based on environment
+const ADDRESSES_FILE = path.join(__dirname, 'deployment_addresses', 'addresses.json');
+const ADDRESSES = JSON.parse(fs.readFileSync(ADDRESSES_FILE, 'utf8'));
+const ENV = process.env.CLUSTER || 'devnet';
+const CONFIG = ADDRESSES[ENV];
 
-const USDT_MINT = new PublicKey(
-  "H8UekPGwePSmQ3ttuYGPU1szyFfjZR4N53rymSFwpLPm"
-);
-const SAMO_MINT = new PublicKey(
-  "Jd4M8bfJG3sAkd82RsGWyEXoaBXQP7njFzBwEaCTuDa"
-);
+if (!CONFIG) {
+  throw new Error(`No configuration found for environment: ${ENV}`);
+}
 
 async function main() {
   try {
@@ -39,6 +36,7 @@ async function main() {
     const secretKey = Uint8Array.from(JSON.parse(secretKeyString));
     const admin = anchor.web3.Keypair.fromSecretKey(secretKey);
 
+    console.log(`Initializing token accounts on ${ENV}`);
     console.log("Admin PublicKey:", admin.publicKey.toBase58());
 
     // Initialize programs
@@ -66,61 +64,43 @@ async function main() {
       strategyProgram.programId
     );
 
-    // Initialize token account for WSOL
-    await strategyProgram.methods
-      .initTokenAccount()
-      .accounts({
-        strategy: strategy,
-        assetMint: WSOL_MINT,
-        signer: admin.publicKey,
-      })
-      .signers([admin])
-      .rpc();
+    // Get all configured assets for the environment
+    const assets = CONFIG.mints.assets;
+    const assetSymbols = Object.keys(assets);
 
-    console.log("Token account initialized successfully for WSOL");
+    console.log(`Found ${assetSymbols.length} assets to initialize:`, assetSymbols);
 
-    // Initialize token account for USDT
-    await strategyProgram.methods
-      .initTokenAccount()
-      .accounts({
-        strategy: strategy,
-        assetMint: USDT_MINT,
-        signer: admin.publicKey,
-      })
-      .signers([admin])
-      .rpc();
+    // Initialize token accounts for each asset
+    for (const symbol of assetSymbols) {
+      const assetConfig = assets[symbol];
+      const assetMint = new PublicKey(assetConfig.address);
 
-    console.log("Token account initialized successfully for USDT");
+      console.log(`\nInitializing token account for ${symbol}...`);
+      console.log(`Asset mint address: ${assetMint.toBase58()}`);
 
-    // Initialize token account for SAMO
-    await strategyProgram.methods
-      .initTokenAccount()
-      .accounts({
-        strategy: strategy,
-        assetMint: SAMO_MINT,
-        signer: admin.publicKey,
-      })
-      .signers([admin])
-      .rpc();
+      try {
+        await strategyProgram.methods
+          .initTokenAccount()
+          .accounts({
+            strategy: strategy,
+            assetMint: assetMint,
+            signer: admin.publicKey,
+          })
+          .signers([admin])
+          .rpc();
 
-    console.log("Token account initialized successfully for SAMO");
+        console.log(`✓ Token account initialized successfully for ${symbol}`);
+      } catch (error) {
+        console.error(`Error initializing token account for ${symbol}:`, error);
+        // Continue with other assets even if one fails
+      }
+    }
 
-
-    // Initialize token account for TMAC
-    await strategyProgram.methods
-      .initTokenAccount()
-      .accounts({
-          strategy: strategy,
-          assetMint: TMAC_MINT,
-          signer: admin.publicKey,
-        })
-        .signers([admin])
-        .rpc();
-  
-    console.log("Token account initialized successfully for TMAC");
+    console.log("\nToken account initialization complete!");
 
   } catch (error) {
     console.error("Error occurred:", error);
+    throw error;
   }
 }
 

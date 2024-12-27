@@ -7,17 +7,30 @@ import { OrcaStrategyConfig, OrcaStrategyConfigSchema } from "../../tests/utils/
 import { BN } from "@coral-xyz/anchor";
 import * as token from "@solana/spl-token";
 import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
-
 import * as borsh from 'borsh';
 import * as fs from 'fs';
 import * as path from 'path';
 import { AccessControl } from "../../target/types/access_control";
+import { PublicKey } from "@solana/web3.js";
+import * as dotenv from 'dotenv';
+
+// Load environment variables
+dotenv.config();
+
+// Load deployment addresses based on environment
+const ADDRESSES_FILE = path.join(__dirname, 'deployment_addresses', 'addresses.json');
+const ADDRESSES = JSON.parse(fs.readFileSync(ADDRESSES_FILE, 'utf8'));
+const ENV = process.env.CLUSTER || 'devnet';
+const CONFIG = ADDRESSES[ENV];
+
+if (!CONFIG) {
+  throw new Error(`No configuration found for environment: ${ENV}`);
+}
 
 const METADATA_SEED = "metadata";
-const TOKEN_METADATA_PROGRAM_ID = new anchor.web3.PublicKey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s");
-// devUSDC on devnet
-const underlyingMint = new anchor.web3.PublicKey("BRjpCHtyQLNCo8gqRUr8jtdAj5AjPYQaoqbvcZiHok1k");
-const REPORT_BOT = new anchor.web3.PublicKey("HMcuvAp4dB1EePEBcQHVAprVxpqWaJKBviJgGa8k3ZFF");
+const TOKEN_METADATA_PROGRAM_ID = new PublicKey(CONFIG.programs.token_metadata_program);
+const underlyingMint = new PublicKey(CONFIG.mints.underlying.address);
+const REPORT_BOT = new PublicKey(CONFIG.roles.report_bot);
 const accountantType = { generic: {} };
 
 async function main() {
@@ -30,12 +43,14 @@ async function main() {
     const strategyProgram = anchor.workspace.Strategy as Program<Strategy>;
     const accessControlProgram = anchor.workspace.AccessControl as Program<AccessControl>;
     const accountantProgram = anchor.workspace.Accountant as Program<Accountant>;
+
     // 2. Load Admin Keypair
     const secretKeyPath = path.resolve(process.env.HOME, '.config/solana/id.json');
     const secretKeyString = fs.readFileSync(secretKeyPath, 'utf8');
     const secretKey = Uint8Array.from(JSON.parse(secretKeyString));
     const admin = anchor.web3.Keypair.fromSecretKey(secretKey);
 
+    console.log(`Initializing on ${ENV}`);
     console.log("Admin Public Key:", admin.publicKey.toBase58());
     console.log("Vault Program ID:", vaultProgram.programId.toBase58());
     console.log("Strategy Program ID:", strategyProgram.programId.toBase58());
@@ -263,13 +278,13 @@ async function main() {
 
     // Update the vaultConfig object to match the expected structure
     const vaultConfig = {
-        depositLimit: new BN(1000000000000), // Adjust value as needed
-        minUserDeposit: new BN(1000000),     // Adjust value as needed
+        depositLimit: new BN(CONFIG.vault_config.deposit_limit),
+        minUserDeposit: new BN(CONFIG.vault_config.min_user_deposit),
         accountant: accountant,          // Set accountant as accountant
-        profitMaxUnlockTime: new BN(365 * 24 * 60 * 60), // 1 year in seconds
-        kycVerifiedOnly: false,
-        directDepositEnabled: true,
-        whitelistedOnly: true,
+        profitMaxUnlockTime: new BN(CONFIG.vault_config.profit_max_unlock_time), // 1 year in seconds
+        kycVerifiedOnly: CONFIG.vault_config.kyc_verified_only,
+        directDepositEnabled: CONFIG.vault_config.direct_deposit_enabled,
+        whitelistedOnly: CONFIG.vault_config.whitelisted_only,
     };
 
     // 9. Initialize Vault
@@ -294,11 +309,8 @@ async function main() {
     console.log("Admin whitelisted for vault operations");
 
     // 10. Initialize Vault Shares
-    const sharesConfig = {
-      name: "Orca Strategy Vault Shares",
-      symbol: "OSV",
-      uri: "YOUR_SHARES_METADATA_URI", // Replace with actual URI
-    };
+    const sharesConfig = CONFIG.shares_config;
+    
     await vaultProgram.methods.initVaultShares(new BN(vaultIndex), sharesConfig)
       .accounts({
         metadata: metadataAddress,
@@ -407,6 +419,7 @@ async function main() {
 
     // 16. Final Logs
     console.log("Initialization complete!");
+    console.log("Environment:", ENV);
     console.log("Vault Address:", vault.toBase58());
     console.log("Strategy Address:", strategy.toBase58());
 
