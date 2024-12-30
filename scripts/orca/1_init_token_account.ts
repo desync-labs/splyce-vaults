@@ -30,7 +30,7 @@ async function main() {
     // Load admin keypair
     const secretKeyPath = path.resolve(
       process.env.HOME!,
-      ".config/solana/id.json"
+      ".config/solana/mainnet.json"
     );
     const secretKeyString = fs.readFileSync(secretKeyPath, "utf8");
     const secretKey = Uint8Array.from(JSON.parse(secretKeyString));
