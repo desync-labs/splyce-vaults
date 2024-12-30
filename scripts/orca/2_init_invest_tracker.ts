@@ -94,6 +94,8 @@ async function main() {
           strategyProgram.programId
         );
 
+        console.log(`${symbol} Invest Tracker PDA:`, investTracker.toBase58());
+
         // Initialize invest tracker
         await strategyProgram.methods
           .initInvestTracker(

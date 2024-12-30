@@ -12,13 +12,13 @@ const WHIRLPOOL_PROGRAM_ID = new PublicKey("whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff
 
 // Token Mints
 const WSOL_MINT = new PublicKey("So11111111111111111111111111111111111111112");
-const TMAC_MINT = new PublicKey("Afn8YB1p4NsoZeS5XJBZ18LTfEy5NFPwN46wapZcBQr6");
+// const TMAC_MINT = new PublicKey("Afn8YB1p4NsoZeS5XJBZ18LTfEy5NFPwN46wapZcBQr6");
 const USDT_MINT = new PublicKey("H8UekPGwePSmQ3ttuYGPU1szyFfjZR4N53rymSFwpLPm");
 const SAMO_MINT = new PublicKey("Jd4M8bfJG3sAkd82RsGWyEXoaBXQP7njFzBwEaCTuDa");
 
 // Whirlpool IDs
 const WHIRLPOOL_ID_WSOL = new PublicKey("3KBZiL2g8C7tiJ32hTv5v3KM7aK9htpqTw4cTXz1HvPt");
-const WHIRLPOOL_ID_TMAC = new PublicKey("H3xhLrSEyDFm6jjG42QezbvhSxF5YHW75VdGUnqeEg5y");
+// const WHIRLPOOL_ID_TMAC = new PublicKey("H3xhLrSEyDFm6jjG42QezbvhSxF5YHW75VdGUnqeEg5y");
 const WHIRLPOOL_ID_USDT = new PublicKey("63cMwvN8eoaD39os9bKP8brmA7Xtov9VxahnPufWCSdg");
 const WHIRLPOOL_ID_SAMO = new PublicKey("EgxU92G34jw6QDG9RuTX9StFg1PmHuDqkRKAE5kVEiZ4");
 
@@ -60,12 +60,12 @@ async function main() {
 
     console.log("INVEST_TRACKER_ACCOUNT_WSOL", INVEST_TRACKER_ACCOUNT_WSOL.toBase58());
 
-    const [INVEST_TRACKER_ACCOUNT_TMAC] = anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("invest_tracker"), TMAC_MINT.toBuffer(), strategy.toBuffer()],
-      strategyProgram.programId
-    );
+    // const [INVEST_TRACKER_ACCOUNT_TMAC] = anchor.web3.PublicKey.findProgramAddressSync(
+    //   [Buffer.from("invest_tracker"), TMAC_MINT.toBuffer(), strategy.toBuffer()],
+    //   strategyProgram.programId
+    // );
 
-    console.log("INVEST_TRACKER_ACCOUNT_TMAC", INVEST_TRACKER_ACCOUNT_TMAC.toBase58());
+    // console.log("INVEST_TRACKER_ACCOUNT_TMAC", INVEST_TRACKER_ACCOUNT_TMAC.toBase58());
 
     const [INVEST_TRACKER_ACCOUNT_USDT] = anchor.web3.PublicKey.findProgramAddressSync(
       [Buffer.from("invest_tracker"), USDT_MINT.toBuffer(), strategy.toBuffer()],
@@ -97,7 +97,7 @@ async function main() {
 
     // Get tick arrays for all whirlpools
     await getTickArraysForWhirlpool(WHIRLPOOL_ID_WSOL, INVEST_TRACKER_ACCOUNT_WSOL);
-    await getTickArraysForWhirlpool(WHIRLPOOL_ID_TMAC, INVEST_TRACKER_ACCOUNT_TMAC);
+    // await getTickArraysForWhirlpool(WHIRLPOOL_ID_TMAC, INVEST_TRACKER_ACCOUNT_TMAC);
     await getTickArraysForWhirlpool(WHIRLPOOL_ID_USDT, INVEST_TRACKER_ACCOUNT_USDT);
     await getTickArraysForWhirlpool(WHIRLPOOL_ID_SAMO, INVEST_TRACKER_ACCOUNT_SAMO);
 

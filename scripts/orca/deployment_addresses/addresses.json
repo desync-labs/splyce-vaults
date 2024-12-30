@@ -139,7 +139,8 @@
   "mainnet": {
     "programs": {
       "whirlpool_program": "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc",
-      "token_program": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+      "token_program": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+      "token_metadata_program": "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"
     },
     "shares_config": {
       "name": "Solana Top 3 Meme Tokens Test",

@@ -13,7 +13,7 @@ import {
   TransactionInstruction,
   AddressLookupTableAccount,
   SystemProgram,
-  VersionedTransaction,
+  VersionedTransaction,  
   TransactionMessage,
   AddressLookupTableProgram,
   sendAndConfirmTransaction,
@@ -96,6 +96,7 @@ async function main() {
       ],
       vaultProgram.programId
     );
+    console.log("Vault PDA:", vault.toBase58());
 
     const [strategy] = anchor.web3.PublicKey.findProgramAddressSync(
       [vault.toBuffer(), 
@@ -103,12 +104,31 @@ async function main() {
       ],
       strategyProgram.programId
     );
+    console.log("Strategy PDA:", strategy.toBase58());
 
+    
+    const [strategyData] = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("strategy_data"),
+        vault.toBuffer(),
+        strategy.toBuffer(),
+      ],
+      vaultProgram.programId
+    );
+
+    const [strategyTokenAccount] = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("underlying"), strategy.toBuffer(), strategy.toBuffer()],
+      strategyProgram.programId
+    );
+    console.log("Strategy Data PDA:", strategyData.toBase58());
     // Collect addresses for lookup table
     const addresses: PublicKey[] = [
       new PublicKey(CONFIG.programs.whirlpool_program),
       TOKEN_PROGRAM_ID,
+      vault,
       strategy,
+      strategyData,
+      strategyTokenAccount,
     ];
 
     // Add addresses for each configured asset
@@ -129,7 +149,7 @@ async function main() {
       });
 
       // Add PDAs
-      const [tokenAccount] = anchor.web3.PublicKey.findProgramAddressSync(
+      const [strategyAssetAccount] = anchor.web3.PublicKey.findProgramAddressSync(
         [Buffer.from("token_account"), assetMint.toBuffer(), strategy.toBuffer()],
         strategyProgram.programId
       );
@@ -139,8 +159,12 @@ async function main() {
         strategyProgram.programId
       );
 
-      addresses.push(tokenAccount, investTracker);
+      console.log("Strategy Asset Account PDA:", strategyAssetAccount.toBase58());
+      console.log("Invest Tracker PDA:", investTracker.toBase58());
+
+      addresses.push(strategyAssetAccount, investTracker);
     }
+
 
     const slot = await connection.getSlot();
     const [lookupTableInst, lookupTableAddress] = AddressLookupTableProgram.createLookupTable({
