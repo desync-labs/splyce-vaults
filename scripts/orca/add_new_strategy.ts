@@ -46,7 +46,7 @@ async function main() {
 
     // Get the latest vault index from config
     const configPDA = anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("CONFIG_SEED")],
+      [Buffer.from("config")],
       vaultProgram.programId
     )[0];
     

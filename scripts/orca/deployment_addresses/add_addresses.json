@@ -198,6 +198,7 @@
             "token_vault_b": "4iznQFptuX2A2L5NNinFjSvnXzc2Vhd6b6w8a4nXCpqA",
             "oracle": "38ciCQrZMoTaRq3sXCzsVeEx7J18HvKAxEzV3oskXJZY",
             "tick_arrays": [
+              "7qqAPM88c3s7wijTxW8azPFVF61GbD9TZ4JRsW2UpKt",
               "2jtbrdt8cgP94ExePVvvWCj5dpSmSUnHQ7qPYcaBE8wG",
               "CoGD3qEooz4dzgQ6WFy8FSo1hyBea1UnjZ1KNjuG2VUS",
               "EcCfYxDyBFqB9mbuDD12T358sAmoes3JGc7w6Tyr4eQu",
@@ -215,8 +216,7 @@
               "Eof1gFf82jT4Z1VmS6G6MmtXjoNh25VXiYFKRmu3xL8N",
               "5cfWnKbQCeiZon1w5f9oV2xsgtfCXcF1bHaC4FuZobPN",
               "2bL2CfqQf2oR388rtXPT5Wa49RGN1FtBj6hQWVy3M48Q",
-              "8CNoqUMwnjsTfav37iPpCxC6AezgFZacC44yudv6s2Mm",
-              "J91SJ4MqTdc3bfbTBQJ6R2tePSp6MdGkgdKW1gjfZ3o5"
+              "8CNoqUMwnjsTfav37iPpCxC6AezgFZacC44yudv6s2Mm"
             ]
           },
           "investment_config": {

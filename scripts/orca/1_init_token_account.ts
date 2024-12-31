@@ -48,18 +48,22 @@ async function main() {
     console.log("Access Control Program ID:", accessControlProgram.programId.toBase58());
     console.log("Vault Program ID:", vaultProgram.programId.toBase58());
 
-    // Derive strategy PDA (using index 0)
+    // Define vault index (matching with init script)
+    const vaultIndex = 2; // third vault
+    console.log("Using Vault Index:", vaultIndex);
+
+    // Derive strategy PDA (using vaultIndex)
     const [vaultPDA] = anchor.web3.PublicKey.findProgramAddressSync(
       [
         Buffer.from("vault"),
-        new anchor.BN(0).toArrayLike(Buffer, 'le', 8)
+        new anchor.BN(vaultIndex).toArrayLike(Buffer, 'le', 8)
       ],
       vaultProgram.programId
     );
 
     const [strategy] = anchor.web3.PublicKey.findProgramAddressSync(
       [vaultPDA.toBuffer(), 
-        new anchor.BN(0).toArrayLike(Buffer, 'le', 8)
+        new anchor.BN(vaultIndex).toArrayLike(Buffer, 'le', 8)
       ],
       strategyProgram.programId
     );
@@ -71,7 +75,7 @@ async function main() {
     console.log(`Found ${assetSymbols.length} assets to initialize:`, assetSymbols);
 
     // Initialize token accounts for each asset
-    for (const symbol of assetSymbols) {
+    for (const symbol of assetSymbols.slice(0)) {
       const assetConfig = assets[symbol];
       const assetMint = new PublicKey(assetConfig.address);
 

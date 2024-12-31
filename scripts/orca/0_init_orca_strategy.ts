@@ -88,13 +88,13 @@ async function main() {
     //   .rpc();
     // console.log("Vaults Admin Role Manager set.");
 
-    // await accessControlProgram.methods.setRoleManager(ROLES.REPORTING_MANAGER, ROLES.ROLES_ADMIN)
-    //   .accounts({
-    //     signer: admin.publicKey,
-    //   })
-    //   .signers([admin])
-    //   .rpc();
-    // console.log("Reporting Manager Role Manager set.");
+    await accessControlProgram.methods.setRoleManager(ROLES.REPORTING_MANAGER, ROLES.ROLES_ADMIN)
+      .accounts({
+        signer: admin.publicKey,
+      })
+      .signers([admin])
+      .rpc();
+    console.log("Reporting Manager Role Manager set.");
 
     // await accessControlProgram.methods.setRoleManager(ROLES.STRATEGIES_MANAGER, ROLES.ROLES_ADMIN)
     //   .accounts({
@@ -255,7 +255,7 @@ async function main() {
     // }
 
     // Simplify the config fetching logic for first vault
-    const vaultIndex = 0; // First vault
+    const vaultIndex = 2; // third vault
     console.log("Using Vault Index:", vaultIndex);
 
     let vault = anchor.web3.PublicKey.findProgramAddressSync(
@@ -297,6 +297,7 @@ async function main() {
     };
 
     // 9. Initialize Vault
+    // console.log("Initializing Vault...");
     // await vaultProgram.methods.initVault(vaultConfig)
     //   .accounts({
     //     underlyingMint,
@@ -306,8 +307,10 @@ async function main() {
     //   .signers([admin])
     //   .rpc();
     // console.log("Vault initialized.");
+    // 
 
     // Whitelist admin for vault operations
+    // console.log("Whitelisting admin for vault3 operations");
     // await vaultProgram.methods.whitelist(admin.publicKey)
     //   .accounts({
     //     vault: vault,
@@ -318,7 +321,7 @@ async function main() {
     // console.log("Admin whitelisted for vault operations");
 
   //   // 10. Initialize Vault Shares
-    const sharesConfig = CONFIG.shares_config;
+    // const sharesConfig = CONFIG.shares_config;
     // console.log("Initializing Vault Shares...");
     // await vaultProgram.methods.initVaultShares(new BN(vaultIndex), sharesConfig)
     //   .accounts({
@@ -329,7 +332,7 @@ async function main() {
     //   .rpc();
     // console.log("Vault Shares initialized.");
 
-    // console.log("Initializing Token Account...");
+    // console.log("Initializing Share Token Account...");
     // await accountantProgram.methods
     // .initTokenAccount()
     // .accounts({
@@ -342,7 +345,7 @@ async function main() {
     // console.log("Token Account initialized.");
 
 
-    // console.log("Initializing Token Account...");
+    // console.log("Initializing Underlying Token Account...actually already done");
     // await accountantProgram.methods
     //   .initTokenAccount()
     //   .accounts({
@@ -353,7 +356,6 @@ async function main() {
     //   .signers([admin])
     //   .rpc();
     // console.log("Token Account initialized.");
-    //done 32SWQ18UGdPbgu2Nu7bDsgY2tTPsYEneBbUJd3R1hTjfAnreGDDyamREo28rwtSER6AxLbZLm7G8EvKN34eZnpaA
 
   //   // 12. Define Strategy Configuration
     const strategyType = { orca: {} };
@@ -372,7 +374,7 @@ async function main() {
     // 14. Initialize Strategy
     const [strategy] = anchor.web3.PublicKey.findProgramAddressSync(
       [vault.toBuffer(), 
-        new BN(0).toArrayLike(Buffer, 'le', 8)
+        new BN(vaultIndex).toArrayLike(Buffer, 'le', 8)
       ],
       strategyProgram.programId
     );
@@ -397,7 +399,7 @@ async function main() {
       accessControlProgram.programId
     );
 
-    // Initialize Strategy Program
+    // Initialize Strategy Program .. I think already done
     // console.log("Initializing Strategy Program Config...");
     // await strategyProgram.methods.initialize()
     //   .accounts({
@@ -420,11 +422,11 @@ async function main() {
     //   .signers([admin])
     //   .rpc();
     // console.log("Strategy initialized.");
-    //done
+    //
     
     // 15. Add Strategy to Vault
     // console.log("adding to vault")
-    // await vaultProgram.methods.addStrategy(new BN(1000000000))
+    // await vaultProgram.methods.addStrategy(new BN(20000000000))
     //   .accounts({
     //     vault,
     //     strategy,

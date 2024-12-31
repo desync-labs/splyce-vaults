@@ -2,21 +2,12 @@ import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { TokenizedVault } from "../../../target/types/tokenized_vault";
 import { Strategy } from "../../../target/types/strategy";
-import { BN } from "@coral-xyz/anchor";
 import * as fs from "fs";
 import * as path from "path";
-import { PublicKey, ComputeBudgetProgram } from "@solana/web3.js";
-import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import { PublicKey } from "@solana/web3.js";
 import {
   Connection,
-  Keypair,
-  TransactionInstruction,
-  AddressLookupTableAccount,
-  SystemProgram,
-  VersionedTransaction,  
-  TransactionMessage,
   AddressLookupTableProgram,
-  sendAndConfirmTransaction,
 } from "@solana/web3.js";
 import * as dotenv from 'dotenv';
 
@@ -24,9 +15,13 @@ import * as dotenv from 'dotenv';
 dotenv.config();
 
 // Load deployment addresses based on environment
-const ADDRESSES_FILE = path.join(__dirname, '..', 'deployment_addresses', 'addresses.json');
+const ADDRESSES_FILE = path.join(__dirname, '..', 'deployment_addresses', 'add_addresses.json');
 const ADDRESSES = JSON.parse(fs.readFileSync(ADDRESSES_FILE, 'utf8'));
 const ENV = process.env.CLUSTER || 'devnet';
+
+// Load existing ALT address
+const ALT_FILE = path.join(__dirname, 'ALT.json');
+const ALT_CONFIG = JSON.parse(fs.readFileSync(ALT_FILE, 'utf8'));
 
 interface PoolConfig {
   id: string;
@@ -65,7 +60,6 @@ interface Config {
   };
 }
 
-// Then modify the CONFIG type
 const CONFIG = ADDRESSES[ENV] as Config;
 
 if (!CONFIG) {
@@ -86,10 +80,26 @@ async function main() {
     const secretKey = new Uint8Array(JSON.parse(fs.readFileSync(secretKeyPath, 'utf8')));
     const admin = anchor.web3.Keypair.fromSecretKey(secretKey);
 
-    console.log(`Creating Address Lookup Table for ${ENV} environment`);
+    console.log(`Extending Address Lookup Table for ${ENV} environment`);
+    console.log("ALT Address:", ALT_CONFIG.lookupTableAddress);
+
+    // Load and log the initial ALT state
+    const initialLookupTableAccount = (
+      await provider.connection.getAddressLookupTable(new PublicKey(ALT_CONFIG.lookupTableAddress))
+    ).value;
+
+    if (!initialLookupTableAccount) {
+      throw new Error("Lookup table not found");
+    }
+
+    console.log("\nInitial ALT addresses:");
+    initialLookupTableAccount.state.addresses.forEach((addr, index) => {
+      console.log(`${index + 1}. ${addr.toBase58()}`);
+    });
+    console.log(`Total addresses in ALT before extension: ${initialLookupTableAccount.state.addresses.length}`);
 
     // Define vault index (matching with init script)
-    const vaultIndex = 2; // third vault
+    const vaultIndex = 1; // Second vault
     console.log("Using Vault Index:", vaultIndex);
 
     // Get PDAs using vaultIndex
@@ -110,7 +120,6 @@ async function main() {
     );
     console.log("Strategy PDA:", strategy.toBase58());
 
-    
     const [strategyData] = PublicKey.findProgramAddressSync(
       [
         Buffer.from("strategy_data"),
@@ -125,8 +134,9 @@ async function main() {
       strategyProgram.programId
     );
     console.log("Strategy Data PDA:", strategyData.toBase58());
+
     // Collect addresses for lookup table
-    const addresses: PublicKey[] = [
+    const newAddresses: PublicKey[] = [
       new PublicKey(CONFIG.programs.whirlpool_program),
       TOKEN_PROGRAM_ID,
       vault,
@@ -140,7 +150,7 @@ async function main() {
       const assetMint = new PublicKey(asset.address);
       
       // Add pool-related addresses
-      addresses.push(
+      newAddresses.push(
         new PublicKey(asset.pool.id),
         new PublicKey(asset.pool.token_vault_a),
         new PublicKey(asset.pool.token_vault_b),
@@ -149,7 +159,7 @@ async function main() {
 
       // Add tick arrays
       asset.pool.tick_arrays.forEach(tickArray => {
-        addresses.push(new PublicKey(tickArray));
+        newAddresses.push(new PublicKey(tickArray));
       });
 
       // Add PDAs
@@ -166,38 +176,42 @@ async function main() {
       console.log("Strategy Asset Account PDA:", strategyAssetAccount.toBase58());
       console.log("Invest Tracker PDA:", investTracker.toBase58());
 
-      addresses.push(strategyAssetAccount, investTracker);
+      newAddresses.push(strategyAssetAccount, investTracker);
     }
 
+    // Get existing ALT account to check current addresses
+    const lookupTableAccount = await connection.getAddressLookupTable(new PublicKey(ALT_CONFIG.lookupTableAddress));
+    if (!lookupTableAccount.value) {
+      throw new Error("Lookup table not found");
+    }
 
-    const slot = await connection.getSlot();
-    const [lookupTableInst, lookupTableAddress] = AddressLookupTableProgram.createLookupTable({
-      authority: admin.publicKey,
-      payer: admin.publicKey,
-      recentSlot: slot - 1,
-    });
+    const existingAddresses = lookupTableAccount.value.state.addresses.map(addr => addr.toBase58());
+    console.log("\nExisting addresses in ALT:", existingAddresses.length);
 
-    // Create the lookup table
-    console.log("\nCreating lookup table...");
-    const tx = new anchor.web3.Transaction().add(lookupTableInst);
-    await provider.sendAndConfirm(tx, [admin]);
+    // Filter out addresses that already exist in the ALT
+    const addressesToAdd = newAddresses.filter(
+      addr => !existingAddresses.includes(addr.toBase58())
+    );
 
-    await waitForNewBlock(connection, 1);
+    if (addressesToAdd.length === 0) {
+      console.log("No new addresses to add to the lookup table.");
+      return;
+    }
 
-    // Extend table with addresses in chunks
-    console.log(`\nExtending lookup table with ${addresses.length} total addresses...`);
+    console.log(`\nAdding ${addressesToAdd.length} new addresses to lookup table...`);
     console.log("\nAddresses being added:");
-    addresses.forEach((addr, index) => {
+    addressesToAdd.forEach((addr, index) => {
       console.log(`${index + 1}. ${addr.toBase58()}`);
     });
 
+    // Extend table with new addresses in chunks
     const chunkSize = 20;
-    for (let i = 0; i < addresses.length; i += chunkSize) {
-      const chunk = addresses.slice(i, Math.min(i + chunkSize, addresses.length));
+    for (let i = 0; i < addressesToAdd.length; i += chunkSize) {
+      const chunk = addressesToAdd.slice(i, Math.min(i + chunkSize, addressesToAdd.length));
       const extendIx = AddressLookupTableProgram.extendLookupTable({
         payer: admin.publicKey,
         authority: admin.publicKey,
-        lookupTable: lookupTableAddress,
+        lookupTable: new PublicKey(ALT_CONFIG.lookupTableAddress),
         addresses: chunk
       });
 
@@ -206,20 +220,29 @@ async function main() {
       await waitForNewBlock(connection, 1);
     }
 
-    // After all chunks are added, verify final count
-    console.log(`\nTotal addresses added: ${addresses.length}`);
+    // After extension, fetch and log the final state
+    const finalLookupTableAccount = (
+      await provider.connection.getAddressLookupTable(new PublicKey(ALT_CONFIG.lookupTableAddress))
+    ).value;
 
-    // Save the lookup table address
-    const altJson = {
-      lookupTableAddress: lookupTableAddress.toBase58()
-    };
-    
-    const altJsonPath = path.join(__dirname, 'ALT.json');
-    fs.writeFileSync(altJsonPath, JSON.stringify(altJson, null, 2));
-    
-    console.log(`\nLookup table created successfully!`);
-    console.log(`Address: ${lookupTableAddress.toBase58()}`);
-    console.log(`Saved to: ${altJsonPath}`);
+    if (!finalLookupTableAccount) {
+      throw new Error("Failed to fetch final lookup table state");
+    }
+
+    console.log("\nFinal ALT addresses after extension:");
+    finalLookupTableAccount.state.addresses.forEach((addr, index) => {
+      console.log(`${index + 1}. ${addr.toBase58()}`);
+    });
+    console.log(`Total addresses in ALT after extension: ${finalLookupTableAccount.state.addresses.length}`);
+
+    // Log the newly added addresses
+    if (finalLookupTableAccount.state.addresses.length > initialLookupTableAccount.state.addresses.length) {
+      console.log("\nNewly added addresses:");
+      const newAddressesCount = finalLookupTableAccount.state.addresses.length - initialLookupTableAccount.state.addresses.length;
+      finalLookupTableAccount.state.addresses.slice(-newAddressesCount).forEach((addr, index) => {
+        console.log(`${index + 1}. ${addr.toBase58()}`);
+      });
+    }
 
   } catch (error) {
     console.error("Error occurred:", error);
@@ -228,11 +251,6 @@ async function main() {
     }
   }
 }
-
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
 
 async function waitForNewBlock(
   connection: Connection,
@@ -257,3 +275,8 @@ async function waitForNewBlock(
     }, 1000);
   });
 }
+
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+}); 

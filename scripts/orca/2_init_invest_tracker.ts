@@ -48,18 +48,22 @@ async function main() {
     // Get underlying mint
     const underlyingMint = new PublicKey(CONFIG.mints.underlying.address);
 
-    // Derive strategy PDA (using index 0)
+    // Define vault index (matching with init script)
+    const vaultIndex = 2; // third vault
+    console.log("Using Vault Index:", vaultIndex);
+
+    // Derive strategy PDA using vaultIndex
     const [vaultPDA] = anchor.web3.PublicKey.findProgramAddressSync(
       [
         Buffer.from("vault"),
-        new anchor.BN(0).toArrayLike(Buffer, 'le', 8)
+        new anchor.BN(vaultIndex).toArrayLike(Buffer, 'le', 8)
       ],
       vaultProgram.programId
     );
 
     const [strategy] = anchor.web3.PublicKey.findProgramAddressSync(
       [vaultPDA.toBuffer(), 
-        new anchor.BN(0).toArrayLike(Buffer, 'le', 8)
+        new anchor.BN(vaultIndex).toArrayLike(Buffer, 'le', 8)
       ],
       strategyProgram.programId
     );
@@ -71,7 +75,7 @@ async function main() {
     console.log(`Found ${assetSymbols.length} assets to initialize invest trackers for:`, assetSymbols);
 
     // Initialize invest trackers for each asset
-    for (const symbol of assetSymbols.slice(0)) {
+    for (const symbol of assetSymbols.slice(2)) {
       const assetConfig = assets[symbol];
       const assetMint = new PublicKey(assetConfig.address);
       const whirlpool = new PublicKey(assetConfig.pool.id);
