@@ -10,7 +10,7 @@ use anchor_lang::prelude::*;
 pub use state::{SharesConfig, VaultConfig};
 pub use instructions::*;
 
-declare_id!("HdQsT53sANBQmPb6xWRaZXUzAXydLteNsJW1Y6kJDbMm");
+declare_id!("8Y5ZEEnhiNdvGHbfiZVj2eSawrNrQTKd9jPEFqnnKizC");
 
 #[program]
 pub mod tokenized_vault {

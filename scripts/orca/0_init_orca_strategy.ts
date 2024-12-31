@@ -58,14 +58,14 @@ async function main() {
     console.log("Accountant Program ID:", accountantProgram.programId.toBase58());
 
     // 3. Initialize Access Control
-    console.log("Initializing Access Control...");
-    await accessControlProgram.methods.initialize()
-      .accounts({
-        admin: admin.publicKey,
-      })
-      .signers([admin])
-      .rpc();
-    console.log("Access Control initialized.");
+    // console.log("Initializing Access Control...");
+    // await accessControlProgram.methods.initialize()
+    //   .accounts({
+    //     admin: admin.publicKey,
+    //   })
+    //   .signers([admin])
+    //   .rpc();
+    // console.log("Access Control initialized.");
 
     // 4. Define Roles
     const ROLES = {
@@ -79,123 +79,128 @@ async function main() {
     };
 
     // 5. Set Role Managers
-    console.log("Setting Role Managers...");
-    await accessControlProgram.methods.setRoleManager(ROLES.VAULTS_ADMIN, ROLES.ROLES_ADMIN)
-      .accounts({
-        signer: admin.publicKey,
-      })
-      .signers([admin])
-      .rpc();
-    console.log("Vaults Admin Role Manager set.");
+    // console.log("Setting Role Managers...");
+    // await accessControlProgram.methods.setRoleManager(ROLES.VAULTS_ADMIN, ROLES.ROLES_ADMIN)
+    //   .accounts({
+    //     signer: admin.publicKey,
+    //   })
+    //   .signers([admin])
+    //   .rpc();
+    // console.log("Vaults Admin Role Manager set.");
 
-    await accessControlProgram.methods.setRoleManager(ROLES.REPORTING_MANAGER, ROLES.ROLES_ADMIN)
-      .accounts({
-        signer: admin.publicKey,
-      })
-      .signers([admin])
-      .rpc();
-    console.log("Reporting Manager Role Manager set.");
+    // await accessControlProgram.methods.setRoleManager(ROLES.REPORTING_MANAGER, ROLES.ROLES_ADMIN)
+    //   .accounts({
+    //     signer: admin.publicKey,
+    //   })
+    //   .signers([admin])
+    //   .rpc();
+    // console.log("Reporting Manager Role Manager set.");
 
-    await accessControlProgram.methods.setRoleManager(ROLES.STRATEGIES_MANAGER, ROLES.ROLES_ADMIN)
-      .accounts({
-        signer: admin.publicKey,
-      })
-      .signers([admin])
-      .rpc();
-    console.log("Strategies Manager Role Manager set.");
+    // await accessControlProgram.methods.setRoleManager(ROLES.STRATEGIES_MANAGER, ROLES.ROLES_ADMIN)
+    //   .accounts({
+    //     signer: admin.publicKey,
+    //   })
+    //   .signers([admin])
+    //   .rpc();
+    // console.log("Strategies Manager Role Manager set.");
 
-    await accessControlProgram.methods.setRoleManager(ROLES.ACCOUNTANT_ADMIN, ROLES.ROLES_ADMIN)
-      .accounts({
-        signer: admin.publicKey,
-      })
-      .signers([admin])
-      .rpc();
-    console.log("Accountant Admin Role Manager set.");
+    // await accessControlProgram.methods.setRoleManager(ROLES.ACCOUNTANT_ADMIN, ROLES.ROLES_ADMIN)
+    //   .accounts({
+    //     signer: admin.publicKey,
+    //   })
+    //   .signers([admin])
+    //   .rpc();
+    // console.log("Accountant Admin Role Manager set.");
 
-    await accessControlProgram.methods.setRoleManager(ROLES.KYC_PROVIDER, ROLES.ROLES_ADMIN)
-      .accounts({
-        signer: admin.publicKey,
-      })
-      .signers([admin])
-      .rpc();
-    console.log("KYC Provider Role Manager set.");
+    // await accessControlProgram.methods.setRoleManager(ROLES.KYC_PROVIDER, ROLES.ROLES_ADMIN)
+    //   .accounts({
+    //     signer: admin.publicKey,
+    //   })
+    //   .signers([admin])
+    //   .rpc();
+    // console.log("KYC Provider Role Manager set.");
 
-    await accessControlProgram.methods.setRoleManager(ROLES.KYC_VERIFIED, ROLES.KYC_PROVIDER)
-      .accounts({
-        signer: admin.publicKey,
-      })
-      .signers([admin])
-      .rpc();
-    console.log("KYC Verified Role Manager set.");
+    // await accessControlProgram.methods.setRoleManager(ROLES.KYC_VERIFIED, ROLES.KYC_PROVIDER)
+    //   .accounts({
+    //     signer: admin.publicKey,
+    //   })
+    //   .signers([admin])
+    //   .rpc();
+    // console.log("KYC Verified Role Manager set.");
 
-    // 6. Assign Roles to Admin
-    console.log("Assigning Roles to Admin...");
-    await accessControlProgram.methods.setRole(ROLES.VAULTS_ADMIN, admin.publicKey)
-      .accounts({
-        signer: admin.publicKey,
-      })
-      .signers([admin])
-      .rpc();
-    console.log("Vaults Admin role assigned to Admin.");
+  //   // 6. Assign Roles to Admin
+    // console.log("Assigning Roles to Admin...");
+    // await accessControlProgram.methods.setRole(ROLES.VAULTS_ADMIN, admin.publicKey)
+    //   .accounts({
+    //     signer: admin.publicKey,
+    //   })
+    //   .signers([admin])
+    //   .rpc();
+    // console.log("Vaults Admin role assigned to Admin.");
 
-    await accessControlProgram.methods.setRole(ROLES.REPORTING_MANAGER, admin.publicKey)
-      .accounts({
-        signer: admin.publicKey,
-      })
-      .signers([admin])
-      .rpc();
-    console.log("Reporting Manager role assigned to Admin.");
+    // await accessControlProgram.methods.setRole(ROLES.REPORTING_MANAGER, admin.publicKey)
+    //   .accounts({
+    //     signer: admin.publicKey,
+    //   })
+    //   .signers([admin])
+    //   .rpc();
+    // console.log("Reporting Manager role assigned to Admin.");
 
-    await accessControlProgram.methods.setRole(ROLES.REPORTING_MANAGER, REPORT_BOT)
-    .accounts({
-      signer: admin.publicKey,
-    })
-    .signers([admin])
-    .rpc();
-  console.log("Reporting Manager role assigned to REPORT_BOT.");
+  //   await accessControlProgram.methods.setRole(ROLES.REPORTING_MANAGER, REPORT_BOT)
+  //   .accounts({
+  //     signer: admin.publicKey,
+  //   })
+  //   .signers([admin])
+  //   .rpc();
+  // console.log("Reporting Manager role assigned to REPORT_BOT.");
 
-    await accessControlProgram.methods.setRole(ROLES.STRATEGIES_MANAGER, admin.publicKey)
-      .accounts({
-        signer: admin.publicKey,
-      })
-      .signers([admin])
-      .rpc();
-    console.log("Strategies Manager role assigned to Admin.");
+    // await accessControlProgram.methods.setRole(ROLES.STRATEGIES_MANAGER, admin.publicKey)
+    //   .accounts({
+    //     signer: admin.publicKey,
+    //   })
+    //   .signers([admin])
+    //   .rpc();
+    // console.log("Strategies Manager role assigned to Admin.");
 
-    await accessControlProgram.methods.setRole(ROLES.STRATEGIES_MANAGER, REPORT_BOT)
-    .accounts({
-      signer: admin.publicKey,
-    })
-    .signers([admin])
-    .rpc();
-  console.log("Strategies Manager role assigned to REPORT_BOT.");
+  //   await accessControlProgram.methods.setRole(ROLES.STRATEGIES_MANAGER, REPORT_BOT)
+  //   .accounts({
+  //     signer: admin.publicKey,
+  //   })
+  //   .signers([admin])
+  //   .rpc();
+  // console.log("Strategies Manager role assigned to REPORT_BOT.");
 
-    await accessControlProgram.methods.setRole(ROLES.ACCOUNTANT_ADMIN, admin.publicKey)
-      .accounts({
-        signer: admin.publicKey,
-      })
-      .signers([admin])
-      .rpc();
-    console.log("Accountant Admin role assigned to Admin.");
+    // await accessControlProgram.methods.setRole(ROLES.ACCOUNTANT_ADMIN, admin.publicKey)
+    //   .accounts({
+    //     signer: admin.publicKey,
+    //   })
+    //   .signers([admin])
+    //   .rpc();
+    // console.log("Accountant Admin role assigned to Admin.");
 
-    //set up accountant
+  //   //set up accountant
 
         // 1. Initialize accountant config
-        await accountantProgram.methods
-        .initialize()
-        .accounts({
-          admin: admin.publicKey,
-        })
-        .signers([admin])
-        .rpc();
+        // console.log("Initializing Accountant Config...");
+        // await accountantProgram.methods
+        // .initialize()
+        // .accounts({
+        //   admin: admin.publicKey,
+        // })
+        // .signers([admin])
+        // .rpc();
+        // console.log("Accountant Config initialized.");
+
     // 2. Initialize accountant
-    await accountantProgram.methods
-      .initAccountant(accountantType)
-      .accounts({
-        signer: admin.publicKey,
-      })
-      .signers([admin])
-      .rpc();
+    // console.log("Initializing Accountant...");
+    // await accountantProgram.methods
+    //   .initAccountant(accountantType)
+    //   .accounts({
+    //     signer: admin.publicKey,
+    //   })
+    //   .signers([admin])
+    //   .rpc();
+    // console.log("Accountant initialized.");
 
       //calculate accountant PDA
       const accountant = anchor.web3.PublicKey.findProgramAddressSync(
@@ -204,48 +209,50 @@ async function main() {
         ],
         accountantProgram.programId
       )[0];
+      console.log("Accountant PDA:", accountant.toBase58());
 
-    // 3. Initialize token account for accountant
-    await accountantProgram.methods
-      .initTokenAccount()
-      .accounts({
-        signer: admin.publicKey,
-        accountant,
-        underlyingMint,
-      })
-      .signers([admin])
-      .rpc();
+    // // 3. Initialize token account for accountant
+    // await accountantProgram.methods
+    //   .initTokenAccount()
+    //   .accounts({
+    //     signer: admin.publicKey,
+    //     accountant,
+    //     underlyingMint,
+    //   })
+    //   .signers([admin])
+    //   .rpc();
+    // console.log("Accountant token account initialized.");
 
-      //set fee
-
-      await accountantProgram.methods.setFee(new BN(500))
-      .accounts({
-        accountant: accountant,
-        signer: admin.publicKey,
-      })
-      .signers([admin])
-      .rpc();
-
-    // 7. Initialize Vault Config
+  //     //set fee
+      // console.log("Setting fee...");
+      // await accountantProgram.methods.setFee(new BN(500))
+      // .accounts({
+      //   accountant: accountant,
+      //   signer: admin.publicKey,
+      // })
+      // .signers([admin])
+      // .rpc();
+      // console.log("Fee set.");
+  //   // 7. Initialize Vault Config
     console.log("Initializing Vault Config...");
     const configPDA = anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("CONFIG_SEED")],
+      [Buffer.from("config")],
       vaultProgram.programId
     )[0];
-
+    console.log("Config PDA:", configPDA.toBase58());
     // Try to initialize the config account
-    try {
-      console.log("Creating config account");
-      await vaultProgram.methods.initialize()
-        .accounts({
-          admin: admin.publicKey,
-        })
-        .signers([admin])
-        .rpc();
-      console.log("Config account initialized");
-    } catch (error) {
-      console.log("Config account might already exist, continuing...");
-    }
+    // try {
+      // console.log("Creating config account");
+      // await vaultProgram.methods.initialize()
+      //   .accounts({
+      //     admin: admin.publicKey,
+      //   })
+      //   .signers([admin])
+      //   .rpc();
+      // console.log("Config account initialized");
+    // } catch (error) {
+      // console.log("Config account might already exist, continuing...");
+    // }
 
     // Simplify the config fetching logic for first vault
     const vaultIndex = 0; // First vault
@@ -264,6 +271,8 @@ async function main() {
       [Buffer.from("shares"), vault.toBuffer()],
       vaultProgram.programId
     )[0];
+
+    console.log("Shares Mint:", sharesMint.toBase58());
     
     // 8. Derive Metadata PDA for Vault Shares
     const [metadataAddress] = anchor.web3.PublicKey.findProgramAddressSync(
@@ -288,60 +297,65 @@ async function main() {
     };
 
     // 9. Initialize Vault
-    await vaultProgram.methods.initVault(vaultConfig)
-      .accounts({
-        underlyingMint,
-        signer: admin.publicKey,
-        tokenProgram: TOKEN_PROGRAM_ID,
-      })
-      .signers([admin])
-      .rpc();
-    console.log("Vault initialized.");
+    // await vaultProgram.methods.initVault(vaultConfig)
+    //   .accounts({
+    //     underlyingMint,
+    //     signer: admin.publicKey,
+    //     tokenProgram: TOKEN_PROGRAM_ID,
+    //   })
+    //   .signers([admin])
+    //   .rpc();
+    // console.log("Vault initialized.");
 
     // Whitelist admin for vault operations
-    await vaultProgram.methods.whitelist(admin.publicKey)
-      .accounts({
-        vault: vault,
-      })
-      .signers([admin])
-      .rpc();
+    // await vaultProgram.methods.whitelist(admin.publicKey)
+    //   .accounts({
+    //     vault: vault,
+    //   })
+    //   .signers([admin])
+    //   .rpc();
 
-    console.log("Admin whitelisted for vault operations");
+    // console.log("Admin whitelisted for vault operations");
 
-    // 10. Initialize Vault Shares
+  //   // 10. Initialize Vault Shares
     const sharesConfig = CONFIG.shares_config;
-    
-    await vaultProgram.methods.initVaultShares(new BN(vaultIndex), sharesConfig)
-      .accounts({
-        metadata: metadataAddress,
-        signer: admin.publicKey,
-      })
-      .signers([admin])
-      .rpc();
-    console.log("Vault Shares initialized.");
+    // console.log("Initializing Vault Shares...");
+    // await vaultProgram.methods.initVaultShares(new BN(vaultIndex), sharesConfig)
+    //   .accounts({
+    //     metadata: metadataAddress,
+    //     signer: admin.publicKey,
+    //   })
+    //   .signers([admin])
+    //   .rpc();
+    // console.log("Vault Shares initialized.");
 
-    await accountantProgram.methods
-    .initTokenAccount()
-    .accounts({
-      signer: admin.publicKey,
-      accountant,
-      underlyingMint: sharesMint,
-    })
-    .signers([admin])
-    .rpc();
+    // console.log("Initializing Token Account...");
+    // await accountantProgram.methods
+    // .initTokenAccount()
+    // .accounts({
+    //   signer: admin.publicKey,
+    //   accountant,
+    //     underlyingMint: sharesMint,
+    //   })
+    //   .signers([admin])
+    //   .rpc();
+    // console.log("Token Account initialized.");
 
 
-    await accountantProgram.methods
-      .initTokenAccount()
-      .accounts({
-        signer: admin.publicKey,
-        accountant,
-        underlyingMint,
-      })
-      .signers([admin])
-      .rpc();
+    // console.log("Initializing Token Account...");
+    // await accountantProgram.methods
+    //   .initTokenAccount()
+    //   .accounts({
+    //     signer: admin.publicKey,
+    //     accountant,
+    //     underlyingMint,
+    //   })
+    //   .signers([admin])
+    //   .rpc();
+    // console.log("Token Account initialized.");
+    //done 32SWQ18UGdPbgu2Nu7bDsgY2tTPsYEneBbUJd3R1hTjfAnreGDDyamREo28rwtSER6AxLbZLm7G8EvKN34eZnpaA
 
-    // 12. Define Strategy Configuration
+  //   // 12. Define Strategy Configuration
     const strategyType = { orca: {} };
     const strategyConfig = new OrcaStrategyConfig({
       depositLimit: new BN(1_000_000_000),
@@ -351,7 +365,7 @@ async function main() {
       feeManager: admin.publicKey,
     });
 
-    // 13. Serialize Strategy Configuration
+  //   // 13. Serialize Strategy Configuration
     const configBytes = Buffer.from(borsh.serialize(OrcaStrategyConfigSchema, strategyConfig));
     console.log("Strategy Config Bytes:", configBytes);
 
@@ -384,44 +398,48 @@ async function main() {
     );
 
     // Initialize Strategy Program
-    console.log("Initializing Strategy Program Config...");
-    await strategyProgram.methods.initialize()
-      .accounts({
-        admin: admin.publicKey,
-      })
-      .signers([admin])
-      .rpc();
-    console.log("Strategy Program Config initialized.");
+    // console.log("Initializing Strategy Program Config...");
+    // await strategyProgram.methods.initialize()
+    //   .accounts({
+    //     admin: admin.publicKey,
+    //   })
+    //   .signers([admin])
+    //   .rpc();
+    // console.log("Strategy Program Config initialized.");
+    //done
 
     // Initialize Strategy Program Config
-    await strategyProgram.methods.initStrategy(strategyType, configBytes)
-      .accounts({
-        underlyingMint,
-        vault,
-        signer: admin.publicKey,
-        tokenProgram: TOKEN_PROGRAM_ID,
-      })
-      .signers([admin])
-      .rpc();
-    console.log("Strategy initialized.");
-
+    // console.log("Initializing Strategy...");
+    // await strategyProgram.methods.initStrategy(strategyType, configBytes)
+    //   .accounts({
+    //     underlyingMint,
+    //     vault,
+    //     signer: admin.publicKey,
+    //     tokenProgram: TOKEN_PROGRAM_ID,
+    //   })
+    //   .signers([admin])
+    //   .rpc();
+    // console.log("Strategy initialized.");
+    //done
+    
     // 15. Add Strategy to Vault
-    await vaultProgram.methods.addStrategy(new BN(1000000000))
-      .accounts({
-        vault,
-        strategy,
-        signer: admin.publicKey,
-      })
-      .signers([admin])
-      .rpc();
-    console.log("Strategy added to Vault.");
+    // console.log("adding to vault")
+    // await vaultProgram.methods.addStrategy(new BN(1000000000))
+    //   .accounts({
+    //     vault,
+    //     strategy,
+    //     signer: admin.publicKey,
+    //   })
+    //   .signers([admin])
+    //   .rpc();
+    // console.log("Strategy added to Vault.");
     
 
-    // 16. Final Logs
-    console.log("Initialization complete!");
-    console.log("Environment:", ENV);
-    console.log("Vault Address:", vault.toBase58());
-    console.log("Strategy Address:", strategy.toBase58());
+  //   // 16. Final Logs
+  //   console.log("Initialization complete!");
+  //   console.log("Environment:", ENV);
+  //   console.log("Vault Address:", vault.toBase58());
+  //   console.log("Strategy Address:", strategy.toBase58());
 
   } catch (error) {
     console.error("Error occurred:", error);

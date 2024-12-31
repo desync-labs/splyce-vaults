@@ -82,7 +82,7 @@ async function main() {
     const strategyProgram = anchor.workspace.Strategy as Program<Strategy>;
 
     // Load admin keypair
-    const secretKeyPath = path.resolve(process.env.HOME!, ".config/solana/id.json");
+    const secretKeyPath = path.resolve(process.env.HOME!, `.config/solana/${ENV === 'mainnet' ? 'mainnet.json' : 'id.json'}`);
     const secretKey = new Uint8Array(JSON.parse(fs.readFileSync(secretKeyPath, 'utf8')));
     const admin = anchor.web3.Keypair.fromSecretKey(secretKey);
 

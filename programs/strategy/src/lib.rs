@@ -12,7 +12,7 @@ pub use constants::*;
 pub use instructions::*;
 pub use state::*;
 
-declare_id!("AVjatxXi6aRfjxdCbzqffGqmiaJLWXuKFAbkA6FeKymW");
+declare_id!("Ce2HhVGaVASoDmThWkzBQfnTjjAmQ8oPnEc1iAXqLxYm");
 
 // we need to define a trait for the strategies
 // they aren't defined otherwise, because we work with unchecked accounts

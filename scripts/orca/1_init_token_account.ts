@@ -75,8 +75,19 @@ async function main() {
       const assetConfig = assets[symbol];
       const assetMint = new PublicKey(assetConfig.address);
 
+      // Calculate token account PDA
+      const [tokenAccount] = PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("token_account"),
+          assetMint.toBytes(),
+          strategy.toBytes(),
+        ],
+        strategyProgram.programId
+      );
+
       console.log(`\nInitializing token account for ${symbol}...`);
       console.log(`Asset mint address: ${assetMint.toBase58()}`);
+      console.log(`Token account address: ${tokenAccount.toBase58()}`);
 
       try {
         await strategyProgram.methods

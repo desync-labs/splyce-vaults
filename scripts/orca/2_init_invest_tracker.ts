@@ -71,7 +71,7 @@ async function main() {
     console.log(`Found ${assetSymbols.length} assets to initialize invest trackers for:`, assetSymbols);
 
     // Initialize invest trackers for each asset
-    for (const symbol of assetSymbols) {
+    for (const symbol of assetSymbols.slice(0)) {
       const assetConfig = assets[symbol];
       const assetMint = new PublicKey(assetConfig.address);
       const whirlpool = new PublicKey(assetConfig.pool.id);
