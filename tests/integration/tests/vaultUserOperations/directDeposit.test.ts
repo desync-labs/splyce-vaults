@@ -22,7 +22,7 @@ import {
 import * as token from "@solana/spl-token";
 import { SimpleStrategyConfig } from "../../../utils/schemas";
 
-describe.only("Vault User Operations: Direct Deposit Tests", () => {
+describe("Vault User Operations: Direct Deposit Tests", () => {
   // Test Role Accounts
   let rolesAdmin: anchor.web3.Keypair;
   let generalAdmin: anchor.web3.Keypair;
