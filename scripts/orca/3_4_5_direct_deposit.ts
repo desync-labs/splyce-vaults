@@ -78,7 +78,7 @@ async function main() {
     anchor.setProvider(provider);
 
     // Load admin keypair
-    const secretKeyPath = path.resolve(process.env.HOME!, ".config/solana/id.json");
+    const secretKeyPath = path.resolve(process.env.HOME!, ".config/solana/mainnet.json");
     const secretKey = new Uint8Array(JSON.parse(fs.readFileSync(secretKeyPath, 'utf8')));
     const admin = anchor.web3.Keypair.fromSecretKey(secretKey);
 
@@ -86,7 +86,7 @@ async function main() {
     const strategyProgram = anchor.workspace.Strategy as Program<Strategy>;
 
     // Get vault PDA
-    const vaultIndex = 0;
+    const vaultIndex = 2;
     const [vaultPDA] = anchor.web3.PublicKey.findProgramAddressSync(
       [
         Buffer.from("vault"),
@@ -95,11 +95,15 @@ async function main() {
       vaultProgram.programId
     );
 
-    // Get strategy PDA
+    console.log("Vault PDA:", vaultPDA.toBase58());
+
+    // Get strategy PDA (using vaultIndex instead of hardcoded 0)
     const [strategy] = anchor.web3.PublicKey.findProgramAddressSync(
-      [vaultPDA.toBuffer(), new BN(0).toArrayLike(Buffer, 'le', 8)],
+      [vaultPDA.toBuffer(), new BN(vaultIndex).toArrayLike(Buffer, 'le', 8)],
       strategyProgram.programId
     );
+
+    console.log("Strategy PDA:", strategy.toBase58());
 
     // Get shares mint PDA
     const [sharesMint] = anchor.web3.PublicKey.findProgramAddressSync(
@@ -189,25 +193,46 @@ async function main() {
       // Select the correct tick arrays based on pool ID
       let tickArrayAddresses;
       switch (asset.pool.id) {
-        case '3KBZiL2g8C7tiJ32hTv5v3KM7aK9htpqTw4cTXz1HvPt':
+        case '8QaXeHBrShJTdtN1rWCccBxpSVvKksQ2PCu5nufb2zbk': //BONK
           tickArrayAddresses = [
-            '3aBJJLAR3QxGcGsesNXeW3f64Rv3TckF7EQ6sXtAuvGM',
-            '7knZZ461yySGbSEHeBUwEpg3VtAkQy8B9tp78RGgyUHE',
-            'CpoSFo3ajrizueggtJr2ZjvYgdtkgugXtvhqcwkyCkKP'
+            '3PPzT57LeR33sahQNKNPn3Zz7xaBJ3GvriEYXZCuBaUE',
+            'B75fBdZrMCXjGSgvAr6pDwv5ZUyR5dbZVQ3cu7SS3VFP',
+            'AgdM8Go2TNSbmACjxG5m5Gem45eu9vG6u752qwGjC6Ec'
           ];
           break;
-        case '63cMwvN8eoaD39os9bKP8brmA7Xtov9VxahnPufWCSdg':
+        case '6pLFuygN2yLg6fAJ4JRtdDfKaugcY51ZYK5PTjFZMa5s': //PENGU
           tickArrayAddresses = [
-            'EBHQcAfc4ncUkCxgGYxEWCSu744qFaBEBmyv3U9ajNzX',
-            '8Eh57hMUNffNpQPb4K2nQZFPguiYgnCSi2ehvtmuE2PA',
-            'FpGrraM6rZN1AkxMTyJrASda4q6BSdGJgqj544S1vcjL'
+            '6J91prWMk3u95Xc3MtmGax4vnGZcwpBnive61wm71m6w',
+            'DSg23ei74BfkokGn5pyZE6FQRxVh5fbXFQ6Pk5U4JACv',
+            'GpQEB8cpcGNAB8EPi8aAnWtzZ8uXcTk1AbtNgYV4aqtQ'
           ];
           break;
-        case 'EgxU92G34jw6QDG9RuTX9StFg1PmHuDqkRKAE5kVEiZ4':
+        case 'CN8M75cH57DuZNzW5wSUpTXtMrSfXBFScJoQxVCgAXes': // WIF
           tickArrayAddresses = [
-            '9H4aVdyXbnnmbSJLjYahvZzrgdHyWVMq8i1v1fD7jqBt',
-            'G13PKFAkn7rLHVT1fGbLPKAQFiMe6GiRKZ6e8ipxcn9q',
-            '76ntKkVqoLqakqHb6TdkWKuD9kNv2JbPL3k6EHudWHxd'
+            '3Z4k6Pj8XNg2GpYsw4GbvwhPaagcm2gLC545W5LPUC8B',
+            'C3AnpNzNid5dt6qsBg2516vTTKp87wVw7DdnRTwecKfL',
+            'HwXApimTPcnw7JSqNxT5PcpUmqQ1bmfdbQZPp1BWq3ro'
+          ];
+          break;
+        case '55BrDTCLWayM16GwrMEQU57o4PTm6ceF9wavSdNZcEiy': // wBTC 
+          tickArrayAddresses = [
+            'CDwMWZzgxuX55adyGqZarH8S8MaZVZ8QWV27wvKuAGSe',
+            'Hxz4DkfTtCT1wmcQW4VhKKcwDUxsmnW2JYqQiZsXEPWW',
+            '94FteVE3md4JKzQpxh9yLJ6VYDWCykJCcrDhYaFjw7hX'
+          ];
+          break;
+        case 'AU971DrPyhhrpRnmEBp5pDTWL2ny7nofb5vYBjDJkR2E': // whETH 
+          tickArrayAddresses = [
+            '29gTuNdR8WY1ykX3RNfpmihoWb7MFHKZADoQhQfmKwk9',
+            '8FWug1pT6s38BxTRYZMQUB3nTVM5sbtx5CoBypTV3kRF',
+            '5CQq46j1Uke7twCb8DfevHmbc6nXMuhA42XdmhtkLNTY'
+          ];
+          break;
+        case 'Czfq3xZZDmsdGdUyrNLtRhGc47cXcZtLG4crryfu44zE': //  SOL
+          tickArrayAddresses = [
+            '38d2DowiQEn1BUxqHWt38yp4pZHjDzU87hynZ7dLnmYJ',
+            '3M9oTcoC5viBCNuJEKgwCrQDEbE3Rh6CpTGP5C2jGHzU',
+            'Dbj8nbAEZPpQvNqhDRGVrwQ2Y2gejNrnGFJ1xPS38TXJ'
           ];
           break;
         default:
