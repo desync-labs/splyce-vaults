@@ -38,10 +38,11 @@ pub trait StrategyGetters {
     /// Returns the total funds in the strategy, this value is affected by gains and losses
     fn total_assets(&self) -> u64;
     fn available_deposit(&self) -> u64;
-    fn available_withdraw(&self) -> u64;
+    fn available_withdraw(&self, underlying_token_acc: &AccountInfo) -> u64;
     fn token_account(&self) -> Pubkey;
     fn underlying_mint(&self) -> Pubkey;
     fn total_invested(&self) -> u64;
+    fn auto_deploy_funds(&self) -> bool;
 }
 
 pub trait Strategy: 

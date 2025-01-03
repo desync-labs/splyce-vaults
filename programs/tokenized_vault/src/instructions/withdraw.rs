@@ -205,7 +205,7 @@ fn validate_max_withdraw<'info>(
                 to_withdraw, 
                 current_debt
             )?;
-            let strategy_limit = strategy_utils::get_max_withdraw(&strategy_accounts.strategy_acc)?;
+            let strategy_limit = strategy_utils::get_max_withdraw(&strategy_accounts.strategy_acc, &strategy_accounts.strategy_token_account)?;
 
             if strategy_limit < to_withdraw - unrealised_loss {
                 let new_unrealised_loss = (unrealised_loss * strategy_limit) / to_withdraw;
@@ -262,7 +262,7 @@ fn withdraw_assets<'info>(
             let mut current_debt = strategies[i].strategy_data.current_debt();
 
             let mut to_withdraw = std::cmp::min(assets_needed as u64, current_debt);
-            let strategy_limit = strategy_utils::get_max_withdraw(&strategy_acc)?;
+            let strategy_limit = strategy_utils::get_max_withdraw(&strategy_acc, &strategies[i].strategy_token_account)?;
             let mut unrealised_loss_share = strategy_utils::assess_share_of_unrealised_losses(
                 &strategy_acc,
                 to_withdraw, 

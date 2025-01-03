@@ -2,13 +2,13 @@ use anchor_lang::prelude::*;
 use anchor_spl::token_interface::Mint;
 
 use super::base_strategy::*;
-use super::StrategyType;
 use super::fee_data::*;
+use super::StrategyType;
 
 use crate::error::ErrorCode;
 use crate::events::{StrategyDepositEvent, StrategyInitEvent, StrategyWithdrawEvent};
+use crate::instructions::{DeployFunds, FreeFunds, Rebalance, Report, ReportLoss, ReportProfit};
 use crate::utils::token;
-use crate::instructions::{Report, ReportProfit, ReportLoss, DeployFunds, FreeFunds, Rebalance};
 
 #[account()]
 #[derive(Default, Debug, InitSpace)]
@@ -72,7 +72,7 @@ impl StrategyGetters for SimpleStrategy {
         self.deposit_limit - self.total_assets
     }
 
-    fn available_withdraw(&self) -> u64 {
+    fn available_withdraw(&self, _underlying_token_acc: &AccountInfo) -> u64 {
         self.total_assets - self.total_invested
     }
 
@@ -87,26 +87,32 @@ impl StrategyGetters for SimpleStrategy {
     fn fee_data(&mut self) -> &mut FeeData {
         &mut self.fee_data
     }
+
+    fn auto_deploy_funds(&self) -> bool {
+        false
+    }
 }
 
 impl Strategy for SimpleStrategy {
     fn deposit(&mut self, amount: u64) -> Result<()> {
         self.total_assets += amount;
-        
-        emit!(
-            StrategyDepositEvent 
-            {
-                account_key: self.key(),
-                amount: amount,
-                total_assets: self.total_assets,
-            }
-        );
+
+        emit!(StrategyDepositEvent {
+            account_key: self.key(),
+            amount: amount,
+            total_assets: self.total_assets,
+        });
 
         Ok(())
     }
 
     // remaining[0] - manager token account
-    fn report_profit<'info>(&mut self, accounts: &ReportProfit<'info>, remaining: &[AccountInfo<'info>], profit: u64) -> Result<()> {
+    fn report_profit<'info>(
+        &mut self,
+        accounts: &ReportProfit<'info>,
+        remaining: &[AccountInfo<'info>],
+        profit: u64,
+    ) -> Result<()> {
         if token::get_balance(&remaining[0].to_account_info())? < profit {
             return Err(ErrorCode::InsufficientFunds.into());
         }
@@ -125,21 +131,26 @@ impl Strategy for SimpleStrategy {
 
         self.report(
             &mut Report {
-            strategy: accounts.strategy.clone(),
-            underlying_token_account: underlying_token_account.clone(),
-            underlying_mint: accounts.underlying_mint.clone(),
-            token_program: accounts.token_program.clone(),
-            signer: accounts.signer.clone(),
-            }, 
-            &remaining
+                strategy: accounts.strategy.clone(),
+                underlying_token_account: underlying_token_account.clone(),
+                underlying_mint: accounts.underlying_mint.clone(),
+                token_program: accounts.token_program.clone(),
+                signer: accounts.signer.clone(),
+            },
+            &remaining,
         )?;
 
         Ok(())
     }
 
     /// remaining[0] - manager token account
-    fn report_loss<'info>(&mut self, accounts: &ReportLoss<'info>, remaining: &[AccountInfo<'info>], loss: u64) -> Result<()> {
-        if  accounts.underlying_token_account.amount < loss {
+    fn report_loss<'info>(
+        &mut self,
+        accounts: &ReportLoss<'info>,
+        remaining: &[AccountInfo<'info>],
+        loss: u64,
+    ) -> Result<()> {
+        if accounts.underlying_token_account.amount < loss {
             return Err(ErrorCode::InsufficientFunds.into());
         }
 
@@ -158,13 +169,13 @@ impl Strategy for SimpleStrategy {
 
         self.report(
             &mut Report {
-            strategy: accounts.strategy.clone(),
-            underlying_token_account: underlying_token_account.clone(),
-            underlying_mint: accounts.underlying_mint.clone(),
-            token_program: accounts.token_program.clone(),
-            signer: accounts.signer.clone(),
-            }, 
-            &remaining
+                strategy: accounts.strategy.clone(),
+                underlying_token_account: underlying_token_account.clone(),
+                underlying_mint: accounts.underlying_mint.clone(),
+                token_program: accounts.token_program.clone(),
+                signer: accounts.signer.clone(),
+            },
+            &remaining,
         )?;
 
         Ok(())
@@ -173,14 +184,11 @@ impl Strategy for SimpleStrategy {
     fn withdraw(&mut self, amount: u64) -> Result<()> {
         self.total_assets -= amount;
 
-        emit!(
-            StrategyWithdrawEvent 
-            {
-                account_key: self.key(),
-                amount: amount,
-                total_assets: self.total_assets,
-            }
-        );
+        emit!(StrategyWithdrawEvent {
+            account_key: self.key(),
+            amount: amount,
+            total_assets: self.total_assets,
+        });
 
         Ok(())
     }
@@ -190,7 +198,11 @@ impl Strategy for SimpleStrategy {
         Ok(())
     }
 
-    fn harvest_and_report<'info>(&mut self, accounts: &Report<'info>, _remining: &[AccountInfo<'info>]) -> Result<u64> {
+    fn harvest_and_report<'info>(
+        &mut self,
+        accounts: &Report<'info>,
+        _remining: &[AccountInfo<'info>],
+    ) -> Result<u64> {
         if accounts.underlying_token_account.key() != self.underlying_token_acc {
             return Err(ErrorCode::InvalidAccount.into());
         }
@@ -198,7 +210,12 @@ impl Strategy for SimpleStrategy {
         Ok(idle_assets + self.total_invested)
     }
 
-    fn deploy_funds<'info>(&mut self, accounts: &DeployFunds<'info>, remaining: &[AccountInfo<'info>], amount: u64) -> Result<()> {
+    fn deploy_funds<'info>(
+        &mut self,
+        accounts: &DeployFunds<'info>,
+        remaining: &[AccountInfo<'info>],
+        amount: u64,
+    ) -> Result<()> {
         self.total_invested += amount;
 
         let seeds = self.seeds();
@@ -252,7 +269,7 @@ impl StrategyInit for SimpleStrategy {
         config_bytes: Vec<u8>
     ) -> Result<()> {
         let config = SimpleStrategyConfig::try_from_slice(&config_bytes)
-        .map_err(|_| ErrorCode::InvalidStrategyConfig)?;
+            .map_err(|_| ErrorCode::InvalidStrategyConfig)?;
 
         self.bump = [bump]; 
         self.index_bytes = index.to_le_bytes();
@@ -269,19 +286,17 @@ impl StrategyInit for SimpleStrategy {
             fee_balance: 0,
         };
 
-        emit!(
-            StrategyInitEvent 
-            {
-                account_key: self.key(),
-                strategy_type: String::from("simple"),
-                vault: self.vault,
-                underlying_mint: self.underlying_mint,
-                underlying_token_acc: self.underlying_token_acc,
-                underlying_decimals: self.underlying_decimals,
-                deposit_limit: self.deposit_limit,
-                deposit_period_ends: 0,
-                lock_period_ends: 0,
-            });
+        emit!(StrategyInitEvent {
+            account_key: self.key(),
+            strategy_type: String::from("simple"),
+            vault: self.vault,
+            underlying_mint: self.underlying_mint,
+            underlying_token_acc: self.underlying_token_acc,
+            underlying_decimals: self.underlying_decimals,
+            deposit_limit: self.deposit_limit,
+            deposit_period_ends: 0,
+            lock_period_ends: 0,
+        });
         Ok(())
     }
 }

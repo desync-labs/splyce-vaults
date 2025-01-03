@@ -110,7 +110,8 @@ fn handle_internal<'a, 'b, 'c, 'info>(
     if new_debt < current_debt {
         let mut assets_to_withdraw = get_assets_to_withdraw(
             &vault,
-            ctx.accounts.strategy.to_account_info(),
+            &ctx.accounts.strategy.to_account_info(),
+            &ctx.accounts.strategy_token_account.to_account_info(),
             current_debt,
             new_debt
         )?;
@@ -178,7 +179,8 @@ fn handle_internal<'a, 'b, 'c, 'info>(
 
 fn get_assets_to_withdraw(
     vault: &Ref<Vault>,
-    strategy_acc: AccountInfo,
+    strategy_acc: &AccountInfo,
+    strategy_token_acc: &AccountInfo,
     current_debt: u64,
     new_debt: u64,
 ) -> Result<u64> {
@@ -192,7 +194,7 @@ fn get_assets_to_withdraw(
         }
     }
 
-    let withdrawable = strategy_utils::get_max_withdraw(&strategy_acc)?;
+    let withdrawable = strategy_utils::get_max_withdraw(&strategy_acc, &strategy_token_acc)?;
     if withdrawable == 0 {
         return Err(ErrorCode::CannotWithdraw.into());
     }

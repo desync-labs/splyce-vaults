@@ -80,9 +80,9 @@ pub fn get_vault(strategy_acc: &AccountInfo) -> Result<Pubkey> {
     Ok(strategy.vault())
 }
 
-pub fn get_max_withdraw(strategy_acc: &AccountInfo) -> Result<u64> {
+pub fn get_max_withdraw(strategy_acc: &AccountInfo, strategy_token_acc: &AccountInfo) -> Result<u64> {
     let strategy = deserialize(strategy_acc)?;
-    Ok(strategy.available_withdraw())
+    Ok(strategy.available_withdraw(strategy_token_acc))
 }
 
 pub fn get_max_deposit(strategy_acc: &AccountInfo) -> Result<u64> {
