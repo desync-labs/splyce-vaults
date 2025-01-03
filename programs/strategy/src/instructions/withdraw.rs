@@ -34,7 +34,7 @@ pub fn handle_withdraw<'info>(
 ) -> Result<()> {
     let mut strategy = ctx.accounts.strategy.from_unchecked()?;
 
-    if amount > strategy.available_withdraw() {
+    if amount > strategy.available_withdraw(&ctx.accounts.underlying_token_account.to_account_info()) {
         return Err(ErrorCode::InsufficientFunds.into());
     }
 

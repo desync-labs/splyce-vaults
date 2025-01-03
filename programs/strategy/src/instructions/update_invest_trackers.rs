@@ -1,7 +1,5 @@
 use anchor_lang::prelude::*;
-use anchor_spl::{
-    token::{ Token },
-};
+use anchor_spl::token::Token;
 use access_control::{
     constants::USER_ROLE_SEED,
     program::AccessControl,

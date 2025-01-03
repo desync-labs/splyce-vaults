@@ -53,7 +53,7 @@ pub fn handle_deposit<'info>(
     strategy.deposit(amount)?;
 
     //if strategy type is orca, we need to call deploy_funds
-    if strategy.strategy_type() == StrategyType::Orca {
+    if strategy.auto_deploy_funds() {
         // Create DeployFunds accounts struct from existing Deposit accounts
         let deploy_funds = DeployFunds {
             strategy: ctx.accounts.strategy.clone(),

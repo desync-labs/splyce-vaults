@@ -14,6 +14,7 @@ use crate::constants::{
     ORCA_ACCOUNTS_PER_SWAP, ORCA_INVEST_TRACKER_OFFSET
 };
 use crate::state::invest_tracker::*;
+use crate::utils::token;
 use crate::utils::{
     get_token_balance,
     orca_utils::compute_asset_per_swap,
@@ -38,16 +39,17 @@ pub struct OrcaStrategy {
     pub total_assets: u64, // In orca, this is not actual total assets but total asset value in underlying token units (total asset value)
     pub deposit_limit: u64, // Use it when testing beta version
 
+    pub auto_deploy_funds: bool,
+
     pub fee_data: FeeData,
 }   
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
 pub struct OrcaStrategyConfig {
     pub deposit_limit: u64,
-    pub deposit_period_ends: i64,
-    pub lock_period_ends: i64,
     pub performance_fee: u64,
     pub fee_manager: Pubkey,
+    pub auto_deploy_funds: bool,
 }
 
 #[error_code]
@@ -509,12 +511,19 @@ impl StrategyGetters for OrcaStrategy {
         self.deposit_limit - self.total_assets
     }
 
-    fn available_withdraw(&self) -> u64 {
-        self.total_assets
+    fn available_withdraw(&self, underlying_token_acc: &AccountInfo) -> u64 {
+        if self.auto_deploy_funds {
+            return self.total_assets
+        }
+        token::get_balance(underlying_token_acc).unwrap()
     }
 
     fn fee_data(&mut self) -> &mut FeeData {
         &mut self.fee_data
+    }
+
+    fn auto_deploy_funds(&self) -> bool {
+        self.auto_deploy_funds
     }
 }
 
@@ -540,6 +549,7 @@ impl StrategyInit for OrcaStrategy {
         self.deposit_limit = config.deposit_limit;
         self.total_assets = 0;
         self.total_invested = 0;
+        self.auto_deploy_funds = config.auto_deploy_funds;
 
         self.fee_data = FeeData {
             fee_manager: config.fee_manager,
@@ -557,8 +567,8 @@ impl StrategyInit for OrcaStrategy {
                 underlying_token_acc: self.underlying_token_acc,
                 underlying_decimals: self.underlying_decimals,
                 deposit_limit: self.deposit_limit,
-                deposit_period_ends: config.deposit_period_ends,
-                lock_period_ends: config.lock_period_ends,
+                deposit_period_ends: 0,
+                lock_period_ends: 0,
             });
 
         Ok(())
